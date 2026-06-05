@@ -26,6 +26,7 @@ function sumDigits(n: number) { return [...String(n)].reduce((a, d) => a + +d, 0
 
 export default function App() {
   const [navScrolled, setNavScrolled] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
   // Calculator state
@@ -193,24 +194,56 @@ export default function App() {
       <div className="font-serif absolute text-gold pointer-events-none float-anim text-4xl top-1/3 right-1/2" style={{ animationDelay: '5s' }}>✦</div>
 
       {/* ═══ NAV ═══ */}
-      <nav id="nav" className={`fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12 py-4 md:py-6 transition-all duration-500 ${navScrolled ? 'bg-bg-dark/95 border-b border-gold-bd backdrop-blur-xl' : 'border-b border-transparent'}`}>
-        <a href="#" className="flex items-center">
-          <img src="/logo.png" alt="SEVEN 7" className="h-14 md:h-20 w-auto object-contain" />
-        </a>
-        <ul className="hidden md:flex gap-10 text-[11px] uppercase tracking-[0.2em] text-muted">
-          <li><a href="#services" className="hover:text-gold transition-colors">Services</a></li>
-          <li><a href="#about" className="hover:text-gold transition-colors">About</a></li>
-          <li><a href="#calculator" className="hover:text-gold transition-colors">Calculator</a></li>
-          <li><a href="#testimonials" className="hover:text-gold transition-colors">Stories</a></li>
-        </ul>
-        <a href="#booking" className="px-6 py-2 border border-gold/30 text-[11px] uppercase tracking-[0.2em] hover:bg-gold/10 transition-colors text-gold">
-          Book a Session
-        </a>
+      <nav id="nav" className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${navScrolled ? 'bg-bg-dark/95 border-b border-gold-bd backdrop-blur-xl' : 'border-b border-transparent'}`}>
+        <div className="flex items-center justify-between px-6 md:px-12 py-4 md:py-6">
+          <a href="#" className="flex items-center" onClick={(e) => { e.preventDefault(); window.scrollTo({top: 0, behavior: 'smooth'}); setIsMobileMenuOpen(false); }}>
+            <img src="/logo.png" alt="SEVEN 7" className="h-14 md:h-20 w-auto object-contain" />
+          </a>
+          <ul className="hidden md:flex gap-10 text-[11px] uppercase tracking-[0.2em] text-muted items-center">
+            <li><a href="#services" className="hover:text-gold transition-colors">Services</a></li>
+            <li><a href="#about" className="hover:text-gold transition-colors">About</a></li>
+            <li><a href="#calculator" className="hover:text-gold transition-colors">Calculator</a></li>
+            <li><a href="#testimonials" className="hover:text-gold transition-colors">Stories</a></li>
+          </ul>
+          <div className="flex items-center gap-4">
+            <a href="#booking" className="hidden md:inline-block px-6 py-2 border border-gold/30 text-[11px] uppercase tracking-[0.2em] hover:bg-gold/10 transition-colors text-gold">
+              Book a Session
+            </a>
+            <button 
+              className="md:hidden text-gold p-2 cursor-pointer focus:outline-none"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              aria-label="Toggle menu"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                {isMobileMenuOpen ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                )}
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile menu */}
+        <div className={`md:hidden absolute top-full left-0 right-0 bg-bg-dark border-b border-gold-bd transition-all duration-300 overflow-hidden ${isMobileMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
+          <ul className="flex flex-col text-[11px] uppercase tracking-[0.2em] text-muted p-6 gap-6">
+            <li><a href="#services" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block">Services</a></li>
+            <li><a href="#about" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block">About</a></li>
+            <li><a href="#calculator" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block">Calculator</a></li>
+            <li><a href="#testimonials" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block">Stories</a></li>
+            <li className="pt-4 border-t border-gold/10">
+              <a href="#booking" onClick={() => setIsMobileMenuOpen(false)} className="inline-block px-6 py-3 border border-gold/30 text-gold w-fit text-center uppercase tracking-[0.2em]">
+                Book a Session
+              </a>
+            </li>
+          </ul>
+        </div>
       </nav>
 
       <main className="relative z-10 flex-grow flex flex-col items-center">
         {/* ═══ HERO ═══ */}
-        <section id="hero" className="w-full relative z-10 grid grid-cols-1 md:grid-cols-12 gap-8 px-8 md:px-16 items-center min-h-[90vh] pt-32 max-w-[1280px] mx-auto">
+        <section id="hero" className="w-full relative z-10 grid grid-cols-1 md:grid-cols-12 gap-2 lg:gap-8 px-8 md:px-16 items-center min-h-[90vh] pt-32 max-w-[1280px] mx-auto">
           <div className="md:col-span-12 lg:col-span-7 flex flex-col reveal vis">
             <div className="flex items-center gap-4 text-[11px] tracking-[0.35em] uppercase text-gold mb-6">
               <span className="opacity-50">—</span> MASTER NUMEROLOGIST <span className="opacity-50">—</span>
@@ -226,8 +259,8 @@ export default function App() {
               <a href="#booking" className="border border-gold/30 text-gold px-8 py-4 text-xs font-semibold uppercase tracking-[0.2em] hover:bg-gold/10 transition-colors inline-block">Book a Reading</a>
             </div>
           </div>
-          <div className="hidden lg:flex lg:col-span-5 reveal vis justify-center items-center">
-            <img src="/logo.png" alt="SEVEN 7 Logo" className="w-[80%] max-w-[450px] object-contain float-anim-solid" style={{ filter: 'drop-shadow(0px 0px 40px rgba(201,160,80,0.15))' }} />
+          <div className="flex md:col-span-12 lg:col-span-5 reveal vis justify-center items-center order-first lg:order-none mb-0 lg:mb-0 lg:mt-0 -mb-4">
+            <img src="/logo.png" alt="SEVEN 7 Logo" className="w-[60%] sm:w-[50%] md:w-[40%] lg:w-[80%] max-w-[450px] object-contain float-anim-solid" style={{ filter: 'drop-shadow(0px 0px 40px rgba(201,160,80,0.15))' }} />
           </div>
         </section>
 
