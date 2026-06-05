@@ -8,9 +8,22 @@ export default function Stories() {
 
   useEffect(() => {
     fetch('/api/testimonials')
-      .then(res => res.json())
+      .then(async res => {
+          if (!res.ok) throw new Error("Fetch failed");
+          const text = await res.text();
+          if (!text) throw new Error("Empty response");
+          return JSON.parse(text);
+      })
       .then(data => setTestimonials(data))
-      .catch(err => console.error(err));
+      .catch(err => {
+          console.error("Could not fetch testimonials, using defaults", err);
+          setTestimonials([
+            { id: 1, text: '"My session was nothing short of revelatory. The accuracy with which the numbers reflected my life\'s patterns left me speechless. I finally understand why certain things kept repeating."', initial: 'P', name: 'Priya Malhotra', loc: 'Mumbai, India', date: 'October 2023', rating: 5 },
+            { id: 2, text: '"I was at a complete crossroads in my career. The reading gave me the courage and clarity to make a decision I\'d been avoiding for two years. Genuinely life-changing."', initial: 'R', name: 'Rohan Kapoor', loc: 'Bangalore, India', date: 'November 2023', rating: 5 },
+            { id: 3, text: '"The relationship compatibility reading transformed how my partner and I communicate. Understanding our numbers made everything feel less like conflict and more like growth."', initial: 'A', name: 'Anjali Singh', loc: 'Delhi, India', date: 'January 2024', rating: 5 },
+            { id: 4, text: '"Simply incredible. The insights into my personal year cycle explained exactly what I was feeling."', initial: 'S', name: 'Sarah T.', loc: 'London, UK', date: 'March 2024', rating: 5 }
+          ]);
+      });
   }, []);
 
   const nextSlide = () => {

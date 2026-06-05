@@ -25,7 +25,12 @@ export default function Calculator() {
 
   useEffect(() => {
     fetch('/api/life_paths')
-      .then(res => res.json())
+      .then(async res => {
+          if (!res.ok) throw new Error("Fetch failed");
+          const text = await res.text();
+          if (!text) throw new Error("Empty response");
+          return JSON.parse(text);
+      })
       .then((data: LifePath[]) => {
          const lpMap: Record<number, {name: string, desc: string}> = {};
          data.forEach(lp => {
@@ -33,7 +38,32 @@ export default function Calculator() {
          });
          setLifePaths(lpMap);
       })
-      .catch(err => console.error(err));
+      .catch(err => {
+         console.error("Could not fetch life paths, using defaults", err);
+         const defaultPaths = [
+          { id: 1, name: 'The Leader', desc: 'Born to lead, Life Path 1 individuals are independent, ambitious, and determined.' },
+          { id: 2, name: 'The Peacemaker', desc: 'Gifted with sensitivity, intuition, and creativity, Life Path 2 individuals are natural harmonizers.' },
+          { id: 3, name: 'The Creator', desc: 'Life Path 3 individuals are naturally creative, expressive, and charismatic.' },
+          { id: 4, name: 'The Builder', desc: 'Life Path 4 individuals are practical, disciplined, and hardworking.' },
+          { id: 5, name: 'The Explorer', desc: 'Life Path 5 individuals are adventurous, versatile, and freedom-loving.' },
+          { id: 6, name: 'The Nurturer', desc: 'Life Path 6 individuals are compassionate, responsible, and deeply caring.' },
+          { id: 7, name: 'The Seeker', desc: 'Life Path 7 individuals are analytical, intuitive, and deeply spiritual.' },
+          { id: 8, name: 'The Achiever', desc: 'Life Path 8 individuals are ambitious, powerful, and naturally gifted in leadership.' },
+          { id: 9, name: 'The Humanitarian', desc: 'Life Path 9 individuals are compassionate, idealistic, and driven by a desire to make a positive impact on the world.' },
+          { id: 11, name: 'The Visionary', desc: 'Life Path 11 is a Master Number associated with intuition, inspiration, and spiritual insight.' },
+          { id: 13, name: 'The Disciplined Builder', desc: 'Life Path 13/4 is a Karmic Debt number that emphasizes hard work, discipline, and perseverance.' },
+          { id: 14, name: 'The Freedom Seeker', desc: 'Life Path 14/5 is a Karmic Debt number that emphasizes freedom, adaptability, and personal growth through experience.' },
+          { id: 16, name: 'The Spiritual Seeker', desc: 'Life Path 16/7 is a Karmic Debt number associated with wisdom, introspection, and spiritual growth.' },
+          { id: 19, name: 'The Independent Leader', desc: 'Life Path 19/1 is a Karmic Debt number associated with leadership, independence, and self-reliance.' },
+          { id: 22, name: 'The Master Builder', desc: 'Life Path 22 is the most powerful Master Number, combining vision, leadership, and practicality.' },
+          { id: 33, name: 'The Master Teacher', desc: 'Life Path 33 is the Master Teacher, representing unconditional love, compassion, and selfless service.' }
+        ];
+        const lpMap: Record<number, {name: string, desc: string}> = {};
+        defaultPaths.forEach(lp => {
+            lpMap[lp.id] = { name: lp.name, desc: lp.desc };
+        });
+        setLifePaths(lpMap);
+      });
   }, []);
 
   const handleReset = () => {
