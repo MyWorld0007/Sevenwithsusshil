@@ -1,0 +1,333 @@
+import React, { useState, useEffect } from 'react';
+import { Settings, LifePath, Testimonial } from '../Types';
+
+export default function Admin() {
+  const [token, setToken] = useState(localStorage.getItem('admin_token') || '');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const [settings, setSettings] = useState<Settings | null>(null);
+  const [lifePaths, setLifePaths] = useState<LifePath[]>([]);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+
+  const [activeTab, setActiveTab] = useState<'settings' | 'testimonials' | 'lifepaths'>('settings');
+
+  useEffect(() => {
+    if (token) {
+      fetchData();
+    }
+  }, [token]);
+
+  const fetchData = async () => {
+     try {
+       const [setRes, lpRes, testRes] = await Promise.all([
+           fetch('/api/settings'),
+           fetch('/api/life_paths'),
+           fetch('/api/testimonials')
+       ]);
+       setSettings(await setRes.json());
+       setLifePaths(await lpRes.json());
+       setTestimonials(await testRes.json());
+     } catch (err) {
+         console.error(err);
+     }
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const res = await fetch('/api/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+    if (data.token) {
+      localStorage.setItem('admin_token', data.token);
+      setToken(data.token);
+    } else {
+      alert("Invalid login");
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('admin_token');
+    setToken('');
+  };
+
+  const saveSettings = async () => {
+     await fetch('/api/settings', {
+         method: 'PUT',
+         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+         body: JSON.stringify(settings)
+     });
+     alert('Settings saved!');
+  };
+
+  const saveLifePath = async (lp: LifePath) => {
+      await fetch(`/api/life_paths/${lp.id}`, {
+         method: 'PUT',
+         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+         body: JSON.stringify({ name: lp.name, desc: lp.desc })
+     });
+     alert(`Life Path ${lp.id} updated!`);
+  };
+
+  const deleteLifePath = async (id: number) => {
+      if (!confirm(`Delete Life Path ${id}?`)) return;
+      await fetch(`/api/life_paths/${id}`, {
+         method: 'DELETE',
+         headers: { 'Authorization': `Bearer ${token}` }
+     });
+     fetchData();
+  };
+
+  const addLifePath = async (e: any) => {
+      e.preventDefault();
+      const form = e.target;
+      const id = form.id_num.value;
+      const name = form.name.value;
+      const desc = form.desc.value;
+      
+      const res = await fetch('/api/life_paths', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+         body: JSON.stringify({ id, name, desc })
+     });
+     const data = await res.json();
+     if (data.error) {
+         alert(data.error);
+     } else {
+         form.reset();
+         fetchData();
+     }
+  };
+
+  const deleteTestimonial = async (id: number) => {
+      await fetch(`/api/testimonials/${id}`, {
+         method: 'DELETE',
+         headers: { 'Authorization': `Bearer ${token}` }
+     });
+     fetchData();
+  };
+
+  const addTestimonial = async (e: any) => {
+      e.preventDefault();
+      const form = e.target;
+      const text = form.text.value;
+      const name = form.name.value;
+      const loc = form.loc.value;
+      const initial = form.initial.value;
+      const date = form.date.value;
+      const rating = form.rating.value;
+      
+      const res = await fetch('/api/testimonials', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+         body: JSON.stringify({ text, name, loc, initial, date, rating: parseInt(rating) })
+     });
+     const data = await res.json();
+     if (data.error) {
+         alert(data.error);
+     } else {
+         form.reset();
+         fetchData();
+     }
+  };
+
+  if (!token) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 bg-bg-dark text-text-main">
+        <form onSubmit={handleLogin} className="bg-bg-card p-8 border border-gold/20 max-w-sm w-full">
+            <h2 className="text-2xl font-serif text-gold mb-6 text-center">Admin Access</h2>
+            <input type="email" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} className="w-full bg-bg-input border border-gold/20 p-3 mb-4 outline-none focus:border-gold" />
+            <input type="password" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)} className="w-full bg-bg-input border border-gold/20 p-3 mb-6 outline-none focus:border-gold" />
+            <button className="w-full bg-gold text-bg-dark py-3 font-bold uppercase tracking-[0.2em] hover:bg-gold-lt">Login</button>
+        </form>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-screen bg-bg-dark text-text-main font-sans overflow-hidden">
+      {/* Sidebar Navbar */}
+      <aside className="w-64 border-r border-gold/10 bg-bg-card flex flex-col py-8 px-6 overflow-y-auto">
+        <img src="/logo.png" alt="SEVEN 7" className="w-24 mb-10 mx-auto" />
+        <nav className="w-full space-y-2 flex-grow">
+           <button 
+             onClick={() => setActiveTab('settings')} 
+             className={`w-full text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] transition-colors rounded ${activeTab === 'settings' ? 'bg-gold text-bg-dark font-bold' : 'text-gold hover:bg-gold/10'}`}
+           >
+             Contact Settings
+           </button>
+           <button 
+             onClick={() => setActiveTab('testimonials')} 
+             className={`w-full text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] transition-colors rounded ${activeTab === 'testimonials' ? 'bg-gold text-bg-dark font-bold' : 'text-gold hover:bg-gold/10'}`}
+           >
+             Testimonials
+           </button>
+           <button 
+             onClick={() => setActiveTab('lifepaths')} 
+             className={`w-full text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] transition-colors rounded ${activeTab === 'lifepaths' ? 'bg-gold text-bg-dark font-bold' : 'text-gold hover:bg-gold/10'}`}
+           >
+             Life Paths
+           </button>
+        </nav>
+
+        <div className="mt-8 pt-6 border-t border-gold/10">
+           <a href="/" className="block w-full text-center mb-4 text-[10px] text-muted hover:text-gold transition-colors uppercase tracking-widest">← Back to Site</a>
+           <button onClick={handleLogout} className="w-full border border-gold/30 text-gold px-4 py-3 uppercase tracking-[0.1em] text-xs hover:bg-gold/10 rounded">Logout</button>
+        </div>
+      </aside>
+
+      {/* Main Content Areas */}
+      <main className="flex-1 overflow-y-auto p-8 md:p-12 relative bg-bg-dark">
+        {activeTab === 'settings' && settings && (
+          <section className="max-w-3xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <h2 className="text-3xl font-serif mb-8 text-gold">Contact Settings</h2>
+            <div className="bg-bg-card border border-gold/20 p-8 shadow-sm">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                   <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">WhatsApp Number</label>
+                   <input type="text" value={settings.whatsapp} onChange={e=>setSettings({...settings, whatsapp: e.target.value})} className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold" />
+                </div>
+                <div>
+                   <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">WhatsApp Message</label>
+                   <input type="text" value={settings.whatsapp_message} onChange={e=>setSettings({...settings, whatsapp_message: e.target.value})} className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold" />
+                </div>
+                <div>
+                   <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Email Address</label>
+                   <input type="email" value={settings.email} onChange={e=>setSettings({...settings, email: e.target.value})} className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold" />
+                </div>
+                <div>
+                   <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Email Subject</label>
+                   <input type="text" value={settings.email_subject} onChange={e=>setSettings({...settings, email_subject: e.target.value})} className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold" />
+                </div>
+                <div className="md:col-span-2">
+                   <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Email Body</label>
+                   <textarea value={settings.email_body} onChange={e=>setSettings({...settings, email_body: e.target.value})} className="w-full bg-bg-input border border-gold/20 p-3 h-32 outline-none focus:border-gold" />
+                </div>
+              </div>
+              <button onClick={saveSettings} className="bg-gold text-bg-dark px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-gold-lt transition-colors rounded">Save Settings</button>
+            </div>
+          </section>
+        )}
+
+        {activeTab === 'testimonials' && (
+          <section className="max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+             <div className="flex justify-between items-center mb-8">
+               <h2 className="text-3xl font-serif text-gold">Testimonials</h2>
+               <span className="text-xs text-muted uppercase tracking-widest">{testimonials.length} / 7 Setup</span>
+             </div>
+             
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+                {testimonials.map(t => (
+                    <div key={t.id} className="bg-bg-card border border-gold/20 p-6 relative flex flex-col">
+                       <div className="flex justify-end mb-2">
+                           <button onClick={() => deleteTestimonial(t.id)} className="text-[10px] uppercase tracking-widest text-red-500 hover:text-red-400">Delete</button>
+                       </div>
+                       <p className="italic text-[13px] text-muted mb-6 flex-grow">"{t.text}"</p>
+                       <div className="flex justify-between items-center">
+                           <p className="font-medium text-[11px] uppercase tracking-wider text-gold">{t.name} <span className="text-muted/60 ml-1">({t.loc})</span></p>
+                           <div className="text-right">
+                             {t.date && <p className="text-[10px] text-dim tracking-widest uppercase mb-1">{t.date}</p>}
+                             <p className="text-gold text-[10px] tracking-[0.12em]">{'★'.repeat(t.rating || 5)}{'☆'.repeat(5 - (t.rating || 5))}</p>
+                           </div>
+                       </div>
+                    </div>
+                ))}
+             </div>
+
+             {testimonials.length < 7 && (
+                 <div className="bg-bg-card border border-gold/20 p-8 shadow-sm">
+                   <h3 className="text-lg font-serif text-gold mb-6">Add New Testimonial</h3>
+                   <form onSubmit={addTestimonial} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                       <div className="md:col-span-2">
+                           <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Testimonial Text</label>
+                           <textarea name="text" required className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold min-h-[100px]" />
+                       </div>
+                       <div>
+                           <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Reviewer Name</label>
+                           <input type="text" name="name" required className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold" />
+                       </div>
+                       <div>
+                           <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Location</label>
+                           <input type="text" name="loc" required placeholder="e.g. Mumbai, India" className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold" />
+                       </div>
+                       <div>
+                           <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Date</label>
+                           <input type="text" name="date" required placeholder="e.g. October 2023" className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold" />
+                       </div>
+                       <div>
+                           <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Initial (for avatar bubble)</label>
+                           <input type="text" name="initial" required maxLength={1} placeholder="A" className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold" />
+                       </div>
+                       <div>
+                           <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Rating (1-5)</label>
+                           <select name="rating" required className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold">
+                               <option value="5">5 Stars</option>
+                               <option value="4">4 Stars</option>
+                               <option value="3">3 Stars</option>
+                               <option value="2">2 Stars</option>
+                               <option value="1">1 Star</option>
+                           </select>
+                       </div>
+                       <div className="md:col-span-2 mt-4">
+                           <button className="bg-gold text-bg-dark px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-gold-lt transition-colors rounded">Add Testimonial</button>
+                       </div>
+                   </form>
+                 </div>
+             )}
+          </section>
+        )}
+
+        {activeTab === 'lifepaths' && (
+          <section className="max-w-3xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+             <div className="flex justify-between items-center mb-8">
+               <h2 className="text-3xl font-serif text-gold">Life Path Contents</h2>
+             </div>
+             <div className="space-y-6 mb-10">
+                {lifePaths.map(lp => (
+                    <div key={lp.id} className="bg-bg-card border border-gold/20 p-6 flex flex-col relative group">
+                        <div className="flex justify-between items-center mb-4">
+                          <h3 className="text-xl font-serif text-gold">Number {lp.id}</h3>
+                          <div className="space-x-4">
+                            <button onClick={() => deleteLifePath(lp.id)} className="text-[10px] uppercase tracking-widest text-red-500 hover:text-red-400">Delete</button>
+                            <button onClick={() => saveLifePath(lp)} className="border border-gold/30 text-gold px-6 py-2 text-[10px] uppercase tracking-[0.2em] hover:bg-gold/10 transition-colors rounded">Save Update</button>
+                          </div>
+                        </div>
+                        <input type="text" value={lp.name} placeholder="Title (e.g. The Leader)" onChange={e => {
+                            setLifePaths(lifePaths.map(p => p.id === lp.id ? {...p, name: e.target.value} : p));
+                        }} className="w-full bg-bg-input border border-gold/20 p-3 mb-4 outline-none focus:border-gold" />
+                        <textarea value={lp.desc} placeholder="Description" onChange={e => {
+                            setLifePaths(lifePaths.map(p => p.id === lp.id ? {...p, desc: e.target.value} : p));
+                        }} className="w-full bg-bg-input border border-gold/20 p-3 h-28 outline-none focus:border-gold" />
+                    </div>
+                ))}
+             </div>
+
+             <div className="bg-bg-card border border-gold/20 p-8 shadow-sm">
+               <h3 className="text-lg font-serif text-gold mb-6">Add New Life Path</h3>
+               <form onSubmit={addLifePath} className="grid grid-cols-1 gap-6">
+                   <div>
+                       <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Life Path Number</label>
+                       <input type="number" name="id_num" required min="1" max="99" placeholder="e.g. 10" className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold" />
+                   </div>
+                   <div>
+                       <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Title</label>
+                       <input type="text" name="name" required placeholder="e.g. The Master" className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold" />
+                   </div>
+                   <div>
+                       <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Description</label>
+                       <textarea name="desc" required className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold min-h-[100px]" placeholder="Detailed description..." />
+                   </div>
+                   <div className="mt-2">
+                       <button className="bg-gold text-bg-dark px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-gold-lt transition-colors rounded">Add Life Path</button>
+                   </div>
+               </form>
+             </div>
+          </section>
+        )}
+      </main>
+    </div>
+  );
+}

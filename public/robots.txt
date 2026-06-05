@@ -1,5 +1,4 @@
 User-agent: *
 Allow: /
 
-# TODO: Replace "yourdomain.com" with your actual domain once you deploy
-# Sitemap: https://www.yourdomain.com/sitemap.xml
+Sitemap: https://www.sevenastro.com/sitemap.xml
