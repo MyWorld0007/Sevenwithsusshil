@@ -1,5 +1,6 @@
-import "dotenv/config";
 import express from "express";
+import dotenv from "dotenv";
+dotenv.config({ override: true });
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import cors from "cors";
@@ -119,7 +120,7 @@ async function getDbPool() {
 
 async function startServer() {
   const app = express();
-  const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
+  const PORT = 3000;
   // Use simple JWT secret
   const JWT_SECRET = "supersecret123";
 
