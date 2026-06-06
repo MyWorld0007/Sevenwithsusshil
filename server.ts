@@ -65,7 +65,22 @@ async function getDbPool() {
         )
       `);
 
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS admins (
+          id INT PRIMARY KEY AUTO_INCREMENT,
+          email VARCHAR(255) UNIQUE,
+          password VARCHAR(255)
+        )
+      `);
+
       // Check if seeded
+      const [adminRows]: any = await pool.query('SELECT COUNT(*) as cnt FROM admins');
+      if (adminRows[0].cnt === 0) {
+        await pool.query(`INSERT INTO admins (email, password) VALUES (?, ?)`, [
+          "masteradmin@sevenastro.com", "@Masteradmin_2026"
+        ]);
+      }
+
       const [settingsRows]: any = await pool.query('SELECT COUNT(*) as cnt FROM settings');
       if (settingsRows[0].cnt === 0) {
         await pool.query(`INSERT INTO settings (id, whatsapp, email, whatsapp_message, email_subject, email_body) VALUES (?, ?, ?, ?, ?, ?)`, [
@@ -156,13 +171,20 @@ async function startServer() {
   });
 
   // Admin login
-  app.post("/api/admin/login", (req, res) => {
-    const { email, password } = req.body;
-    if (email === "masteradmin@sevenastro.com" && password === "@Masteradmin_2026") {
-      const token = jwt.sign({ admin: true }, JWT_SECRET, { expiresIn: "10h" });
-      res.json({ token });
-    } else {
-      res.status(401).json({ error: "Invalid credentials" });
+  app.post("/api/admin/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      const db = await getDbPool();
+      const [rows]: any = await db.query('SELECT * FROM admins WHERE email = ? AND password = ?', [email, password]);
+      
+      if (rows.length > 0) {
+        const token = jwt.sign({ admin: true }, JWT_SECRET, { expiresIn: "10h" });
+        res.json({ token });
+      } else {
+        res.status(401).json({ error: "Invalid credentials" });
+      }
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
     }
   });
 
