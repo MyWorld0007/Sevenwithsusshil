@@ -33,6 +33,32 @@ if (!$pdo) {
     exit;
 }
 
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS content_pages (
+        slug VARCHAR(50) PRIMARY KEY,
+        title VARCHAR(255),
+        content LONGTEXT
+    )");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS faqs (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        question VARCHAR(500),
+        answer LONGTEXT,
+        display_order INT DEFAULT 0
+    )");
+
+    // Seed content pages if empty
+    $cnt = $pdo->query('SELECT COUNT(*) as cnt FROM content_pages')->fetch()['cnt'];
+    if ($cnt == 0) {
+        $stmt = $pdo->prepare("INSERT INTO content_pages (slug, title, content) VALUES (?, ?, ?)");
+        $stmt->execute(['terms', 'Terms & Conditions', 'Welcome to our Terms & Conditions.']);
+        $stmt->execute(['privacy', 'Privacy Policy', 'Welcome to our Privacy Policy.']);
+        $stmt->execute(['faq', 'FAQ', '']);
+    }
+} catch (Exception $e) {
+    // Ignore seeding errors
+}
+
 $jwt_secret = 'supersecret123';
 
 function create_jwt($payload, $secret) {

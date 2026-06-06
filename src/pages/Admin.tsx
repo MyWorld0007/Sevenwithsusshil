@@ -31,11 +31,17 @@ export default function Admin() {
            apiFetch('/api/pages'),
            apiFetch('/api/faqs')
        ]);
-       setSettings(await setRes.json());
-       setLifePaths(await lpRes.json());
-       setTestimonials(await testRes.json());
-       setPages(await pagesRes.json());
-       setFaqs(await faqsRes.json());
+       const setResText = await setRes.json();
+       const lpResText = await lpRes.json();
+       const testResText = await testRes.json();
+       const pagesResText = await pagesRes.json();
+       const faqsResText = await faqsRes.json();
+
+       setSettings(setResText.error ? null : setResText);
+       setLifePaths(Array.isArray(lpResText) ? lpResText : []);
+       setTestimonials(Array.isArray(testResText) ? testResText : []);
+       setPages(Array.isArray(pagesResText) ? pagesResText : []);
+       setFaqs(Array.isArray(faqsResText) ? faqsResText : []);
      } catch (err) {
          console.error(err);
      }

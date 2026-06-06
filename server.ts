@@ -37,7 +37,7 @@ async function getDbPool() {
     // Use environment variables or correct defaults
     const finalHost = process.env.DB_HOST?.includes('sevenastro') ? '193.203.184.86' : (process.env.DB_HOST || '193.203.184.86');
     const finalUser = process.env.DB_USER === 'masteradmin' ? 'u709894810_masteradmin' : (process.env.DB_USER || 'u709894810_masteradmin');
-    const finalPassword = process.env.DB_PASSWORD || 'Master@Admin_2026'; // Correct password discovered
+    const finalPassword = process.env.DB_PASSWORD || '@Masteradmin_2026';
     const finalName = process.env.DB_NAME === 'sevenastro' ? 'u709894810_sevenastro' : (process.env.DB_NAME || 'u709894810_sevenastro');
     
     pool = mysql.createPool({
