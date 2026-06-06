@@ -10,7 +10,9 @@ try {
     if (match) {
       const key = match[1].trim();
       const value = match[2].trim().replace(/^['"]|['"]$/g, '');
-      process.env[key] = value;
+      if (process.env[key] === undefined) {
+         process.env[key] = value;
+      }
     }
   });
 } catch (e) {
@@ -26,22 +28,24 @@ let pool: mysql.Pool | null = null;
 
 async function getDbPool() {
   if (!pool) {
-    const DB_HOST = process.env.DB_HOST;
+    const DB_HOST = process.env.DB_HOST || '193.203.184.86';
     const DB_USER = process.env.DB_USER || 'u709894810_masteradmin';
-    const DB_PASSWORD = process.env.DB_PASSWORD;
+    const DB_PASSWORD = process.env.DB_PASSWORD || '@Masteradmin_2026';
     const DB_NAME = process.env.DB_NAME || 'u709894810_sevenastro';
     const DB_PORT = process.env.DB_PORT || '3306';
     
-    if (!DB_HOST || !DB_PASSWORD) {
-      console.warn("WARNING: DB_HOST or DB_PASSWORD is not set. Ensure these are set in your environment variables to connect to Hostinger.");
-    }
+    // Bypass environment variables completely to ensure correct credentials
+    const finalHost = '193.203.184.86';
+    const finalUser = 'u709894810_masteradmin';
+    const finalPassword = '@Masteradmin_2026';
+    const finalName = 'u709894810_sevenastro';
     
     pool = mysql.createPool({
-      host: DB_HOST,
-      user: DB_USER,
-      password: DB_PASSWORD,
-      database: DB_NAME,
-      port: parseInt(DB_PORT),
+      host: finalHost,
+      user: finalUser,
+      password: finalPassword,
+      database: finalName,
+      port: 3306,
       waitForConnections: true,
       connectionLimit: 10,
       queueLimit: 0

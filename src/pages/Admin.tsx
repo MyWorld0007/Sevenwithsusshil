@@ -43,15 +43,23 @@ export default function Admin() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       });
-      const data = await res.json();
-      if (data.token) {
+      let responseText = await res.text();
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseErr) {
+        throw new Error(`Server returned non-JSON: ${res.status} ${responseText.substring(0, 100)}`);
+      }
+      
+      if (res.ok && data.token) {
         localStorage.setItem('admin_token', data.token);
         setToken(data.token);
       } else {
         setLoginError(data.error || "Invalid login credentials");
       }
-    } catch (err) {
-      setLoginError("Connection error. Please try again.");
+    } catch (err: any) {
+      console.error(err);
+      setLoginError("Connection error: " + err.message);
     }
   };
 
