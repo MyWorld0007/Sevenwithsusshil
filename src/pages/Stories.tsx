@@ -1,3 +1,4 @@
+import { apiFetch } from '../lib/api';
 import React, { useState, useEffect } from 'react';
 import { Testimonial } from '../Types';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -7,7 +8,7 @@ export default function Stories() {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
-    fetch('/api/testimonials')
+    apiFetch('/api/testimonials')
       .then(async res => {
           if (!res.ok) throw new Error("Fetch failed");
           const text = await res.text();

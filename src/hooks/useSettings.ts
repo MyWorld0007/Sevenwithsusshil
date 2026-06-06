@@ -1,3 +1,4 @@
+import { apiFetch } from '../lib/api';
 import { useState, useEffect } from 'react';
 import { Settings } from '../Types';
 
@@ -14,7 +15,7 @@ export function useSettings() {
   const [settings, setSettings] = useState<Settings | null>(DEFAULT_SETTINGS);
 
   useEffect(() => {
-    fetch('/api/settings')
+    apiFetch('/api/settings')
       .then(async res => {
         if (!res.ok) throw new Error("HTTP " + res.status);
         const text = await res.text();

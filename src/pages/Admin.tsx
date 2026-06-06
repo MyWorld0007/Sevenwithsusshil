@@ -1,3 +1,4 @@
+import { apiFetch } from '../lib/api';
 import React, { useState, useEffect } from 'react';
 import { Settings, LifePath, Testimonial } from '../Types';
 
@@ -22,9 +23,9 @@ export default function Admin() {
   const fetchData = async () => {
      try {
        const [setRes, lpRes, testRes] = await Promise.all([
-           fetch('/api/settings'),
-           fetch('/api/life_paths'),
-           fetch('/api/testimonials')
+           apiFetch('/api/settings'),
+           apiFetch('/api/life_paths'),
+           apiFetch('/api/testimonials')
        ]);
        setSettings(await setRes.json());
        setLifePaths(await lpRes.json());
@@ -38,7 +39,7 @@ export default function Admin() {
     e.preventDefault();
     setLoginError('');
     try {
-      const res = await fetch('/api/admin/login', {
+      const res = await apiFetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
@@ -48,7 +49,10 @@ export default function Admin() {
       try {
         data = JSON.parse(responseText);
       } catch (parseErr) {
-        throw new Error(`Server returned non-JSON: ${res.status} ${responseText.substring(0, 100)}`);
+        if (responseText.includes("<!doctype html>") || responseText.includes("<html")) {
+           throw new Error("The API backend is not running. Your server is returning the frontend HTML instead of the API. Please ensure you have deployed and started the Node.js backend (server.ts) on your hosting provider.");
+        }
+        throw new Error(`Server returned non-JSON: ${res.status} ${responseText.substring(0, 50)}...`);
       }
       
       if (res.ok && data.token) {
@@ -69,7 +73,7 @@ export default function Admin() {
   };
 
   const saveSettings = async () => {
-     await fetch('/api/settings', {
+     await apiFetch('/api/settings', {
          method: 'PUT',
          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
          body: JSON.stringify(settings)
@@ -78,7 +82,7 @@ export default function Admin() {
   };
 
   const saveLifePath = async (lp: LifePath) => {
-      await fetch(`/api/life_paths/${lp.id}`, {
+      await apiFetch(`/api/life_paths/${lp.id}`, {
          method: 'PUT',
          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
          body: JSON.stringify({ name: lp.name, desc: lp.desc })
@@ -88,7 +92,7 @@ export default function Admin() {
 
   const deleteLifePath = async (id: number) => {
       if (!confirm(`Delete Life Path ${id}?`)) return;
-      await fetch(`/api/life_paths/${id}`, {
+      await apiFetch(`/api/life_paths/${id}`, {
          method: 'DELETE',
          headers: { 'Authorization': `Bearer ${token}` }
      });
@@ -102,7 +106,7 @@ export default function Admin() {
       const name = form.name.value;
       const desc = form.desc.value;
       
-      const res = await fetch('/api/life_paths', {
+      const res = await apiFetch('/api/life_paths', {
          method: 'POST',
          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
          body: JSON.stringify({ id, name, desc })
@@ -117,7 +121,7 @@ export default function Admin() {
   };
 
   const deleteTestimonial = async (id: number) => {
-      await fetch(`/api/testimonials/${id}`, {
+      await apiFetch(`/api/testimonials/${id}`, {
          method: 'DELETE',
          headers: { 'Authorization': `Bearer ${token}` }
      });
@@ -134,7 +138,7 @@ export default function Admin() {
       const date = form.date.value;
       const rating = form.rating.value;
       
-      const res = await fetch('/api/testimonials', {
+      const res = await apiFetch('/api/testimonials', {
          method: 'POST',
          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
          body: JSON.stringify({ text, name, loc, initial, date, rating: parseInt(rating) })

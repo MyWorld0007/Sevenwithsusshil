@@ -1,3 +1,4 @@
+import { apiFetch } from '../lib/api';
 import React, { useState, useEffect } from 'react';
 import { LifePath } from '../Types';
 
@@ -24,7 +25,7 @@ export default function Calculator() {
   const [lifePaths, setLifePaths] = useState<Record<number, {name: string, desc: string}>>({});
 
   useEffect(() => {
-    fetch('/api/life_paths')
+    apiFetch('/api/life_paths')
       .then(async res => {
           if (!res.ok) throw new Error("Fetch failed");
           const text = await res.text();
