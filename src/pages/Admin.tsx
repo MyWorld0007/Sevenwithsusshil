@@ -5,6 +5,7 @@ export default function Admin() {
   const [token, setToken] = useState(localStorage.getItem('admin_token') || '');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
 
   const [settings, setSettings] = useState<Settings | null>(null);
   const [lifePaths, setLifePaths] = useState<LifePath[]>([]);
@@ -35,17 +36,22 @@ export default function Admin() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch('/api/admin/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-    const data = await res.json();
-    if (data.token) {
-      localStorage.setItem('admin_token', data.token);
-      setToken(data.token);
-    } else {
-      alert("Invalid login");
+    setLoginError('');
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+      if (data.token) {
+        localStorage.setItem('admin_token', data.token);
+        setToken(data.token);
+      } else {
+        setLoginError(data.error || "Invalid login credentials");
+      }
+    } catch (err) {
+      setLoginError("Connection error. Please try again.");
     }
   };
 
@@ -139,6 +145,7 @@ export default function Admin() {
       <div className="min-h-screen flex items-center justify-center p-6 bg-bg-dark text-text-main">
         <form onSubmit={handleLogin} className="bg-bg-card p-8 border border-gold/20 max-w-sm w-full">
             <h2 className="text-2xl font-serif text-gold mb-6 text-center">Admin Access</h2>
+            {loginError && <div className="bg-red-500/10 border border-red-500/30 text-red-400 p-3 mb-4 text-sm rounded">{loginError}</div>}
             <input type="email" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} className="w-full bg-bg-input border border-gold/20 p-3 mb-4 outline-none focus:border-gold" />
             <input type="password" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)} className="w-full bg-bg-input border border-gold/20 p-3 mb-6 outline-none focus:border-gold" />
             <button className="w-full bg-gold text-bg-dark py-3 font-bold uppercase tracking-[0.2em] hover:bg-gold-lt">Login</button>
