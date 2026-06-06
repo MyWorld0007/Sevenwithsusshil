@@ -8,17 +8,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-$db_host = getenv('DB_HOST') ?: '193.203.184.86';
 $db_user = getenv('DB_USER') ?: 'u709894810_masteradmin';
-$db_pass = getenv('DB_PASSWORD') ?: 'Master@Admin_2026';
+$db_pass = getenv('DB_PASSWORD') ?: '@Masteradmin_2026';
 $db_name = getenv('DB_NAME') ?: 'u709894810_sevenastro';
 
-$dsn = "mysql:host=$db_host;dbname=$db_name;charset=utf8mb4";
-try {
-    $pdo = new PDO($dsn, $db_user, $db_pass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]);
-} catch (PDOException $e) {
+$pdo = null;
+$hosts = [getenv('DB_HOST') ?: 'localhost', '127.0.0.1', '193.203.184.86'];
+$lastError = '';
+
+foreach ($hosts as $host) {
+    if (!$host) continue;
+    $dsn = "mysql:host=$host;dbname=$db_name;charset=utf8mb4";
+    try {
+        $pdo = new PDO($dsn, $db_user, $db_pass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]);
+        break; // Connected successfully
+    } catch (PDOException $e) {
+        $lastError = $e->getMessage();
+    }
+}
+
+if (!$pdo) {
     http_response_code(500);
-    echo json_encode(['error' => 'Database connection failed: ' . $e->getMessage()]);
+    echo json_encode(['error' => 'Database connection failed: ' . $lastError]);
     exit;
 }
 

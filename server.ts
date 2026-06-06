@@ -291,6 +291,11 @@ async function startServer() {
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
 
+  // Catch-all for API routes
+  app.use("/api/*", (req, res) => {
+    res.status(404).json({ error: "API endpoint not found" });
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

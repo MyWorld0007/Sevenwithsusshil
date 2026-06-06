@@ -9,6 +9,7 @@ import Calculator from './pages/Calculator';
 import Stories from './pages/Stories';
 import Booking from './pages/Booking';
 import Admin from './pages/Admin';
+import NotFound from './pages/NotFound';
 
 export default function App() {
   const [navScrolled, setNavScrolled] = useState(false);
@@ -184,6 +185,7 @@ export default function App() {
             <Route path="/stories" element={<Stories />} />
             <Route path="/booking" element={<Booking />} />
             <Route path="/admin" element={<Admin />} />
+           <Route path="*" element={<NotFound />} />
          </Routes>
       </main>
 
