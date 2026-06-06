@@ -1,7 +1,22 @@
 import express from "express";
-import dotenv from "dotenv";
-dotenv.config({ override: true });
+import fs from "fs";
 import path from "path";
+
+// Read variables from .env.example if available
+try {
+  const envFile = fs.readFileSync(path.resolve(process.cwd(), '.env.example'), 'utf8');
+  envFile.split('\n').forEach(line => {
+    const match = line.match(/^([^#\s][^=]*)=(.*)$/);
+    if (match) {
+      const key = match[1].trim();
+      const value = match[2].trim().replace(/^['"]|['"]$/g, '');
+      process.env[key] = value;
+    }
+  });
+} catch (e) {
+  console.warn("Could not read .env.example");
+}
+
 import { createServer as createViteServer } from "vite";
 import cors from "cors";
 import jwt from "jsonwebtoken";

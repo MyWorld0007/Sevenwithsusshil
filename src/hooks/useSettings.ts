@@ -11,7 +11,7 @@ const DEFAULT_SETTINGS: Settings = {
 };
 
 export function useSettings() {
-  const [settings, setSettings] = useState<Settings | null>(null);
+  const [settings, setSettings] = useState<Settings | null>(DEFAULT_SETTINGS);
 
   useEffect(() => {
     fetch('/api/settings')
@@ -24,13 +24,10 @@ export function useSettings() {
       .then(data => {
         if (data && data.whatsapp) {
           setSettings(data);
-        } else {
-          setSettings(DEFAULT_SETTINGS);
         }
       })
       .catch(err => {
         console.error("Could not fetch settings", err);
-        setSettings(DEFAULT_SETTINGS);
       });
   }, []);
 
