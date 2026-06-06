@@ -172,6 +172,26 @@ try {
         $stmt->execute([$m[1]]);
         echo json_encode(['success' => true]);
     }
+    elseif ($route === 'pages' && $method === 'GET') {
+        $stmt = $pdo->query('SELECT * FROM content_pages');
+        echo json_encode($stmt->fetchAll());
+    }
+    elseif (preg_match('/^pages\/([a-zA-Z0-9_-]+)$/', $route, $m) && $method === 'GET') {
+        $stmt = $pdo->prepare('SELECT * FROM content_pages WHERE slug=?');
+        $stmt->execute([$m[1]]);
+        $row = $stmt->fetch();
+        if ($row) echo json_encode($row);
+        else {
+            http_response_code(404);
+            echo json_encode(['error' => 'Page not found']);
+        }
+    }
+    elseif (preg_match('/^pages\/([a-zA-Z0-9_-]+)$/', $route, $m) && $method === 'PUT') {
+        require_auth();
+        $stmt = $pdo->prepare('UPDATE content_pages SET title=?, content=? WHERE slug=?');
+        $stmt->execute([$input['title'], $input['content'], $m[1]]);
+        echo json_encode(['success' => true]);
+    }
     else {
         http_response_code(404);
         echo json_encode(['error' => 'API Not Found']);

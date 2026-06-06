@@ -92,6 +92,14 @@ async function getDbPool() {
         )
       `);
 
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS content_pages (
+          slug VARCHAR(50) PRIMARY KEY,
+          title VARCHAR(255),
+          content LONGTEXT
+        )
+      `);
+
       // Check if seeded
       const [adminRows]: any = await pool.query('SELECT COUNT(*) as cnt FROM admins');
       if (adminRows[0].cnt === 0) {
@@ -145,6 +153,13 @@ async function getDbPool() {
             [t.id, t.text, t.initial, t.name, t.loc, t.date, t.rating]);
         }
       }
+
+      const [pagesRows]: any = await pool.query('SELECT COUNT(*) as cnt FROM content_pages');
+      if (pagesRows[0].cnt === 0) {
+        await pool.query(`INSERT INTO content_pages (slug, title, content) VALUES (?, ?, ?)`, ['terms', 'Terms & Conditions', 'Welcome to our Terms & Conditions.']);
+        await pool.query(`INSERT INTO content_pages (slug, title, content) VALUES (?, ?, ?)`, ['privacy', 'Privacy Policy', 'Welcome to our Privacy Policy.']);
+        await pool.query(`INSERT INTO content_pages (slug, title, content) VALUES (?, ?, ?)`, ['faq', 'FAQ', 'Welcome to our FAQ.']);
+      }
     } catch (e: any) {
       console.error("Database initialization failed. Are credentials correct?", e.message);
     }
@@ -186,6 +201,23 @@ async function startServer() {
       const db = await getDbPool();
       const [rows]: any = await db.query('SELECT * FROM testimonials ORDER BY id ASC');
       res.json(rows);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.get("/api/pages", async (req, res) => {
+    try {
+      const db = await getDbPool();
+      const [rows]: any = await db.query('SELECT * FROM content_pages');
+      res.json(rows);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.get("/api/pages/:slug", async (req, res) => {
+    try {
+      const db = await getDbPool();
+      const [rows]: any = await db.query('SELECT * FROM content_pages WHERE slug = ?', [req.params.slug]);
+      if (rows.length > 0) res.json(rows[0]);
+      else res.status(404).json({ error: "Page not found" });
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
 
@@ -287,6 +319,16 @@ async function startServer() {
       const db = await getDbPool();
       const id = parseInt(req.params.id);
       await db.query('DELETE FROM testimonials WHERE id=?', [id]);
+      res.json({ success: true });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.put("/api/pages/:slug", requireAuth, async (req, res) => {
+    try {
+      const db = await getDbPool();
+      const { title, content } = req.body;
+      const slug = req.params.slug;
+      await db.query('UPDATE content_pages SET title=?, content=? WHERE slug=?', [title, content, slug]);
       res.json({ success: true });
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });

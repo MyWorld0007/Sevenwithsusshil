@@ -10,6 +10,7 @@ import Stories from './pages/Stories';
 import Booking from './pages/Booking';
 import Admin from './pages/Admin';
 import NotFound from './pages/NotFound';
+import ContentPage from './pages/ContentPage';
 
 export default function App() {
   const [navScrolled, setNavScrolled] = useState(false);
@@ -185,12 +186,22 @@ export default function App() {
             <Route path="/stories" element={<Stories />} />
             <Route path="/booking" element={<Booking />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/pages/:slug" element={<ContentPage />} />
            <Route path="*" element={<NotFound />} />
          </Routes>
       </main>
 
+      {/* ═══ FOOTER LINKS ═══ */}
+      <div className="relative z-10 border-t border-gold/10 bg-bg-dark px-6 md:px-12 py-8 flex justify-center mt-auto">
+        <ul className="flex flex-wrap justify-center gap-8 md:gap-16 text-[10px] md:text-[11px] uppercase tracking-[0.2em]">
+          <li><Link to="/pages/terms" className="text-dim hover:text-gold transition-colors">Terms & Conditions</Link></li>
+          <li><Link to="/pages/privacy" className="text-dim hover:text-gold transition-colors">Privacy Policy</Link></li>
+          <li><Link to="/pages/faq" className="text-dim hover:text-gold transition-colors">FAQ</Link></li>
+        </ul>
+      </div>
+
       {/* ═══ FOOTER ═══ */}
-      <div className="relative z-10 border-t border-gold/10 bg-bg-card/50 px-6 md:px-12 py-6 flex flex-col md:flex-row justify-between items-center gap-6 mt-auto">
+      <div className="relative z-10 border-t border-gold/10 bg-bg-card/50 px-6 md:px-12 py-6 flex flex-col md:flex-row justify-between items-center gap-6">
         <div className="flex gap-8 md:gap-12">
           <div className="flex flex-col text-center md:text-left">
             <span className="text-2xl font-serif text-gold">555+</span>
@@ -207,7 +218,6 @@ export default function App() {
         </div>
         <div className="text-dim text-[10px] tracking-[0.2em] uppercase text-center md:text-right flex flex-col items-end gap-1">
           <span>© {new Date().getFullYear()} SEVEN ASTRO • India & WORLDWIDE</span>
-          <Link to="/admin" className="hover:text-gold transition-colors inline-block text-[9px] lowercase tracking-widest mt-1">master admin</Link>
         </div>
       </div>
     </div>

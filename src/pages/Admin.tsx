@@ -11,8 +11,9 @@ export default function Admin() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [lifePaths, setLifePaths] = useState<LifePath[]>([]);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [pages, setPages] = useState<{slug: string; title: string; content: string}[]>([]);
 
-  const [activeTab, setActiveTab] = useState<'settings' | 'testimonials' | 'lifepaths'>('settings');
+  const [activeTab, setActiveTab] = useState<'settings' | 'testimonials' | 'lifepaths' | 'pages'>('settings');
 
   useEffect(() => {
     if (token) {
@@ -22,14 +23,16 @@ export default function Admin() {
 
   const fetchData = async () => {
      try {
-       const [setRes, lpRes, testRes] = await Promise.all([
+       const [setRes, lpRes, testRes, pagesRes] = await Promise.all([
            apiFetch('/api/settings'),
            apiFetch('/api/life_paths'),
-           apiFetch('/api/testimonials')
+           apiFetch('/api/testimonials'),
+           apiFetch('/api/pages')
        ]);
        setSettings(await setRes.json());
        setLifePaths(await lpRes.json());
        setTestimonials(await testRes.json());
+       setPages(await pagesRes.json());
      } catch (err) {
          console.error(err);
      }
@@ -88,6 +91,15 @@ export default function Admin() {
          body: JSON.stringify({ name: lp.name, desc: lp.desc })
      });
      alert(`Life Path ${lp.id} updated!`);
+  };
+
+  const savePage = async (page: {slug: string; title: string; content: string}) => {
+      await apiFetch(`/api/pages/${page.slug}`, {
+         method: 'PUT',
+         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+         body: JSON.stringify({ title: page.title, content: page.content })
+     });
+     alert(`Page ${page.title} updated!`);
   };
 
   const deleteLifePath = async (id: number) => {
@@ -160,7 +172,8 @@ export default function Admin() {
             {loginError && <div className="bg-red-500/10 border border-red-500/30 text-red-400 p-3 mb-4 text-sm rounded">{loginError}</div>}
             <input type="email" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} className="w-full bg-bg-input border border-gold/20 p-3 mb-4 outline-none focus:border-gold" />
             <input type="password" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)} className="w-full bg-bg-input border border-gold/20 p-3 mb-6 outline-none focus:border-gold" />
-            <button className="w-full bg-gold text-bg-dark py-3 font-bold uppercase tracking-[0.2em] hover:bg-gold-lt">Login</button>
+            <button className="w-full bg-gold text-bg-dark py-3 font-bold uppercase tracking-[0.2em] hover:bg-gold-lt rounded mb-4">Login</button>
+            <a href="/" className="block w-full text-center text-[10px] text-muted hover:text-gold transition-colors uppercase tracking-widest">← Back to Home</a>
         </form>
       </div>
     );
@@ -189,6 +202,12 @@ export default function Admin() {
              className={`w-full text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] transition-colors rounded ${activeTab === 'lifepaths' ? 'bg-gold text-bg-dark font-bold' : 'text-gold hover:bg-gold/10'}`}
            >
              Life Paths
+           </button>
+           <button 
+             onClick={() => setActiveTab('pages')} 
+             className={`w-full text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] transition-colors rounded ${activeTab === 'pages' ? 'bg-gold text-bg-dark font-bold' : 'text-gold hover:bg-gold/10'}`}
+           >
+             Content Pages
            </button>
         </nav>
 
@@ -343,6 +362,35 @@ export default function Admin() {
                        <button className="bg-gold text-bg-dark px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-gold-lt transition-colors rounded">Add Life Path</button>
                    </div>
                </form>
+             </div>
+          </section>
+        )}
+
+        {activeTab === 'pages' && (
+          <section className="max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+             <div className="flex justify-between items-center mb-8">
+               <h2 className="text-3xl font-serif text-gold">Content Pages</h2>
+             </div>
+             <div className="space-y-6 mb-10">
+                {pages.map(page => (
+                    <div key={page.slug} className="bg-bg-card border border-gold/20 p-6 flex flex-col relative group">
+                        <div className="flex justify-between items-center mb-4">
+                          <h3 className="text-xl font-serif text-gold">/{page.slug}</h3>
+                          <div className="space-x-4">
+                            <button onClick={() => savePage(page)} className="border border-gold/30 text-gold px-6 py-2 text-[10px] uppercase tracking-[0.2em] hover:bg-gold/10 transition-colors rounded">Save Update</button>
+                          </div>
+                        </div>
+                        <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Page Title</label>
+                        <input type="text" value={page.title} placeholder="Title" onChange={e => {
+                            setPages(pages.map(p => p.slug === page.slug ? {...p, title: e.target.value} : p));
+                        }} className="w-full bg-bg-input border border-gold/20 p-3 mb-4 outline-none focus:border-gold" />
+                        
+                        <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Page Content (HTML Supported)</label>
+                        <textarea value={page.content} placeholder="Content" onChange={e => {
+                            setPages(pages.map(p => p.slug === page.slug ? {...p, content: e.target.value} : p));
+                        }} className="w-full bg-bg-input border border-gold/20 p-3 h-64 outline-none focus:border-gold font-mono text-sm leading-relaxed" />
+                    </div>
+                ))}
              </div>
           </section>
         )}

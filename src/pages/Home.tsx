@@ -20,8 +20,8 @@ export default function Home() {
             <a href="/#booking" className="border border-gold/30 text-gold px-8 py-4 text-xs font-semibold uppercase tracking-[0.2em] hover:bg-gold/10 transition-colors inline-block">Book a Reading</a>
           </div>
         </div>
-        <div className="flex md:col-span-12 lg:col-span-5 reveal vis justify-center items-center order-first lg:order-none mb-4 md:-mb-8 lg:mb-0 lg:mt-0">
-          <img src="/logo.png" alt="SEVEN 7 Logo" className="w-[60%] sm:w-[50%] md:w-[40%] lg:w-[80%] max-w-[450px] object-contain float-anim-solid" style={{ filter: 'drop-shadow(0px 0px 40px rgba(201,160,80,0.15))' }} />
+        <div className="flex justify-center md:col-span-12 lg:col-span-5 reveal vis items-center order-first lg:order-none mb-4 md:-mb-8 lg:mb-0 lg:mt-0">
+          <video src="/logo.mp4" autoPlay loop muted playsInline className="w-[70%] sm:w-[60%] md:w-[50%] lg:w-[90%] xl:w-full max-w-[400px] lg:max-w-[500px] object-contain" style={{ filter: 'drop-shadow(0px 0px 40px rgba(201,160,80,0.15))', borderRadius: '4px' }} />
         </div>
       </section>
 
