@@ -1,6 +1,6 @@
 import { apiFetch } from '../lib/api';
 import React, { useState, useEffect } from 'react';
-import { Settings, LifePath, Testimonial } from '../Types';
+import { Settings, LifePath, Testimonial, Faq } from '../Types';
 
 export default function Admin() {
   const [token, setToken] = useState(localStorage.getItem('admin_token') || '');
@@ -12,8 +12,9 @@ export default function Admin() {
   const [lifePaths, setLifePaths] = useState<LifePath[]>([]);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [pages, setPages] = useState<{slug: string; title: string; content: string}[]>([]);
+  const [faqs, setFaqs] = useState<Faq[]>([]);
 
-  const [activeTab, setActiveTab] = useState<'settings' | 'testimonials' | 'lifepaths' | 'pages'>('settings');
+  const [activeTab, setActiveTab] = useState<'settings' | 'testimonials' | 'lifepaths' | 'pages' | 'faqs'>('settings');
 
   useEffect(() => {
     if (token) {
@@ -23,16 +24,18 @@ export default function Admin() {
 
   const fetchData = async () => {
      try {
-       const [setRes, lpRes, testRes, pagesRes] = await Promise.all([
+       const [setRes, lpRes, testRes, pagesRes, faqsRes] = await Promise.all([
            apiFetch('/api/settings'),
            apiFetch('/api/life_paths'),
            apiFetch('/api/testimonials'),
-           apiFetch('/api/pages')
+           apiFetch('/api/pages'),
+           apiFetch('/api/faqs')
        ]);
        setSettings(await setRes.json());
        setLifePaths(await lpRes.json());
        setTestimonials(await testRes.json());
        setPages(await pagesRes.json());
+       setFaqs(await faqsRes.json());
      } catch (err) {
          console.error(err);
      }
@@ -164,6 +167,44 @@ export default function Admin() {
      }
   };
 
+  const saveFaq = async (faq: Faq) => {
+      await apiFetch(`/api/faqs/${faq.id}`, {
+         method: 'PUT',
+         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+         body: JSON.stringify({ question: faq.question, answer: faq.answer })
+     });
+     alert(`FAQ updated!`);
+  };
+
+  const deleteFaq = async (id: number) => {
+      if (!confirm(`Delete FAQ?`)) return;
+      await apiFetch(`/api/faqs/${id}`, {
+         method: 'DELETE',
+         headers: { 'Authorization': `Bearer ${token}` }
+     });
+     fetchData();
+  };
+
+  const addFaq = async (e: any) => {
+      e.preventDefault();
+      const form = e.target;
+      const question = form.question.value;
+      const answer = form.answer.value;
+      
+      const res = await apiFetch('/api/faqs', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+         body: JSON.stringify({ question, answer })
+     });
+     const data = await res.json();
+     if (data.error) {
+         alert(data.error);
+     } else {
+         form.reset();
+         fetchData();
+     }
+  };
+
   if (!token) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-bg-dark text-text-main">
@@ -209,10 +250,15 @@ export default function Admin() {
            >
              Content Pages
            </button>
+           <button 
+             onClick={() => setActiveTab('faqs')} 
+             className={`w-full text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] transition-colors rounded ${activeTab === 'faqs' ? 'bg-gold text-bg-dark font-bold' : 'text-gold hover:bg-gold/10'}`}
+           >
+             FAQs Details
+           </button>
         </nav>
 
         <div className="mt-8 pt-6 border-t border-gold/10">
-           <a href="/" className="block w-full text-center mb-4 text-[10px] text-muted hover:text-gold transition-colors uppercase tracking-widest">← Back to Site</a>
            <button onClick={handleLogout} className="w-full border border-gold/30 text-gold px-4 py-3 uppercase tracking-[0.1em] text-xs hover:bg-gold/10 rounded">Logout</button>
         </div>
       </aside>
@@ -371,6 +417,9 @@ export default function Admin() {
              <div className="flex justify-between items-center mb-8">
                <h2 className="text-3xl font-serif text-gold">Content Pages</h2>
              </div>
+             <p className="text-sm text-muted mb-8 tracking-wide">
+               Use this section to edit static layout copy if needed. HTML is supported. For FAQ Question and Answers, use the separate "FAQs Details" tab.
+             </p>
              <div className="space-y-6 mb-10">
                 {pages.map(page => (
                     <div key={page.slug} className="bg-bg-card border border-gold/20 p-6 flex flex-col relative group">
@@ -391,6 +440,56 @@ export default function Admin() {
                         }} className="w-full bg-bg-input border border-gold/20 p-3 h-64 outline-none focus:border-gold font-mono text-sm leading-relaxed" />
                     </div>
                 ))}
+             </div>
+          </section>
+        )}
+
+        {activeTab === 'faqs' && (
+          <section className="max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+             <div className="flex justify-between items-center mb-8">
+               <h2 className="text-3xl font-serif text-gold">FAQ (Questions & Answers)</h2>
+             </div>
+             <p className="text-sm text-muted mb-8 tracking-wide">
+               These questions and answers will be displayed dynamically on the FAQ page.
+             </p>
+             <div className="space-y-6 mb-10">
+                {faqs.map(faq => (
+                    <div key={faq.id} className="bg-bg-card border border-gold/20 p-6 flex flex-col relative group">
+                        <div className="flex justify-between items-center mb-4">
+                          <h3 className="text-sm uppercase tracking-widest font-serif text-muted">ID: {faq.id}</h3>
+                          <div className="space-x-4">
+                            <button onClick={() => saveFaq(faq)} className="border border-gold/30 text-gold px-6 py-2 text-[10px] uppercase tracking-[0.2em] hover:bg-gold/10 transition-colors rounded">Save Update</button>
+                            <button onClick={() => deleteFaq(faq.id)} className="border border-red-500/30 text-red-400 px-6 py-2 text-[10px] uppercase tracking-[0.2em] hover:bg-red-500/10 transition-colors rounded">Delete</button>
+                          </div>
+                        </div>
+                        <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Question</label>
+                        <input type="text" value={faq.question} placeholder="Question" onChange={e => {
+                            setFaqs(faqs.map(f => f.id === faq.id ? {...f, question: e.target.value} : f));
+                        }} className="w-full bg-bg-input border border-gold/20 p-3 mb-4 outline-none focus:border-gold" />
+                        
+                        <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Answer (HTML Supported)</label>
+                        <textarea value={faq.answer} placeholder="Answer" onChange={e => {
+                            setFaqs(faqs.map(f => f.id === faq.id ? {...f, answer: e.target.value} : f));
+                        }} className="w-full bg-bg-input border border-gold/20 p-3 h-32 outline-none focus:border-gold leading-relaxed" />
+                    </div>
+                ))}
+             </div>
+
+             <div className="bg-bg-card border border-gold/20 p-8 shadow-sm">
+               <h3 className="text-lg font-serif text-gold mb-6">Add New FAQ</h3>
+               <form onSubmit={addFaq} className="grid grid-cols-1 gap-6">
+                   <div>
+                       <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Question</label>
+                       <input type="text" name="question" required placeholder="e.g. How accurate is Numerology?" className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold" />
+                   </div>
+                   <div>
+                       <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Answer</label>
+                       <textarea name="answer" required className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold min-h-[100px]" placeholder="Answer..." />
+                   </div>
+                   <div className="mt-2">
+                       <button className="bg-gold text-bg-dark px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-gold-lt transition-colors rounded">Add FAQ</button>
+                   </div>
+               </form>
              </div>
           </section>
         )}

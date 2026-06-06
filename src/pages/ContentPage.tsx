@@ -1,29 +1,42 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
+import { Faq } from '../Types';
 
 export default function ContentPage() {
   const { slug } = useParams();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [faqs, setFaqs] = useState<Faq[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
     setLoading(true);
-    apiFetch(`/api/pages/${slug}`)
-      .then(async (res) => {
+    
+    const fetchPageData = async () => {
+      try {
+        const res = await apiFetch(`/api/pages/${slug}`);
         if (!res.ok) throw new Error('Page not found');
         const data = await res.json();
         setTitle(data.title);
         setContent(data.content);
+
+        if (slug === 'faq') {
+          const faqsRes = await apiFetch('/api/faqs');
+          if (faqsRes.ok) {
+            setFaqs(await faqsRes.json());
+          }
+        }
         setLoading(false);
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error(err);
         setError('Could not load the page.');
         setLoading(false);
-      });
+      }
+    };
+    
+    fetchPageData();
   }, [slug]);
 
   if (loading) return <div className="min-h-[60vh] flex items-center justify-center text-gold">Loading...</div>;
@@ -36,6 +49,21 @@ export default function ContentPage() {
         className="content-html max-w-none text-text-main leading-relaxed"
         dangerouslySetInnerHTML={{ __html: content }}
       />
+      
+      {slug === 'faq' && faqs.length > 0 && (
+        <div className="mt-12 space-y-6">
+          {faqs.map((faq) => (
+            <div key={faq.id} className="bg-bg-card border border-gold/20 p-6 rounded-sm shadow-sm group">
+              <h3 className="text-xl font-serif text-gold mb-4 group-hover:text-gold-lt transition-colors">{faq.question}</h3>
+              <div 
+                 className="text-text-main/90 font-light leading-relaxed text-sm content-html"
+                 dangerouslySetInnerHTML={{ __html: faq.answer }}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+
       <style>{`
         .content-html h1, .content-html h2, .content-html h3 { color: #D4AF37; margin-top: 2rem; margin-bottom: 1rem; font-family: Playfair Display, serif; }
         .content-html h1 { font-size: 2.25rem; }

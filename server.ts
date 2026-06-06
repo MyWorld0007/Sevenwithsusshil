@@ -100,6 +100,15 @@ async function getDbPool() {
         )
       `);
 
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS faqs (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          question VARCHAR(500),
+          answer LONGTEXT,
+          display_order INT DEFAULT 0
+        )
+      `);
+
       // Check if seeded
       const [adminRows]: any = await pool.query('SELECT COUNT(*) as cnt FROM admins');
       if (adminRows[0].cnt === 0) {
@@ -158,7 +167,13 @@ async function getDbPool() {
       if (pagesRows[0].cnt === 0) {
         await pool.query(`INSERT INTO content_pages (slug, title, content) VALUES (?, ?, ?)`, ['terms', 'Terms & Conditions', 'Welcome to our Terms & Conditions.']);
         await pool.query(`INSERT INTO content_pages (slug, title, content) VALUES (?, ?, ?)`, ['privacy', 'Privacy Policy', 'Welcome to our Privacy Policy.']);
-        await pool.query(`INSERT INTO content_pages (slug, title, content) VALUES (?, ?, ?)`, ['faq', 'FAQ', 'Welcome to our FAQ.']);
+        await pool.query(`INSERT INTO content_pages (slug, title, content) VALUES (?, ?, ?)`, ['faq', 'FAQ', '']);
+      }
+
+      const [faqsRows]: any = await pool.query('SELECT COUNT(*) as cnt FROM faqs');
+      if (faqsRows[0].cnt === 0) {
+        await pool.query(`INSERT INTO faqs (question, answer) VALUES (?, ?)`, ['What is Numerology?', 'Numerology is the study of numbers and their influence on our lives.']);
+        await pool.query(`INSERT INTO faqs (question, answer) VALUES (?, ?)`, ['How can I book a reading?', 'You can book a reading by visiting the Booking section on our homepage.']);
       }
     } catch (e: any) {
       console.error("Database initialization failed. Are credentials correct?", e.message);
@@ -329,6 +344,41 @@ async function startServer() {
       const { title, content } = req.body;
       const slug = req.params.slug;
       await db.query('UPDATE content_pages SET title=?, content=? WHERE slug=?', [title, content, slug]);
+      res.json({ success: true });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  // FAQs
+  app.get("/api/faqs", async (req, res) => {
+    try {
+      const db = await getDbPool();
+      const [rows] = await db.query('SELECT * FROM faqs ORDER BY display_order ASC, id ASC');
+      res.json(rows);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.post("/api/faqs", requireAuth, async (req, res) => {
+    try {
+      const db = await getDbPool();
+      const { question, answer } = req.body;
+      const [result]: any = await db.query('INSERT INTO faqs (question, answer) VALUES (?, ?)', [question, answer]);
+      res.json({ id: result.insertId });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.put("/api/faqs/:id", requireAuth, async (req, res) => {
+    try {
+      const db = await getDbPool();
+      const { question, answer } = req.body;
+      await db.query('UPDATE faqs SET question=?, answer=? WHERE id=?', [question, answer, req.params.id]);
+      res.json({ success: true });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.delete("/api/faqs/:id", requireAuth, async (req, res) => {
+    try {
+      const db = await getDbPool();
+      await db.query('DELETE FROM faqs WHERE id=?', [req.params.id]);
       res.json({ success: true });
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });

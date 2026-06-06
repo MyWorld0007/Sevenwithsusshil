@@ -192,6 +192,28 @@ try {
         $stmt->execute([$input['title'], $input['content'], $m[1]]);
         echo json_encode(['success' => true]);
     }
+    elseif ($route === 'faqs' && $method === 'GET') {
+        $stmt = $pdo->query('SELECT * FROM faqs ORDER BY display_order ASC, id ASC');
+        echo json_encode($stmt->fetchAll());
+    }
+    elseif ($route === 'faqs' && $method === 'POST') {
+        require_auth();
+        $stmt = $pdo->prepare('INSERT INTO faqs (question, answer) VALUES (?, ?)');
+        $stmt->execute([$input['question'], $input['answer']]);
+        echo json_encode(['id' => $pdo->lastInsertId()]);
+    }
+    elseif (preg_match('/^faqs\/([0-9]+)$/', $route, $m) && $method === 'PUT') {
+        require_auth();
+        $stmt = $pdo->prepare('UPDATE faqs SET question=?, answer=? WHERE id=?');
+        $stmt->execute([$input['question'], $input['answer'], $m[1]]);
+        echo json_encode(['success' => true]);
+    }
+    elseif (preg_match('/^faqs\/([0-9]+)$/', $route, $m) && $method === 'DELETE') {
+        require_auth();
+        $stmt = $pdo->prepare('DELETE FROM faqs WHERE id=?');
+        $stmt->execute([$m[1]]);
+        echo json_encode(['success' => true]);
+    }
     else {
         http_response_code(404);
         echo json_encode(['error' => 'API Not Found']);

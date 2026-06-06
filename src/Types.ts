@@ -22,3 +22,10 @@ export interface LifePath {
   name: string;
   desc: string;
 }
+
+export interface Faq {
+  id: number;
+  question: string;
+  answer: string;
+  display_order: number;
+}
