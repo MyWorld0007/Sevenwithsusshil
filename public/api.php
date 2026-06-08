@@ -51,9 +51,19 @@ try {
         `whatsapp_message` TEXT,
         `email_subject` VARCHAR(255),
         `email_body` TEXT,
-        `gemini_api_key` VARCHAR(500) NULL
+        `gemini_api_key` VARCHAR(500) NULL,
+        `about_title` VARCHAR(500) NULL,
+        `about_para1` TEXT NULL,
+        `about_para2` TEXT NULL,
+        `profile_photo` VARCHAR(500) NULL
     )');
 } catch (Exception $e) {}
+
+// Safe upgrades to existing settings tables
+try { $pdo->exec("ALTER TABLE `settings` ADD COLUMN `about_title` VARCHAR(500) NULL"); } catch (Exception $e) {}
+try { $pdo->exec("ALTER TABLE `settings` ADD COLUMN `about_para1` TEXT NULL"); } catch (Exception $e) {}
+try { $pdo->exec("ALTER TABLE `settings` ADD COLUMN `about_para2` TEXT NULL"); } catch (Exception $e) {}
+try { $pdo->exec("ALTER TABLE `settings` ADD COLUMN `profile_photo` VARCHAR(500) NULL"); } catch (Exception $e) {}
 
 // 3. Create life_paths table
 try {
@@ -111,8 +121,38 @@ try {
 try {
     $cntSettings = $pdo->query('SELECT COUNT(*) as cnt FROM settings')->fetch()['cnt'];
     if ($cntSettings == 0) {
-        $stmt = $pdo->prepare('INSERT INTO settings (id, whatsapp, email, whatsapp_message, email_subject, email_body, gemini_api_key) VALUES (?, ?, ?, ?, ?, ?, ?)');
-        $stmt->execute([1, '917039516551', '7s.evolve@gmail.com', 'Hello! I would like to book a session.', 'Book a Session', "Hi Team Seven,\n\nI want to book a session.", null]);
+        $stmt = $pdo->prepare('INSERT INTO settings (id, whatsapp, email, whatsapp_message, email_subject, email_body, gemini_api_key, about_title, about_para1, about_para2, profile_photo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+        $stmt->execute([
+            1, 
+            '917039516551', 
+            '7s.evolve@gmail.com', 
+            'Hello! I would like to book a session.', 
+            'Book a Session', 
+            "Hi Team Seven,\n\nI want to book a session.", 
+            null,
+            "Bridging ancient wisdom with modern life guidance",
+            "I am a Seeker, Intuitive, Healer, and Mentor with 15 years of dedicated experience guiding individuals through life’s most complex challenges. Drawing from my personal life experiences and challenges, I have transformed lessons into wisdom — and now help others navigate their paths with clarity, confidence, and purpose.",
+            "By combining astro-numerology, spirituality, and Divine’s wisdom, I evaluate, identify, inspire, encourage, and empower individuals to overcome obstacles and discover their true potential. My approach is holistic: I help people balance emotions, embrace their uniqueness, and live authentically.",
+            "/profile.jpeg"
+        ]);
+    } else {
+        // Upgrade existing settings table rows with pristine defaults if currently null/empty
+        $stmtCheck = $pdo->query('SELECT about_para1 FROM settings WHERE id = 1');
+        $resCheck = $stmtCheck->fetch();
+        if (!$resCheck || empty($resCheck['about_para1'])) {
+            $stmtUpdate = $pdo->prepare('UPDATE settings SET 
+                about_title = COALESCE(about_title, ?),
+                about_para1 = ?,
+                about_para2 = ?,
+                profile_photo = COALESCE(profile_photo, ?)
+                WHERE id = 1');
+            $stmtUpdate->execute([
+                "Bridging ancient wisdom with modern life guidance",
+                "I am a Seeker, Intuitive, Healer, and Mentor with 15 years of dedicated experience guiding individuals through life’s most complex challenges. Drawing from my personal life experiences and challenges, I have transformed lessons into wisdom — and now help others navigate their paths with clarity, confidence, and purpose.",
+                "By combining astro-numerology, spirituality, and Divine’s wisdom, I evaluate, identify, inspire, encourage, and empower individuals to overcome obstacles and discover their true potential. My approach is holistic: I help people balance emotions, embrace their uniqueness, and live authentically.",
+                "/profile.jpeg"
+            ]);
+        }
     }
 } catch (Exception $e) {}
 
@@ -429,9 +469,65 @@ try {
     elseif ($route === 'settings' && $method === 'PUT') {
         require_auth();
         $gemini_key = isset($input['gemini_api_key']) ? $input['gemini_api_key'] : null;
-        $stmt = $pdo->prepare('UPDATE settings SET whatsapp=?, email=?, whatsapp_message=?, email_subject=?, email_body=?, gemini_api_key=? WHERE id=1');
-        $stmt->execute([$input['whatsapp'], $input['email'], $input['whatsapp_message'], $input['email_subject'], $input['email_body'], $gemini_key]);
+
+        $current = $pdo->query('SELECT * FROM settings WHERE id = 1')->fetch();
+        $about_title = isset($input['about_title']) ? $input['about_title'] : ($current['about_title'] ?? "Bridging ancient wisdom with modern life guidance");
+        $about_para1 = isset($input['about_para1']) ? $input['about_para1'] : ($current['about_para1'] ?? "");
+        $about_para2 = isset($input['about_para2']) ? $input['about_para2'] : ($current['about_para2'] ?? "");
+        $profile_photo = isset($input['profile_photo']) ? $input['profile_photo'] : ($current['profile_photo'] ?? "/profile.jpeg");
+
+        $stmt = $pdo->prepare('UPDATE settings SET whatsapp=?, email=?, whatsapp_message=?, email_subject=?, email_body=?, gemini_api_key=?, about_title=?, about_para1=?, about_para2=?, profile_photo=? WHERE id=1');
+        $stmt->execute([
+            $input['whatsapp'], 
+            $input['email'], 
+            $input['whatsapp_message'], 
+            $input['email_subject'], 
+            $input['email_body'], 
+            $gemini_key,
+            $about_title,
+            $about_para1,
+            $about_para2,
+            $profile_photo
+        ]);
         echo json_encode(['success' => true]);
+    }
+    elseif ($route === 'upload' && $method === 'POST') {
+        require_auth();
+        if (!isset($_FILES['photo'])) {
+            http_response_code(400);
+            echo json_encode(['error' => 'No file uploaded']);
+            exit;
+        }
+        $file = $_FILES['photo'];
+        if ($file['error'] !== UPLOAD_ERR_OK) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Upload error code: ' . $file['error']]);
+            exit;
+        }
+
+        $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!in_array($file['type'], $allowedTypes)) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Only image uploads are allowed.']);
+            exit;
+        }
+
+        $targetDir = __DIR__ . '/uploads/';
+        if (!is_dir($targetDir)) {
+            mkdir($targetDir, 0755, true);
+        }
+
+        $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+        $filename = 'profile-' . time() . '-' . rand(1000, 9999) . '.' . $ext;
+        $targetPath = $targetDir . $filename;
+
+        if (move_uploaded_file($file['tmp_name'], $targetPath)) {
+            echo json_encode(['success' => true, 'url' => '/uploads/' . $filename]);
+        } else {
+            http_response_code(500);
+            echo json_encode(['error' => 'Failed to save uploaded file on server.']);
+        }
+        exit;
     }
     elseif (preg_match('/^life_paths\/(\d+)$/', $route, $m) && $method === 'PUT') {
         require_auth();

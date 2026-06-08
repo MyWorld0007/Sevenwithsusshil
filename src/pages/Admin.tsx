@@ -14,29 +14,13 @@ export default function Admin() {
   const [pages, setPages] = useState<{slug: string; title: string; content: string}[]>([]);
   const [faqs, setFaqs] = useState<Faq[]>([]);
 
-  const [activeTab, setActiveTab] = useState<'settings' | 'testimonials' | 'lifepaths' | 'pages' | 'faqs' | 'database'>('settings');
-  const [dbReport, setDbReport] = useState<any>(null);
-  const [dbLoading, setDbLoading] = useState(false);
-  const [dbResults, setDbResults] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<'settings' | 'testimonials' | 'lifepaths' | 'pages' | 'faqs' | 'profile'>('settings');
 
   useEffect(() => {
     if (token) {
       fetchData();
-      fetchDbDiagnostic();
     }
   }, [token]);
-
-  const fetchDbDiagnostic = async () => {
-    try {
-      const res = await apiFetch('/api/db-diagnostic');
-      if (res.ok) {
-        const data = await res.json();
-        setDbReport(data);
-      }
-    } catch (err) {
-      console.error("[Db Diagnostic Error]", err);
-    }
-  };
 
   const fetchData = async () => {
      try {
@@ -100,13 +84,83 @@ export default function Admin() {
     setToken('');
   };
 
+  const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+
   const saveSettings = async () => {
-     await apiFetch('/api/settings', {
-         method: 'PUT',
-         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-         body: JSON.stringify(settings)
-     });
-     alert('Settings saved!');
+     if (!settings) return;
+     setSaving(true);
+     setSaveSuccess(false);
+     setSaveError('');
+     try {
+       const res = await apiFetch('/api/settings', {
+           method: 'PUT',
+           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+           body: JSON.stringify(settings)
+       });
+       if (!res.ok) {
+         const serverText = await res.text();
+         throw new Error(serverText || 'Failed to update settings');
+       }
+       setSaveSuccess(true);
+       setTimeout(() => setSaveSuccess(false), 4000);
+     } catch (err: any) {
+       console.error("Save settings error:", err);
+       setSaveError(err.message || 'Failed to save settings');
+     } finally {
+       setSaving(false);
+     }
+  };
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    setUploadError('');
+
+    const formData = new FormData();
+    formData.append('photo', file);
+
+    try {
+      const isHostinger = typeof window !== 'undefined' && !window.location.hostname.includes('.run.app') && !window.location.hostname.includes('localhost');
+      const endpoint = isHostinger ? '/api.php?route=upload' : '/api/upload';
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        let errMsg = 'Upload failed';
+        try {
+          const errData = JSON.parse(errText);
+          errMsg = errData.error || errMsg;
+        } catch {
+          errMsg = errText || errMsg;
+        }
+        throw new Error(errMsg);
+      }
+
+      const data = await res.json();
+      if (data.url) {
+        setSettings(prev => prev ? { ...prev, profile_photo: data.url } : null);
+      } else {
+        throw new Error('Server did not return file URL');
+      }
+    } catch (err: any) {
+      console.error("Upload error:", err);
+      setUploadError(err.message || 'Failed to upload photo');
+    } finally {
+      setUploading(false);
+    }
   };
 
   const saveLifePath = async (lp: LifePath) => {
@@ -227,34 +281,7 @@ export default function Admin() {
      }
   };
 
-  const handleDbRebuild = async () => {
-    if (!confirm('Are you sure you want to completely rebuild the database? This will DROP all existing tables and re-create them with pristine seed data.')) {
-      return;
-    }
-    setDbLoading(true);
-    setDbResults(null);
-    try {
-      const res = await apiFetch('/api/db-rebuild', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (res.ok) {
-        const results = await res.json();
-        setDbResults(results);
-        alert('Database rebuild process finished. Review diagnostic statuses below.');
-        fetchDbDiagnostic();
-        fetchData();
-      } else {
-        alert('Failed to execute database rebuild.');
-      }
-    } catch (err: any) {
-      alert('Error during rebuild: ' + err.message);
-    } finally {
-      setDbLoading(false);
-    }
-  };
+
 
   if (!token) {
     return (
@@ -308,10 +335,10 @@ export default function Admin() {
              FAQs Details
            </button>
            <button 
-             onClick={() => setActiveTab('database')} 
-             className={`w-full text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] transition-colors rounded ${activeTab === 'database' ? 'bg-gold text-bg-dark font-bold' : 'text-gold hover:bg-gold/10'}`}
+             onClick={() => setActiveTab('profile')} 
+             className={`w-full text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] transition-colors rounded ${activeTab === 'profile' ? 'bg-gold text-bg-dark font-bold' : 'text-gold hover:bg-gold/10'}`}
            >
-             DB Diagnostics
+             About Profile
            </button>
         </nav>
 
@@ -569,100 +596,161 @@ export default function Admin() {
              </div>
           </section>
         )}
-         {activeTab === 'database' && (
+         {activeTab === 'profile' && settings && (
            <section className="max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500">
              <div className="flex justify-between items-center mb-6">
-               <h2 className="text-3xl font-serif text-gold">DB Diagnostics & Repair</h2>
-               <button 
-                 onClick={fetchDbDiagnostic}
-                 className="bg-gold/10 hover:bg-gold/20 text-gold border border-gold/30 px-4 py-2 text-xs uppercase tracking-wider rounded transition-colors"
-                 disabled={dbLoading}
-               >
-                 Refresh Diagnostics
-               </button>
+               <h2 className="text-3xl font-serif text-gold">About Profile Settings</h2>
+               <div className="flex items-center gap-4">
+                 {saveSuccess && <span className="text-emerald-400 font-mono text-xs animate-pulse">✓ Saved Successfully</span>}
+                 {saveError && <span className="text-rose-400 font-mono text-xs">Error: {saveError}</span>}
+                 <button 
+                   onClick={saveSettings}
+                   disabled={saving}
+                   className="bg-gold hover:bg-gold-lt text-bg-dark font-bold px-6 py-3 text-xs uppercase tracking-wider rounded transition-colors disabled:opacity-50"
+                 >
+                   {saving ? "Saving..." : "Save Profile"}
+                 </button>
+               </div>
              </div>
              
              <p className="text-sm text-muted mb-8 tracking-wide max-w-2xl leading-relaxed">
-               Verify database connection integrity and the state of your MySQL tables on Hostinger. If any tables are missing, corrupt, or empty, run a rebuild to restore all default configuration copy and seeds.
-             </p>
- 
-             {/* Diagnostic Table */}
-             <div className="bg-bg-card border border-gold/20 p-6 mb-8">
-               <h3 className="text-lg font-serif text-gold mb-6 border-b border-gold/10 pb-4">Target Tables Health Check</h3>
-               
-               {dbReport && dbReport.tables ? (
-                 <div className="space-y-4">
-                   {Object.keys(dbReport.tables).map((tableName) => {
-                     const info = dbReport.tables[tableName];
-                     return (
-                       <div key={tableName} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border border-gold/10 rounded bg-bg-dark/50">
-                         <div>
-                           <span className="font-mono text-sm text-gold tracking-wide font-semibold">{tableName}</span>
-                           <div className="text-xs text-muted mt-1">
-                             {info.exists ? (
-                               <span className="text-emerald-400">✅ Active / Connected</span>
-                             ) : (
-                               <span className="text-rose-400 font-medium">❌ Missing or Unreachable</span>
-                             )}
-                           </div>
-                         </div>
-                         
-                         <div className="mt-2 sm:mt-0 text-right">
-                           {info.exists ? (
-                             <span className="text-xs font-mono uppercase bg-emerald-500/10 text-emerald-400 px-3 py-1 border border-emerald-500/20 rounded">
-                               {info.rows} rows detected
-                             </span>
-                           ) : (
-                             <span className="text-rose-400 text-xs font-mono uppercase bg-rose-500/10 px-3 py-1 border border-rose-500/20 rounded">
-                               Missing
-                             </span>
-                           )}
-                         </div>
-                       </div>
-                     );
-                   })}
-                 </div>
-               ) : (
-                 <p className="text-xs text-muted">Running check... Make sure backend server is active.</p>
-               )}
-             </div>
- 
-             {/* Rebuild Trigger Section */}
-             <div className="bg-bg-card border border-gold/20 p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-               <div className="flex-grow max-w-xl">
-                 <h4 className="text-base font-serif text-gold mb-2">Completely Rebuild Tables</h4>
-                 <p className="text-xs text-muted leading-relaxed">
-                   Drops and recreates all database tables in your MySQL Hostinger instance, then populates them with pristine seed contents (Admins, Settings, 16 Life Paths, Testimonials, Content pages, FAQs).
-                 </p>
-               </div>
-               <button 
-                 onClick={handleDbRebuild}
-                 disabled={dbLoading}
-                 className="bg-gold text-bg-dark px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-gold-lt disabled:opacity-50 transition-colors shrink-0 rounded"
-               >
-                 {dbLoading ? 'Rebuilding...' : 'Rebuild & Inject All'}
-               </button>
-             </div>
- 
-             {/* Operation outputs if run */}
-             {dbResults && (
-               <div className="bg-bg-card border border-gold/20 p-6 mt-8">
-                 <h4 className="text-sm uppercase tracking-wider text-gold mb-4 font-bold font-mono">Rebuild Status Output Logs:</h4>
-                 <div className="space-y-2 max-h-60 overflow-y-auto bg-black p-4 rounded border border-gold/10 font-mono text-xs">
-                   {Object.keys(dbResults).map((key) => {
-                     const value = dbResults[key];
-                     return (
-                       <div key={key} className="flex justify-between">
-                         <span className="text-muted">{key}</span>
-                         <span className={value === 'Success' ? 'text-emerald-400' : 'text-rose-400'}>{value}</span>
-                       </div>
-                     );
-                   })}
+               Update your homepage "About" section's display details, profile picture path, and descriptions for perfect paragraph alignment.
+              </p>
+               {/* Profile Editor Grid */}
+             <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+               {/* Preview Side */}
+               <div className="md:col-span-4 space-y-6">
+                 <div className="bg-bg-card border border-gold/20 p-6 rounded">
+                   <h3 className="text-xs uppercase tracking-wider text-gold mb-4 font-mono font-bold">Live Photo Preview</h3>
+                   <div className="w-full aspect-[3/4] bg-bg-input border border-gold/15 rounded overflow-hidden flex items-center justify-center relative shadow-inner">
+                     <img 
+                       src={settings.profile_photo || '/profile.jpeg'} 
+                       alt="Profile Preview" 
+                       className="w-full h-full object-cover"
+                       onError={(e) => {
+                         (e.target as HTMLImageElement).src = '/profile.jpeg';
+                       }}
+                     />
+                   </div>
+                   <div className="text-[10px] text-muted mt-3 font-mono text-center break-all">
+                     Current Picture: {settings.profile_photo || '/profile.jpeg'}
+                   </div>
                  </div>
                </div>
-             )}
+
+               {/* Editor Side */}
+               <div className="md:col-span-8 space-y-6">
+                 <div className="bg-bg-card border border-gold/20 p-8 space-y-6 rounded shadow-sm">
+                   <div>
+                     <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2 font-semibold font-mono">Profile Photo Path or URL</label>
+                      
+                      {/* Direct Upload Option */}
+                      <div className="mb-6 mt-2">
+                        <div className="border border-dashed border-gold/30 hover:border-gold/60 bg-bg-input/20 p-6 rounded text-center transition-all relative cursor-pointer group mb-3">
+                          <input 
+                            type="file" 
+                            id="profile-upload" 
+                            accept="image/*" 
+                            onChange={handleUpload} 
+                            className="absolute inset-0 opacity-0 cursor-pointer" 
+                            disabled={uploading}
+                          />
+                          <div className="space-y-2">
+                            <div className="text-gold/85 group-hover:text-gold flex justify-center text-xl font-bold">
+                              {uploading ? "⌛" : "↑"}
+                            </div>
+                            <div>
+                              <span className="text-xs text-white block">
+                                {uploading ? "Uploading, please wait..." : "Click or Drag & Drop to Upload Photo"}
+                              </span>
+                              <span className="text-[10px] text-muted font-mono block mt-0.5">
+                                JPG, PNG, WEBP or GIF up to 5MB
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {uploadError && (
+                          <p className="text-xs text-rose-400 font-mono mb-2">❌ {uploadError}</p>
+                        )}
+                      </div>
+
+                      <label className="block text-[10px] uppercase tracking-[0.05em] text-gold/80 mb-2 font-semibold font-mono">Or specify Image URL / Path manually</label>
+                     <input 
+                       type="text" 
+                       value={settings.profile_photo || ''}
+                        onChange={e => setSettings({...settings, profile_photo: e.target.value})} 
+                       placeholder="e.g. /profile.jpeg or https://images.com/..." 
+                       className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold text-sm text-white" 
+                     />
+                     <p className="text-[10px] text-muted mt-1.5 leading-relaxed">
+                       Specify absolute filename path (e.g. <code className="text-gold font-mono">/profile.jpeg</code>) or an external image link.
+                     </p>
+                   </div>
+
+                   <div>
+                     <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2 font-semibold font-serif text-gold">About Section Title</label>
+                     <input 
+                       type="text" 
+                       value={settings.about_title || ''} 
+                       onChange={e => setSettings({...settings, about_title: e.target.value})} 
+                       placeholder="Bridging ancient wisdom with modern life guidance" 
+                       className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold text-sm text-white font-serif" 
+                     />
+                   </div>
+
+                   <div>
+                     <div className="flex justify-between items-center mb-2">
+                       <label className="block text-xs uppercase tracking-[0.1em] text-muted font-semibold font-mono">About Description: Paragraph 1</label>
+                       <span className="text-[10px] text-gold font-mono font-semibold">Better alignment view</span>
+                     </div>
+                     <textarea 
+                       value={settings.about_para1 || ''} 
+                       onChange={e => setSettings({...settings, about_para1: e.target.value})} 
+                       placeholder="Structure your first introduction paragraph..." 
+                       className="w-full bg-bg-input border border-gold/20 p-3 h-36 outline-none focus:border-gold text-sm text-white leading-relaxed resize-y" 
+                     />
+                   </div>
+
+                   <div>
+                     <div className="flex justify-between items-center mb-2">
+                       <label className="block text-xs uppercase tracking-[0.1em] text-muted font-semibold font-mono">About Description: Paragraph 2</label>
+                       <span className="text-[10px] text-gold font-mono font-semibold font-serif">Better alignment view</span>
+                     </div>
+                     <textarea 
+                       value={settings.about_para2 || ''} 
+                       onChange={e => setSettings({...settings, about_para2: e.target.value})} 
+                       placeholder="Structure your second approach or philosophy paragraph..." 
+                       className="w-full bg-bg-input border border-gold/20 p-3 h-36 outline-none focus:border-gold text-sm text-white leading-relaxed resize-y" 
+                     />
+                   </div>
+
+                   <div className="pt-2">
+                     <button 
+                       onClick={saveSettings}
+                       className="bg-gold text-bg-dark px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-gold-lt transition-colors rounded w-full" disabled={saving}
+                     >
+                       <>
+                          <span className="block">{saving ? "Saving Profile..." : "Save Profile Settings & Align Content"}</span>
+                          {saveSuccess && (
+                            <span className="block bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 p-2 rounded text-center text-xs font-mono mt-2 normal-case tracking-normal">
+                              ✓ Profile settings saved and homepage aligned!
+                            </span>
+                          )}
+                          {saveError && (
+                            <span className="block bg-rose-500/20 border border-rose-500/30 text-rose-300 p-2 rounded text-center text-xs font-mono mt-2 normal-case tracking-normal">
+                              ❌ Save failed: {saveError}
+                            </span>
+                          )}
+                        </>
+                     </button>
+                   </div>
+                 </div>
+               </div>
+             </div>
            </section>
          )}
+        
        </main>
     </div>
   );

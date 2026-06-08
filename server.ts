@@ -23,6 +23,7 @@ import { createServer as createViteServer } from "vite";
 import cors from "cors";
 import jwt from "jsonwebtoken";
 import mysql from "mysql2/promise";
+import multer from "multer";
 
 const JSON_DB_PATH = path.resolve(process.cwd(), 'database.json');
 
@@ -65,6 +66,10 @@ class JsonDbEngine {
       data.settings[0].email_subject = params[3];
       data.settings[0].email_body = params[4];
       data.settings[0].gemini_api_key = params[5];
+      data.settings[0].profile_photo = params[6];
+      data.settings[0].about_title = params[7];
+      data.settings[0].about_para1 = params[8];
+      data.settings[0].about_para2 = params[9];
       writeJsonDb(data);
       affectedRowsCount = 1;
     } else if (cleanSql.includes("SELECT * FROM life_paths ORDER")) {
@@ -225,6 +230,22 @@ async function getDbPool() {
     } catch (err) {}
 
     try {
+      await pool.query(`ALTER TABLE settings ADD COLUMN about_title VARCHAR(500)`);
+    } catch (err) {}
+
+    try {
+      await pool.query(`ALTER TABLE settings ADD COLUMN about_para1 TEXT`);
+    } catch (err) {}
+
+    try {
+      await pool.query(`ALTER TABLE settings ADD COLUMN about_para2 TEXT`);
+    } catch (err) {}
+
+    try {
+      await pool.query(`ALTER TABLE settings ADD COLUMN profile_photo VARCHAR(500)`);
+    } catch (err) {}
+
+    try {
       await pool.query(`
         CREATE TABLE IF NOT EXISTS life_paths (
           id INT PRIMARY KEY,
@@ -372,6 +393,26 @@ async function getDbPool() {
   return activeEngine;
 }
 
+const storage = multer.diskStorage({
+  destination: (req, _file, cb) => {
+    const uploadDir = path.join(process.cwd(), "public/uploads");
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname);
+    cb(null, "profile-" + uniqueSuffix + ext);
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }
+});
+
 async function startServer() {
   const app = express();
   const PORT = 3000;
@@ -380,6 +421,7 @@ async function startServer() {
 
   app.use(cors());
   app.use(express.json());
+  app.use("/uploads", express.static(path.join(process.cwd(), "public/uploads")));
 
   // API ROUTES
   
@@ -461,12 +503,58 @@ async function startServer() {
   app.put("/api/settings", requireAuth, async (req, res) => {
     try {
       const db = await getDbPool();
-      const { whatsapp, email, whatsapp_message, email_subject, email_body, gemini_api_key } = req.body;
+      const { 
+        whatsapp, 
+        email, 
+        whatsapp_message, 
+        email_subject, 
+        email_body, 
+        gemini_api_key,
+        profile_photo,
+        about_title,
+        about_para1,
+        about_para2
+      } = req.body;
+      
       await db.query(`
-        UPDATE settings SET whatsapp=?, email=?, whatsapp_message=?, email_subject=?, email_body=?, gemini_api_key=? WHERE id=1
-      `, [whatsapp, email, whatsapp_message, email_subject, email_body, gemini_api_key || null]);
+        UPDATE settings SET 
+          whatsapp=?, 
+          email=?, 
+          whatsapp_message=?, 
+          email_subject=?, 
+          email_body=?, 
+          gemini_api_key=?,
+          profile_photo=?,
+          about_title=?,
+          about_para1=?,
+          about_para2=?
+        WHERE id=1
+      `, [
+        whatsapp, 
+        email, 
+        whatsapp_message, 
+        email_subject, 
+        email_body, 
+        gemini_api_key || null,
+        profile_photo || null,
+        about_title || null,
+        about_para1 || null,
+        about_para2 || null
+      ]);
       res.json({ success: true });
     } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.post("/api/upload", requireAuth, upload.single("photo"), (req: any, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded." });
+      }
+      const fileUrl = `/uploads/${req.file.filename}`;
+      res.json({ success: true, url: fileUrl });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
   });
 
   app.put("/api/life_paths/:id", requireAuth, async (req, res) => {

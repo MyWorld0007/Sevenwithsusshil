@@ -6,6 +6,10 @@ export interface Settings {
   email_subject: string;
   email_body: string;
   gemini_api_key?: string;
+  about_title?: string;
+  about_para1?: string;
+  about_para2?: string;
+  profile_photo?: string;
 }
 
 export interface Testimonial {
