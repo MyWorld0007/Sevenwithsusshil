@@ -660,7 +660,7 @@ export default function Admin() {
                               {uploading ? "⌛" : "↑"}
                             </div>
                             <div>
-                              <span className="text-xs text-white block">
+                              <span className="text-xs text-text-main block font-semibold">
                                 {uploading ? "Uploading, please wait..." : "Click or Drag & Drop to Upload Photo"}
                               </span>
                               <span className="text-[10px] text-muted font-mono block mt-0.5">
@@ -681,7 +681,7 @@ export default function Admin() {
                        value={settings.profile_photo || ''}
                         onChange={e => setSettings({...settings, profile_photo: e.target.value})} 
                        placeholder="e.g. /profile.jpeg or https://images.com/..." 
-                       className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold text-sm text-white" 
+                       className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold text-sm text-text-main" 
                      />
                      <p className="text-[10px] text-muted mt-1.5 leading-relaxed">
                        Specify absolute filename path (e.g. <code className="text-gold font-mono">/profile.jpeg</code>) or an external image link.
@@ -695,7 +695,7 @@ export default function Admin() {
                        value={settings.about_title || ''} 
                        onChange={e => setSettings({...settings, about_title: e.target.value})} 
                        placeholder="Bridging ancient wisdom with modern life guidance" 
-                       className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold text-sm text-white font-serif" 
+                       className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold text-sm text-text-main font-serif" 
                      />
                    </div>
 
@@ -708,7 +708,7 @@ export default function Admin() {
                        value={settings.about_para1 || ''} 
                        onChange={e => setSettings({...settings, about_para1: e.target.value})} 
                        placeholder="Structure your first introduction paragraph..." 
-                       className="w-full bg-bg-input border border-gold/20 p-3 h-36 outline-none focus:border-gold text-sm text-white leading-relaxed resize-y" 
+                       className="w-full bg-bg-input border border-gold/20 p-3 h-36 outline-none focus:border-gold text-sm text-text-main leading-relaxed resize-y" 
                      />
                    </div>
 
@@ -721,7 +721,7 @@ export default function Admin() {
                        value={settings.about_para2 || ''} 
                        onChange={e => setSettings({...settings, about_para2: e.target.value})} 
                        placeholder="Structure your second approach or philosophy paragraph..." 
-                       className="w-full bg-bg-input border border-gold/20 p-3 h-36 outline-none focus:border-gold text-sm text-white leading-relaxed resize-y" 
+                       className="w-full bg-bg-input border border-gold/20 p-3 h-36 outline-none focus:border-gold text-sm text-text-main leading-relaxed resize-y" 
                      />
                    </div>
 
