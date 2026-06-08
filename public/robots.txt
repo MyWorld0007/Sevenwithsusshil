@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
+Disallow: /admin
 
-Sitemap: https://www.sevenastro.com/sitemap.xml
+Sitemap: https://sevenastro.com/sitemap.xml

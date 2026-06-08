@@ -43,6 +43,18 @@ export default function App() {
   }, [location.pathname, location.hash, isAdmin]);
 
   useEffect(() => {
+    let canonical = document.getElementById('canonical-meta') as HTMLLinkElement | null;
+    if (!canonical) {
+      canonical = document.createElement('link');
+      canonical.id = 'canonical-meta';
+      canonical.setAttribute('rel', 'canonical');
+      document.head.appendChild(canonical);
+    }
+    const cleanPath = location.pathname === '/' ? '' : location.pathname;
+    canonical.setAttribute('href', `https://sevenastro.com${cleanPath}`);
+  }, [location.pathname]);
+
+  useEffect(() => {
     if (isAdmin) return;
     const obs = new IntersectionObserver(entries => {
       entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('vis'); });
@@ -145,7 +157,7 @@ export default function App() {
               Book a Session
             </a>
             <button 
-              className="md:hidden text-gold p-2 cursor-pointer focus:outline-none"
+              className="md:hidden text-gold p-3 cursor-pointer focus:outline-none"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               aria-label="Toggle menu"
             >
@@ -162,13 +174,13 @@ export default function App() {
 
         {/* Mobile menu */}
         <div className={`md:hidden absolute top-full left-0 right-0 bg-bg-dark border-b border-gold-bd transition-all duration-300 overflow-hidden ${isMobileMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
-          <ul className="flex flex-col text-[11px] uppercase tracking-[0.2em] text-muted p-6 gap-6">
-            <li><a href="/#services" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block">Services</a></li>
-            <li><a href="/#about" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block">About</a></li>
-            <li><a href="/#calculator" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block">Calculator</a></li>
-            <li><a href="/#testimonials" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block">Stories</a></li>
-            <li className="pt-4 border-t border-gold/10">
-              <a href="/#booking" onClick={() => setIsMobileMenuOpen(false)} className="inline-block px-6 py-3 border border-gold/30 text-gold w-fit text-center uppercase tracking-[0.2em]">
+          <ul className="flex flex-col text-[11px] uppercase tracking-[0.2em] text-muted p-6 gap-2">
+            <li><a href="/#services" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block py-3 px-2">Services</a></li>
+            <li><a href="/#about" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block py-3 px-2">About</a></li>
+            <li><a href="/#calculator" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block py-3 px-2">Calculator</a></li>
+            <li><a href="/#testimonials" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block py-3 px-2">Stories</a></li>
+            <li className="pt-4 mt-2 border-t border-gold/10">
+              <a href="/#booking" onClick={() => setIsMobileMenuOpen(false)} className="inline-block px-6 py-3.5 border border-gold/30 text-gold w-full text-center uppercase tracking-[0.2em]">
                 Book a Session
               </a>
             </li>

@@ -52,6 +52,23 @@ export default function ContentPage() {
       
       {slug === 'faq' && faqs.length > 0 && (
         <div className="mt-12 space-y-6">
+          <script 
+            type="application/ld+json" 
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "FAQPage",
+                "mainEntity": faqs.map((faq) => ({
+                  "@type": "Question",
+                  "name": faq.question,
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": faq.answer.replace(/<[^>]*>?/gm, '')
+                  }
+                }))
+              })
+            }}
+          />
           {faqs.map((faq) => (
             <div key={faq.id} className="bg-bg-card border border-gold/20 p-6 rounded-sm shadow-sm group">
               <h3 className="text-xl font-serif text-gold mb-4 group-hover:text-gold-lt transition-colors">{faq.question}</h3>
