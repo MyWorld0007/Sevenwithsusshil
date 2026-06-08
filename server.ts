@@ -64,6 +64,12 @@ async function getDbPool() {
         )
       `);
 
+      try {
+        await pool.query(`ALTER TABLE settings ADD COLUMN gemini_api_key VARCHAR(500)`);
+      } catch (err) {
+        // Already exists
+      }
+
       await pool.query(`
         CREATE TABLE IF NOT EXISTS life_paths (
           id INT PRIMARY KEY,
@@ -271,10 +277,10 @@ async function startServer() {
   app.put("/api/settings", requireAuth, async (req, res) => {
     try {
       const db = await getDbPool();
-      const { whatsapp, email, whatsapp_message, email_subject, email_body } = req.body;
+      const { whatsapp, email, whatsapp_message, email_subject, email_body, gemini_api_key } = req.body;
       await db.query(`
-        UPDATE settings SET whatsapp=?, email=?, whatsapp_message=?, email_subject=?, email_body=? WHERE id=1
-      `, [whatsapp, email, whatsapp_message, email_subject, email_body]);
+        UPDATE settings SET whatsapp=?, email=?, whatsapp_message=?, email_subject=?, email_body=?, gemini_api_key=? WHERE id=1
+      `, [whatsapp, email, whatsapp_message, email_subject, email_body, gemini_api_key || null]);
       res.json({ success: true });
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });

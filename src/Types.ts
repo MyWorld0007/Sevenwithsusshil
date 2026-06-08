@@ -5,6 +5,7 @@ export interface Settings {
   whatsapp_message: string;
   email_subject: string;
   email_body: string;
+  gemini_api_key?: string;
 }
 
 export interface Testimonial {

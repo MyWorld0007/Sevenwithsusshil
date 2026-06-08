@@ -297,6 +297,25 @@ export default function Admin() {
                    <textarea value={settings.email_body} onChange={e=>setSettings({...settings, email_body: e.target.value})} className="w-full bg-bg-input border border-gold/20 p-3 h-32 outline-none focus:border-gold" />
                 </div>
               </div>
+
+              {/* ═══ GEMINI API KEY SECTION ═══ */}
+              <div className="border-t border-gold/10 pt-6 mt-8 mb-6">
+                <h3 className="text-lg font-serif mb-2 text-gold">Gemini AI Setup</h3>
+                <p className="text-[11px] text-muted mb-4 leading-relaxed max-w-xl">
+                  Configure your Gemini API Key to enable AI intelligence, conversational assistance, and personalized content generations. Keeps API keys protected server-side.
+                </p>
+                <div className="max-w-xl">
+                   <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2 font-semibold">Gemini API Key</label>
+                   <input 
+                     type="password" 
+                     placeholder="Enter Gemini API Key (keep empty to use default env key)" 
+                     value={settings.gemini_api_key || ''} 
+                     onChange={e=>setSettings({...settings, gemini_api_key: e.target.value})} 
+                     className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold font-mono text-sm tracking-wide rounded-sm" 
+                   />
+                </div>
+              </div>
+
               <button onClick={saveSettings} className="bg-gold text-bg-dark px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-gold-lt transition-colors rounded">Save Settings</button>
             </div>
           </section>

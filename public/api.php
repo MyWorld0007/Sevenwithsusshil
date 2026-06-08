@@ -47,6 +47,12 @@ try {
         display_order INT DEFAULT 0
     )");
 
+    try {
+        $pdo->exec("ALTER TABLE settings ADD COLUMN gemini_api_key VARCHAR(500)");
+    } catch (Exception $e) {
+        // Already exists
+    }
+
     // Seed content pages if empty
     $cnt = $pdo->query('SELECT COUNT(*) as cnt FROM content_pages')->fetch()['cnt'];
     if ($cnt == 0) {
@@ -147,8 +153,9 @@ try {
     }
     elseif ($route === 'settings' && $method === 'PUT') {
         require_auth();
-        $stmt = $pdo->prepare('UPDATE settings SET whatsapp=?, email=?, whatsapp_message=?, email_subject=?, email_body=? WHERE id=1');
-        $stmt->execute([$input['whatsapp'], $input['email'], $input['whatsapp_message'], $input['email_subject'], $input['email_body']]);
+        $gemini_key = isset($input['gemini_api_key']) ? $input['gemini_api_key'] : null;
+        $stmt = $pdo->prepare('UPDATE settings SET whatsapp=?, email=?, whatsapp_message=?, email_subject=?, email_body=?, gemini_api_key=? WHERE id=1');
+        $stmt->execute([$input['whatsapp'], $input['email'], $input['whatsapp_message'], $input['email_subject'], $input['email_body'], $gemini_key]);
         echo json_encode(['success' => true]);
     }
     elseif (preg_match('/^life_paths\/(\d+)$/', $route, $m) && $method === 'PUT') {
