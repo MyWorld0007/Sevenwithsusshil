@@ -33,37 +33,155 @@ if (!$pdo) {
     exit;
 }
 
+// 1. Create admins table
 try {
-    $pdo->exec("CREATE TABLE IF NOT EXISTS content_pages (
-        slug VARCHAR(50) PRIMARY KEY,
-        title VARCHAR(255),
-        content LONGTEXT
-    )");
+    $pdo->exec('CREATE TABLE IF NOT EXISTS `admins` (
+        `id` INT PRIMARY KEY AUTO_INCREMENT,
+        `email` VARCHAR(191) UNIQUE,
+        `password` VARCHAR(255)
+    )');
+} catch (Exception $e) {}
 
-    $pdo->exec("CREATE TABLE IF NOT EXISTS faqs (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        question VARCHAR(500),
-        answer LONGTEXT,
-        display_order INT DEFAULT 0
-    )");
+// 2. Create settings table
+try {
+    $pdo->exec('CREATE TABLE IF NOT EXISTS `settings` (
+        `id` INT PRIMARY KEY,
+        `whatsapp` VARCHAR(255),
+        `email` VARCHAR(255),
+        `whatsapp_message` TEXT,
+        `email_subject` VARCHAR(255),
+        `email_body` TEXT,
+        `gemini_api_key` VARCHAR(500) NULL
+    )');
+} catch (Exception $e) {}
 
-    try {
-        $pdo->exec("ALTER TABLE settings ADD COLUMN gemini_api_key VARCHAR(500)");
-    } catch (Exception $e) {
-        // Already exists
+// 3. Create life_paths table
+try {
+    $pdo->exec('CREATE TABLE IF NOT EXISTS `life_paths` (
+        `id` INT PRIMARY KEY,
+        `name` VARCHAR(255),
+        `desc` TEXT
+    )');
+} catch (Exception $e) {}
+
+// 4. Create testimonials table
+try {
+    $pdo->exec('CREATE TABLE IF NOT EXISTS `testimonials` (
+        `id` INT PRIMARY KEY,
+        `text` TEXT,
+        `initial` VARCHAR(10),
+        `name` VARCHAR(255),
+        `loc` VARCHAR(255),
+        `date` VARCHAR(255),
+        `rating` INT
+    )');
+} catch (Exception $e) {}
+
+// 5. Create content_pages table
+try {
+    $pdo->exec('CREATE TABLE IF NOT EXISTS `content_pages` (
+        `slug` VARCHAR(50) PRIMARY KEY,
+        `title` VARCHAR(255),
+        `content` LONGTEXT
+    )');
+} catch (Exception $e) {}
+
+// 6. Create faqs table
+try {
+    $pdo->exec('CREATE TABLE IF NOT EXISTS `faqs` (
+        `id` INT AUTO_INCREMENT PRIMARY KEY,
+        `question` VARCHAR(500),
+        `answer` LONGTEXT,
+        `display_order` INT DEFAULT 0
+    )');
+} catch (Exception $e) {}
+
+// --- SEED SECTIONS ---
+
+// Seed admin if empty
+try {
+    $cntAdmin = $pdo->query('SELECT COUNT(*) as cnt FROM admins')->fetch()['cnt'];
+    if ($cntAdmin == 0) {
+        $stmt = $pdo->prepare('INSERT INTO admins (email, password) VALUES (?, ?)');
+        $stmt->execute(['masteradmin@sevenastro.com', '@Masteradmin_2026']);
     }
+} catch (Exception $e) {}
 
-    // Seed content pages if empty
-    $cnt = $pdo->query('SELECT COUNT(*) as cnt FROM content_pages')->fetch()['cnt'];
-    if ($cnt == 0) {
-        $stmt = $pdo->prepare("INSERT INTO content_pages (slug, title, content) VALUES (?, ?, ?)");
+// Seed settings if empty
+try {
+    $cntSettings = $pdo->query('SELECT COUNT(*) as cnt FROM settings')->fetch()['cnt'];
+    if ($cntSettings == 0) {
+        $stmt = $pdo->prepare('INSERT INTO settings (id, whatsapp, email, whatsapp_message, email_subject, email_body, gemini_api_key) VALUES (?, ?, ?, ?, ?, ?, ?)');
+        $stmt->execute([1, '917039516551', '7s.evolve@gmail.com', 'Hello! I would like to book a session.', 'Book a Session', "Hi Team Seven,\n\nI want to book a session.", null]);
+    }
+} catch (Exception $e) {}
+
+// Seed life_paths if empty
+try {
+    $cntLP = $pdo->query('SELECT COUNT(*) as cnt FROM life_paths')->fetch()['cnt'];
+    if ($cntLP == 0) {
+        $lps = [
+            [1, 'The Leader', 'Born to lead, Life Path 1 individuals are independent, ambitious, and determined.'],
+            [2, 'The Peacemaker', 'Gifted with sensitivity, intuition, and creativity, Life Path 2 individuals are natural harmonizers.'],
+            [3, 'The Creator', 'Life Path 3 individuals are naturally creative, expressive, and charismatic.'],
+            [4, 'The Builder', 'Life Path 4 individuals are practical, disciplined, and hardworking.'],
+            [5, 'The Explorer', 'Life Path 5 individuals are adventurous, versatile, and freedom-loving.'],
+            [6, 'The Nurturer', 'Life Path 6 individuals are compassionate, responsible, and deeply caring.'],
+            [7, 'The Seeker', 'Life Path 7 individuals are analytical, intuitive, and deeply spiritual.'],
+            [8, 'The Achiever', 'Life Path 8 individuals are ambitious, powerful, and naturally gifted in leadership.'],
+            [9, 'The Humanitarian', 'Life Path 9 individuals are compassionate, idealistic, and driven by a desire to make a positive impact on the world.'],
+            [11, 'The Visionary', 'Life Path 11 is a Master Number associated with intuition, inspiration, and spiritual insight.'],
+            [13, 'The Disciplined Builder', 'Life Path 13/4 is a Karmic Debt number that emphasizes hard work, discipline, and perseverance.'],
+            [14, 'The Freedom Seeker', 'Life Path 14/5 is a Karmic Debt number that emphasizes freedom, adaptability, and personal growth through experience.'],
+            [16, 'The Spiritual Seeker', 'Life Path 16/7 is a Karmic Debt number associated with wisdom, introspection, and spiritual growth.'],
+            [19, 'The Independent Leader', 'Life Path 19/1 is a Karmic Debt number associated with leadership, independence, and self-reliance.'],
+            [22, 'The Master Builder', 'Life Path 22 is the most powerful Master Number, combining vision, leadership, and practicality.'],
+            [33, 'The Master Teacher', 'Life Path 33 is the Master Teacher, representing unconditional love, compassion, and selfless service.']
+        ];
+        $stmt = $pdo->prepare('INSERT INTO life_paths (id, name, `desc`) VALUES (?, ?, ?)');
+        foreach ($lps as $lp) {
+            $stmt->execute($lp);
+        }
+    }
+} catch (Exception $e) {}
+
+// Seed testimonials if empty
+try {
+    $cntTest = $pdo->query('SELECT COUNT(*) as cnt FROM testimonials')->fetch()['cnt'];
+    if ($cntTest == 0) {
+        $tests = [
+            [1, '"My session was nothing short of revelatory. The accuracy with which the numbers reflected my life\'s patterns left me speechless. I finally understand why certain things kept repeating."', 'P', 'Priya Malhotra', 'Mumbai, India', 'October 2023', 5],
+            [2, '"I was at a complete crossroads in my career. The reading gave me the courage and clarity to make a decision I\'d been avoiding for two years. Genuinely life-changing."', 'R', 'Rohan Kapoor', 'Bangalore, India', 'November 2023', 5],
+            [3, '"The relationship compatibility reading transformed how my partner and I communicate. Understanding our numbers made everything feel less like conflict and more like growth."', 'A', 'Anjali Singh', 'Delhi, India', 'January 2024', 5],
+            [4, '"Simply incredible. The insights into my personal year cycle explained exactly what I was feeling."', 'S', 'Sarah T.', 'London, UK', 'March 2024', 5]
+        ];
+        $stmt = $pdo->prepare('INSERT INTO testimonials (id, text, initial, name, loc, date, rating) VALUES (?, ?, ?, ?, ?, ?, ?)');
+        foreach ($tests as $t) {
+            $stmt->execute($t);
+        }
+    }
+} catch (Exception $e) {}
+
+// Seed content pages if empty
+try {
+    $cntPages = $pdo->query('SELECT COUNT(*) as cnt FROM content_pages')->fetch()['cnt'];
+    if ($cntPages == 0) {
+        $stmt = $pdo->prepare('INSERT INTO content_pages (slug, title, content) VALUES (?, ?, ?)');
         $stmt->execute(['terms', 'Terms & Conditions', 'Welcome to our Terms & Conditions.']);
         $stmt->execute(['privacy', 'Privacy Policy', 'Welcome to our Privacy Policy.']);
         $stmt->execute(['faq', 'FAQ', '']);
     }
-} catch (Exception $e) {
-    // Ignore seeding errors
-}
+} catch (Exception $e) {}
+
+// Seed FAQs if empty
+try {
+    $cntFaqs = $pdo->query('SELECT COUNT(*) as cnt FROM faqs')->fetch()['cnt'];
+    if ($cntFaqs == 0) {
+        $stmt = $pdo->prepare('INSERT INTO faqs (question, answer) VALUES (?, ?)');
+        $stmt->execute(['What is Numerology?', 'Numerology is the study of numbers and their influence on our lives.']);
+        $stmt->execute(['How can I book a reading?', 'You can book a reading by visiting the Booking section on our homepage.']);
+    }
+} catch (Exception $e) {}
 
 $jwt_secret = 'supersecret123';
 
@@ -125,6 +243,163 @@ $method = $_SERVER['REQUEST_METHOD'];
 $input = json_decode(file_get_contents('php://input'), true) ?: [];
 
 try {
+    if ($route === 'db-diagnostic' && $method === 'GET') {
+        $tables = ['admins', 'settings', 'life_paths', 'testimonials', 'content_pages', 'faqs'];
+        $status = [];
+        foreach ($tables as $tbl) {
+            try {
+                $count = $pdo->query("SELECT COUNT(*) as cnt FROM `$tbl`")->fetch()['cnt'];
+                $status[$tbl] = [
+                    'exists' => true,
+                    'rows' => $count
+                ];
+            } catch (Exception $e) {
+                $status[$tbl] = [
+                    'exists' => false,
+                    'error' => $e->getMessage()
+                ];
+            }
+        }
+        echo json_encode([
+            'database' => $db_name,
+            'tables' => $status
+        ]);
+        exit;
+    }
+    elseif ($route === 'db-rebuild' && $method === 'POST') {
+        $results = [];
+        $queries = [
+            'drop_admins' => 'DROP TABLE IF EXISTS `admins`',
+            'create_admins' => 'CREATE TABLE `admins` (
+                `id` INT PRIMARY KEY AUTO_INCREMENT,
+                `email` VARCHAR(191) UNIQUE,
+                `password` VARCHAR(255)
+            )',
+            'seed_admins' => "INSERT INTO admins (email, password) VALUES ('masteradmin@sevenastro.com', '@Masteradmin_2026')",
+            
+            'drop_settings' => 'DROP TABLE IF EXISTS `settings`',
+            'create_settings' => 'CREATE TABLE `settings` (
+                `id` INT PRIMARY KEY,
+                `whatsapp` VARCHAR(255),
+                `email` VARCHAR(255),
+                `whatsapp_message` TEXT,
+                `email_subject` VARCHAR(255),
+                `email_body` TEXT,
+                `gemini_api_key` VARCHAR(500) NULL
+            )',
+            'seed_settings' => "INSERT INTO settings (id, whatsapp, email, whatsapp_message, email_subject, email_body, gemini_api_key) VALUES (1, '917039516551', '7s.evolve@gmail.com', 'Hello! I would like to book a session.', 'Book a Session', 'Hi Team Seven,\\n\\nI want to book a session.', null)",
+            
+            'drop_life_paths' => 'DROP TABLE IF EXISTS `life_paths`',
+            'create_life_paths' => 'CREATE TABLE `life_paths` (
+                `id` INT PRIMARY KEY,
+                `name` VARCHAR(255),
+                `desc` TEXT
+            )',
+            
+            'drop_testimonials' => 'DROP TABLE IF EXISTS `testimonials`',
+            'create_testimonials' => 'CREATE TABLE `testimonials` (
+                `id` INT PRIMARY KEY,
+                `text` TEXT,
+                `initial` VARCHAR(10),
+                `name` VARCHAR(255),
+                `loc` VARCHAR(255),
+                `date` VARCHAR(255),
+                `rating` INT
+            )',
+            
+            'drop_content_pages' => 'DROP TABLE IF EXISTS `content_pages`',
+            'create_content_pages' => 'CREATE TABLE `content_pages` (
+                `slug` VARCHAR(50) PRIMARY KEY,
+                `title` VARCHAR(255),
+                `content` LONGTEXT
+            )',
+            
+            'drop_faqs' => 'DROP TABLE IF EXISTS `faqs`',
+            'create_faqs' => 'CREATE TABLE `faqs` (
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+                `question` VARCHAR(500),
+                `answer` LONGTEXT,
+                `display_order` INT DEFAULT 0
+            )'
+        ];
+        
+        foreach ($queries as $name => $sql) {
+            try {
+                $pdo->exec($sql);
+                $results[$name] = 'Success';
+            } catch (Exception $e) {
+                $results[$name] = 'Error: ' . $e->getMessage();
+            }
+        }
+        
+        // Detailed seeding for lists
+        try {
+            $lps = [
+                [1, 'The Leader', 'Born to lead, Life Path 1 individuals are independent, ambitious, and determined.'],
+                [2, 'The Peacemaker', 'Gifted with sensitivity, intuition, and creativity, Life Path 2 individuals are natural harmonizers.'],
+                [3, 'The Creator', 'Life Path 3 individuals are naturally creative, expressive, and charismatic.'],
+                [4, 'The Builder', 'Life Path 4 individuals are practical, disciplined, and hardworking.'],
+                [5, 'The Explorer', 'Life Path 5 individuals are adventurous, versatile, and freedom-loving.'],
+                [6, 'The Nurturer', 'Life Path 6 individuals are compassionate, responsible, and deeply caring.'],
+                [7, 'The Seeker', 'Life Path 7 individuals are analytical, intuitive, and deeply spiritual.'],
+                [8, 'The Achiever', 'Life Path 8 individuals are ambitious, powerful, and naturally gifted in leadership.'],
+                [9, 'The Humanitarian', 'Life Path 9 individuals are compassionate, idealistic, and driven by a desire to make a positive impact on the world.'],
+                [11, 'The Visionary', 'Life Path 11 is a Master Number associated with intuition, inspiration, and spiritual insight.'],
+                [13, 'The Disciplined Builder', 'Life Path 13/4 is a Karmic Debt number that emphasizes hard work, discipline, and perseverance.'],
+                [14, 'The Freedom Seeker', 'Life Path 14/5 is a Karmic Debt number that emphasizes freedom, adaptability, and personal growth through experience.'],
+                [16, 'The Spiritual Seeker', 'Life Path 16/7 is a Karmic Debt number associated with wisdom, introspection, and spiritual growth.'],
+                [19, 'The Independent Leader', 'Life Path 19/1 is a Karmic Debt number associated with leadership, independence, and self-reliance.'],
+                [22, 'The Master Builder', 'Life Path 22 is the most powerful Master Number, combining vision, leadership, and practicality.'],
+                [33, 'The Master Teacher', 'Life Path 33 is the Master Teacher, representing unconditional love, compassion, and selfless service.']
+            ];
+            $stmt = $pdo->prepare('INSERT INTO life_paths (id, name, `desc`) VALUES (?, ?, ?)');
+            foreach ($lps as $lp) {
+                $stmt->execute($lp);
+            }
+            $results['seed_life_paths'] = 'Success';
+        } catch (Exception $e) {
+            $results['seed_life_paths'] = 'Error: ' . $e->getMessage();
+        }
+        
+        try {
+            $tests = [
+                [1, '"My session was nothing short of revelatory. The accuracy with which the numbers reflected my life\'s patterns left me speechless. I finally understand why certain things kept repeating."', 'P', 'Priya Malhotra', 'Mumbai, India', 'October 2023', 5],
+                [2, '"I was at a complete crossroads in my career. The reading gave me the courage and clarity to make a decision I\'d been avoiding for two years. Genuinely life-changing."', 'R', 'Rohan Kapoor', 'Bangalore, India', 'November 2023', 5],
+                [3, '"The relationship compatibility reading transformed how my partner and I communicate. Understanding our numbers made everything feel less like conflict and more like growth."', 'A', 'Anjali Singh', 'Delhi, India', 'January 2024', 5],
+                [4, '"Simply incredible. The insights into my personal year cycle explained exactly what I was feeling."', 'S', 'Sarah T.', 'London, UK', 'March 2024', 5]
+            ];
+            $stmt = $pdo->prepare('INSERT INTO testimonials (id, text, initial, name, loc, date, rating) VALUES (?, ?, ?, ?, ?, ?, ?)');
+            foreach ($tests as $t) {
+                $stmt->execute($t);
+            }
+            $results['seed_testimonials'] = 'Success';
+        } catch (Exception $e) {
+            $results['seed_testimonials'] = 'Error: ' . $e->getMessage();
+        }
+        
+        try {
+            $stmt = $pdo->prepare('INSERT INTO content_pages (slug, title, content) VALUES (?, ?, ?)');
+            $stmt->execute(['terms', 'Terms & Conditions', 'Welcome to our Terms & Conditions.']);
+            $stmt->execute(['privacy', 'Privacy Policy', 'Welcome to our Privacy Policy.']);
+            $stmt->execute(['faq', 'FAQ', '']);
+            $results['seed_content_pages'] = 'Success';
+        } catch (Exception $e) {
+            $results['seed_content_pages'] = 'Error: ' . $e->getMessage();
+        }
+        
+        try {
+            $stmt = $pdo->prepare('INSERT INTO faqs (question, answer) VALUES (?, ?)');
+            $stmt->execute(['What is Numerology?', 'Numerology is the study of numbers and their influence on our lives.']);
+            $stmt->execute(['How can I book a reading?', 'You can book a reading by visiting the Booking section on our homepage.']);
+            $results['seed_faqs'] = 'Success';
+        } catch (Exception $e) {
+            $results['seed_faqs'] = 'Error: ' . $e->getMessage();
+        }
+        
+        echo json_encode($results);
+        exit;
+    }
+
     if ($route === 'settings' && $method === 'GET') {
         $stmt = $pdo->query('SELECT * FROM settings WHERE id = 1');
         $row = $stmt->fetch();

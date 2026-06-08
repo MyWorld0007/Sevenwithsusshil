@@ -128,5 +128,43 @@
       "date": "March 2024",
       "rating": 5
     }
+  ],
+  "content_pages": [
+    {
+      "slug": "terms",
+      "title": "Terms & Conditions",
+      "content": "Welcome to our Terms & Conditions."
+    },
+    {
+      "slug": "privacy",
+      "title": "Privacy Policy",
+      "content": "Welcome to our Privacy Policy."
+    },
+    {
+      "slug": "faq",
+      "title": "FAQ",
+      "content": ""
+    }
+  ],
+  "faqs": [
+    {
+      "id": 1,
+      "question": "What is Numerology?",
+      "answer": "Numerology is the study of numbers and their influence on our lives.",
+      "display_order": 0
+    },
+    {
+      "id": 2,
+      "question": "How can I book a reading?",
+      "answer": "You can book a reading by visiting the Booking section on our homepage.",
+      "display_order": 0
+    }
+  ],
+  "admins": [
+    {
+      "id": 1,
+      "email": "masteradmin@sevenastro.com",
+      "password": "@Masteradmin_2026"
+    }
   ]
 }

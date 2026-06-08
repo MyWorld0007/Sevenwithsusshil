@@ -14,13 +14,29 @@ export default function Admin() {
   const [pages, setPages] = useState<{slug: string; title: string; content: string}[]>([]);
   const [faqs, setFaqs] = useState<Faq[]>([]);
 
-  const [activeTab, setActiveTab] = useState<'settings' | 'testimonials' | 'lifepaths' | 'pages' | 'faqs'>('settings');
+  const [activeTab, setActiveTab] = useState<'settings' | 'testimonials' | 'lifepaths' | 'pages' | 'faqs' | 'database'>('settings');
+  const [dbReport, setDbReport] = useState<any>(null);
+  const [dbLoading, setDbLoading] = useState(false);
+  const [dbResults, setDbResults] = useState<any>(null);
 
   useEffect(() => {
     if (token) {
       fetchData();
+      fetchDbDiagnostic();
     }
   }, [token]);
+
+  const fetchDbDiagnostic = async () => {
+    try {
+      const res = await apiFetch('/api/db-diagnostic');
+      if (res.ok) {
+        const data = await res.json();
+        setDbReport(data);
+      }
+    } catch (err) {
+      console.error("[Db Diagnostic Error]", err);
+    }
+  };
 
   const fetchData = async () => {
      try {
@@ -211,6 +227,35 @@ export default function Admin() {
      }
   };
 
+  const handleDbRebuild = async () => {
+    if (!confirm('Are you sure you want to completely rebuild the database? This will DROP all existing tables and re-create them with pristine seed data.')) {
+      return;
+    }
+    setDbLoading(true);
+    setDbResults(null);
+    try {
+      const res = await apiFetch('/api/db-rebuild', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        const results = await res.json();
+        setDbResults(results);
+        alert('Database rebuild process finished. Review diagnostic statuses below.');
+        fetchDbDiagnostic();
+        fetchData();
+      } else {
+        alert('Failed to execute database rebuild.');
+      }
+    } catch (err: any) {
+      alert('Error during rebuild: ' + err.message);
+    } finally {
+      setDbLoading(false);
+    }
+  };
+
   if (!token) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-bg-dark text-text-main">
@@ -261,6 +306,12 @@ export default function Admin() {
              className={`w-full text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] transition-colors rounded ${activeTab === 'faqs' ? 'bg-gold text-bg-dark font-bold' : 'text-gold hover:bg-gold/10'}`}
            >
              FAQs Details
+           </button>
+           <button 
+             onClick={() => setActiveTab('database')} 
+             className={`w-full text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] transition-colors rounded ${activeTab === 'database' ? 'bg-gold text-bg-dark font-bold' : 'text-gold hover:bg-gold/10'}`}
+           >
+             DB Diagnostics
            </button>
         </nav>
 
@@ -518,7 +569,101 @@ export default function Admin() {
              </div>
           </section>
         )}
-      </main>
+         {activeTab === 'database' && (
+           <section className="max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+             <div className="flex justify-between items-center mb-6">
+               <h2 className="text-3xl font-serif text-gold">DB Diagnostics & Repair</h2>
+               <button 
+                 onClick={fetchDbDiagnostic}
+                 className="bg-gold/10 hover:bg-gold/20 text-gold border border-gold/30 px-4 py-2 text-xs uppercase tracking-wider rounded transition-colors"
+                 disabled={dbLoading}
+               >
+                 Refresh Diagnostics
+               </button>
+             </div>
+             
+             <p className="text-sm text-muted mb-8 tracking-wide max-w-2xl leading-relaxed">
+               Verify database connection integrity and the state of your MySQL tables on Hostinger. If any tables are missing, corrupt, or empty, run a rebuild to restore all default configuration copy and seeds.
+             </p>
+ 
+             {/* Diagnostic Table */}
+             <div className="bg-bg-card border border-gold/20 p-6 mb-8">
+               <h3 className="text-lg font-serif text-gold mb-6 border-b border-gold/10 pb-4">Target Tables Health Check</h3>
+               
+               {dbReport && dbReport.tables ? (
+                 <div className="space-y-4">
+                   {Object.keys(dbReport.tables).map((tableName) => {
+                     const info = dbReport.tables[tableName];
+                     return (
+                       <div key={tableName} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border border-gold/10 rounded bg-bg-dark/50">
+                         <div>
+                           <span className="font-mono text-sm text-gold tracking-wide font-semibold">{tableName}</span>
+                           <div className="text-xs text-muted mt-1">
+                             {info.exists ? (
+                               <span className="text-emerald-400">✅ Active / Connected</span>
+                             ) : (
+                               <span className="text-rose-400 font-medium">❌ Missing or Unreachable</span>
+                             )}
+                           </div>
+                         </div>
+                         
+                         <div className="mt-2 sm:mt-0 text-right">
+                           {info.exists ? (
+                             <span className="text-xs font-mono uppercase bg-emerald-500/10 text-emerald-400 px-3 py-1 border border-emerald-500/20 rounded">
+                               {info.rows} rows detected
+                             </span>
+                           ) : (
+                             <span className="text-rose-400 text-xs font-mono uppercase bg-rose-500/10 px-3 py-1 border border-rose-500/20 rounded">
+                               Missing
+                             </span>
+                           )}
+                         </div>
+                       </div>
+                     );
+                   })}
+                 </div>
+               ) : (
+                 <p className="text-xs text-muted">Running check... Make sure backend server is active.</p>
+               )}
+             </div>
+ 
+             {/* Rebuild Trigger Section */}
+             <div className="bg-bg-card border border-gold/20 p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+               <div className="flex-grow max-w-xl">
+                 <h4 className="text-base font-serif text-gold mb-2">Completely Rebuild Tables</h4>
+                 <p className="text-xs text-muted leading-relaxed">
+                   Drops and recreates all database tables in your MySQL Hostinger instance, then populates them with pristine seed contents (Admins, Settings, 16 Life Paths, Testimonials, Content pages, FAQs).
+                 </p>
+               </div>
+               <button 
+                 onClick={handleDbRebuild}
+                 disabled={dbLoading}
+                 className="bg-gold text-bg-dark px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-gold-lt disabled:opacity-50 transition-colors shrink-0 rounded"
+               >
+                 {dbLoading ? 'Rebuilding...' : 'Rebuild & Inject All'}
+               </button>
+             </div>
+ 
+             {/* Operation outputs if run */}
+             {dbResults && (
+               <div className="bg-bg-card border border-gold/20 p-6 mt-8">
+                 <h4 className="text-sm uppercase tracking-wider text-gold mb-4 font-bold font-mono">Rebuild Status Output Logs:</h4>
+                 <div className="space-y-2 max-h-60 overflow-y-auto bg-black p-4 rounded border border-gold/10 font-mono text-xs">
+                   {Object.keys(dbResults).map((key) => {
+                     const value = dbResults[key];
+                     return (
+                       <div key={key} className="flex justify-between">
+                         <span className="text-muted">{key}</span>
+                         <span className={value === 'Success' ? 'text-emerald-400' : 'text-rose-400'}>{value}</span>
+                       </div>
+                     );
+                   })}
+                 </div>
+               </div>
+             )}
+           </section>
+         )}
+       </main>
     </div>
   );
 }

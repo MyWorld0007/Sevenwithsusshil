@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 const IS_PROD = import.meta.env.PROD;
 
 export function apiFetch(endpoint: string, options?: RequestInit) {

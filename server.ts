@@ -24,22 +24,173 @@ import cors from "cors";
 import jwt from "jsonwebtoken";
 import mysql from "mysql2/promise";
 
+const JSON_DB_PATH = path.resolve(process.cwd(), 'database.json');
+
+function readJsonDb(): any {
+  try {
+    const content = fs.readFileSync(JSON_DB_PATH, 'utf8');
+    return JSON.parse(content);
+  } catch (err) {
+    console.error("[JSON DB] Failed to read database.json:", err);
+    return { settings: [], life_paths: [], testimonials: [], content_pages: [], faqs: [] };
+  }
+}
+
+function writeJsonDb(data: any) {
+  try {
+    fs.writeFileSync(JSON_DB_PATH, JSON.stringify(data, null, 2), 'utf8');
+  } catch (err) {
+    console.error("[JSON DB] Failed to write database.json:", err);
+  }
+}
+
+class JsonDbEngine {
+  async query(sql: string, params: any[] = []): Promise<[any[], any]> {
+    const cleanSql = sql.replace(/\s+/g, " ").trim();
+    const data = readJsonDb();
+    let resultRows: any[] = [];
+    let affectedRowsCount = 0;
+    let lastInsertIdVal = 0;
+
+    if (cleanSql.includes("SELECT * FROM settings")) {
+      resultRows = data.settings || [];
+    } else if (cleanSql.includes("UPDATE settings SET")) {
+      if (!data.settings) data.settings = [];
+      if (data.settings.length === 0) {
+        data.settings.push({ id: 1 });
+      }
+      data.settings[0].whatsapp = params[0];
+      data.settings[0].email = params[1];
+      data.settings[0].whatsapp_message = params[2];
+      data.settings[0].email_subject = params[3];
+      data.settings[0].email_body = params[4];
+      data.settings[0].gemini_api_key = params[5];
+      writeJsonDb(data);
+      affectedRowsCount = 1;
+    } else if (cleanSql.includes("SELECT * FROM life_paths ORDER")) {
+      resultRows = (data.life_paths || []).sort((a: any, b: any) => a.id - b.id);
+    } else if (cleanSql.includes("SELECT * FROM life_paths WHERE id=?") || cleanSql.includes("SELECT * FROM life_paths WHERE id = ?")) {
+      const matchId = Number(params[0]);
+      resultRows = (data.life_paths || []).filter((x: any) => x.id === matchId);
+    } else if (cleanSql.includes("UPDATE life_paths SET")) {
+      const id = Number(params[2]);
+      const item = (data.life_paths || []).find((x: any) => x.id === id);
+      if (item) {
+        item.name = params[0];
+        item.desc = params[1];
+        writeJsonDb(data);
+      }
+      affectedRowsCount = 1;
+    } else if (cleanSql.includes("INSERT INTO life_paths")) {
+      if (!data.life_paths) data.life_paths = [];
+      data.life_paths.push({ id: Number(params[0]), name: params[1], desc: params[2] });
+      writeJsonDb(data);
+      affectedRowsCount = 1;
+    } else if (cleanSql.includes("DELETE FROM life_paths")) {
+      const id = Number(params[0]);
+      data.life_paths = (data.life_paths || []).filter((x: any) => x.id !== id);
+      writeJsonDb(data);
+      affectedRowsCount = 1;
+    } else if (cleanSql.includes("SELECT * FROM testimonials")) {
+      resultRows = (data.testimonials || []).sort((a: any, b: any) => a.id - b.id);
+    } else if (cleanSql.includes("SELECT COUNT(*) as cnt FROM testimonials")) {
+      resultRows = [{ cnt: (data.testimonials || []).length }];
+    } else if (cleanSql.includes("SELECT MAX(id) as maxId FROM testimonials")) {
+      const max = (data.testimonials || []).reduce((m: number, x: any) => Math.max(m, x.id || 0), 0);
+      resultRows = [{ maxId: max }];
+    } else if (cleanSql.includes("INSERT INTO testimonials")) {
+      if (!data.testimonials) data.testimonials = [];
+      data.testimonials.push({
+        id: Number(params[0]),
+        text: params[1],
+        initial: params[2],
+        name: params[3],
+        loc: params[4],
+        date: params[5],
+        rating: Number(params[6]) || 5
+      });
+      writeJsonDb(data);
+      affectedRowsCount = 1;
+    } else if (cleanSql.includes("DELETE FROM testimonials")) {
+      const id = Number(params[0]);
+      data.testimonials = (data.testimonials || []).filter((x: any) => x.id !== id);
+      writeJsonDb(data);
+      affectedRowsCount = 1;
+    } else if (cleanSql.includes("SELECT * FROM content_pages WHERE slug = ?") || cleanSql.includes("SELECT * FROM content_pages WHERE slug=?")) {
+      const slug = String(params[0]);
+      resultRows = (data.content_pages || []).filter((x: any) => x.slug === slug);
+    } else if (cleanSql.includes("SELECT * FROM content_pages")) {
+      resultRows = data.content_pages || [];
+    } else if (cleanSql.includes("UPDATE content_pages SET")) {
+      const slug = String(params[2]);
+      const item = (data.content_pages || []).find((x: any) => x.slug === slug);
+      if (item) {
+        item.title = params[0];
+        item.content = params[1];
+        writeJsonDb(data);
+      }
+      affectedRowsCount = 1;
+    } else if (cleanSql.includes("SELECT * FROM admins WHERE email = ? AND password = ?")) {
+      const email = String(params[0]);
+      const pass = String(params[1]);
+      resultRows = (data.admins || []).filter((x: any) => x.email === email && x.password === pass);
+    } else if (cleanSql.includes("SELECT COUNT(*) as cnt FROM admins")) {
+      resultRows = [{ cnt: (data.admins || []).length }];
+    } else if (cleanSql.includes("SELECT COUNT(*) as cnt FROM settings")) {
+      resultRows = [{ cnt: (data.settings || []).length }];
+    } else if (cleanSql.includes("SELECT COUNT(*) as cnt FROM life_paths")) {
+      resultRows = [{ cnt: (data.life_paths || []).length }];
+    } else if (cleanSql.includes("SELECT COUNT(*) as cnt FROM content_pages")) {
+      resultRows = [{ cnt: (data.content_pages || []).length }];
+    } else if (cleanSql.includes("SELECT * FROM faqs")) {
+      resultRows = (data.faqs || []).sort((a: any, b: any) => (a.display_order || 0) - (b.display_order || 0) || a.id - b.id);
+    } else if (cleanSql.includes("SELECT COUNT(*) as cnt FROM faqs")) {
+      resultRows = [{ cnt: (data.faqs || []).length }];
+    } else if (cleanSql.includes("INSERT INTO faqs")) {
+      if (!data.faqs) data.faqs = [];
+      const newId = (data.faqs || []).reduce((m: number, x: any) => Math.max(m, x.id || 0), 0) + 1;
+      data.faqs.push({
+        id: newId,
+        question: params[0],
+        answer: params[1],
+        display_order: 0
+      });
+      writeJsonDb(data);
+      lastInsertIdVal = newId;
+    } else if (cleanSql.includes("UPDATE faqs SET")) {
+      const id = Number(params[2]);
+      const item = (data.faqs || []).find((x: any) => x.id === id);
+      if (item) {
+        item.question = params[0];
+        item.answer = params[1];
+        writeJsonDb(data);
+      }
+      affectedRowsCount = 1;
+    } else if (cleanSql.includes("DELETE FROM faqs")) {
+      const id = Number(params[0]);
+      data.faqs = (data.faqs || []).filter((x: any) => x.id !== id);
+      writeJsonDb(data);
+      affectedRowsCount = 1;
+    }
+
+    return [resultRows, { affectedRows: affectedRowsCount, insertId: lastInsertIdVal }];
+  }
+}
+
 let pool: mysql.Pool | null = null;
+let activeEngine: { query(sql: string, params?: any[]): Promise<[any[], any]> } | null = null;
 
 async function getDbPool() {
-  if (!pool) {
-    const DB_HOST = process.env.DB_HOST || '193.203.184.86';
-    const DB_USER = process.env.DB_USER || 'u709894810_masteradmin';
-    const DB_PASSWORD = process.env.DB_PASSWORD || '@Masteradmin_2026';
-    const DB_NAME = process.env.DB_NAME || 'u709894810_sevenastro';
-    const DB_PORT = process.env.DB_PORT || '3306';
-    
-    // Use environment variables or correct defaults
-    const finalHost = process.env.DB_HOST?.includes('sevenastro') ? '193.203.184.86' : (process.env.DB_HOST || '193.203.184.86');
-    const finalUser = process.env.DB_USER === 'masteradmin' ? 'u709894810_masteradmin' : (process.env.DB_USER || 'u709894810_masteradmin');
-    const finalPassword = process.env.DB_PASSWORD || '@Masteradmin_2026';
-    const finalName = process.env.DB_NAME === 'sevenastro' ? 'u709894810_sevenastro' : (process.env.DB_NAME || 'u709894810_sevenastro');
-    
+  if (activeEngine) {
+    return activeEngine;
+  }
+
+  const finalHost = process.env.DB_HOST?.includes('sevenastro') ? '193.203.184.86' : (process.env.DB_HOST || '193.203.184.86');
+  const finalUser = process.env.DB_USER === 'masteradmin' ? 'u709894810_masteradmin' : (process.env.DB_USER || 'u709894810_masteradmin');
+  const finalPassword = process.env.DB_PASSWORD || '@Masteradmin_2026';
+  const finalName = process.env.DB_NAME === 'sevenastro' ? 'u709894810_sevenastro' : (process.env.DB_NAME || 'u709894810_sevenastro');
+
+  try {
     pool = mysql.createPool({
       host: finalHost,
       user: finalUser,
@@ -48,11 +199,15 @@ async function getDbPool() {
       port: 3306,
       waitForConnections: true,
       connectionLimit: 10,
-      queueLimit: 0
+      queueLimit: 0,
+      connectTimeout: 4000 // Fails fast to avoid freezing the backend
     });
 
+    // Test a quick query to ensure authorization and firewall permit connection
+    await pool.query('SELECT 1');
+
+    // Run table migrations with independent try-catch blocks
     try {
-      // Run migrations
       await pool.query(`
         CREATE TABLE IF NOT EXISTS settings (
           id INT PRIMARY KEY,
@@ -63,13 +218,13 @@ async function getDbPool() {
           email_body TEXT
         )
       `);
+    } catch (e: any) { console.error("[MYSQL Setup] settings table:", e.message); }
 
-      try {
-        await pool.query(`ALTER TABLE settings ADD COLUMN gemini_api_key VARCHAR(500)`);
-      } catch (err) {
-        // Already exists
-      }
+    try {
+      await pool.query(`ALTER TABLE settings ADD COLUMN gemini_api_key VARCHAR(500)`);
+    } catch (err) {}
 
+    try {
       await pool.query(`
         CREATE TABLE IF NOT EXISTS life_paths (
           id INT PRIMARY KEY,
@@ -77,7 +232,9 @@ async function getDbPool() {
           \`desc\` TEXT
         )
       `);
+    } catch (e: any) { console.error("[MYSQL Setup] life_paths table:", e.message); }
 
+    try {
       await pool.query(`
         CREATE TABLE IF NOT EXISTS testimonials (
           id INT PRIMARY KEY,
@@ -89,7 +246,9 @@ async function getDbPool() {
           rating INT
         )
       `);
+    } catch (e: any) { console.error("[MYSQL Setup] testimonials table:", e.message); }
 
+    try {
       await pool.query(`
         CREATE TABLE IF NOT EXISTS admins (
           id INT PRIMARY KEY AUTO_INCREMENT,
@@ -97,7 +256,9 @@ async function getDbPool() {
           password VARCHAR(255)
         )
       `);
+    } catch (e: any) { console.error("[MYSQL Setup] admins table:", e.message); }
 
+    try {
       await pool.query(`
         CREATE TABLE IF NOT EXISTS content_pages (
           slug VARCHAR(50) PRIMARY KEY,
@@ -105,7 +266,9 @@ async function getDbPool() {
           content LONGTEXT
         )
       `);
+    } catch (e: any) { console.error("[MYSQL Setup] content_pages table:", e.message); }
 
+    try {
       await pool.query(`
         CREATE TABLE IF NOT EXISTS faqs (
           id INT AUTO_INCREMENT PRIMARY KEY,
@@ -114,22 +277,28 @@ async function getDbPool() {
           display_order INT DEFAULT 0
         )
       `);
+    } catch (e: any) { console.error("[MYSQL Setup] faqs table:", e.message); }
 
-      // Check if seeded
+    // Seed data with individual try-catch blocks
+    try {
       const [adminRows]: any = await pool.query('SELECT COUNT(*) as cnt FROM admins');
       if (adminRows[0].cnt === 0) {
         await pool.query(`INSERT INTO admins (email, password) VALUES (?, ?)`, [
           "masteradmin@sevenastro.com", "@Masteradmin_2026"
         ]);
       }
+    } catch (e: any) { console.error("[MYSQL Seed] admins:", e.message); }
 
+    try {
       const [settingsRows]: any = await pool.query('SELECT COUNT(*) as cnt FROM settings');
       if (settingsRows[0].cnt === 0) {
         await pool.query(`INSERT INTO settings (id, whatsapp, email, whatsapp_message, email_subject, email_body) VALUES (?, ?, ?, ?, ?, ?)`, [
           1, "917039516551", "7s.evolve@gmail.com", "Hello! I would like to book a session.", "Book a Session", "Hi Team Seven,\n\nI want to book a session."
         ]);
       }
+    } catch (e: any) { console.error("[MYSQL Seed] settings:", e.message); }
 
+    try {
       const [lpRows]: any = await pool.query('SELECT COUNT(*) as cnt FROM life_paths');
       if (lpRows[0].cnt === 0) {
         const lps = [
@@ -154,7 +323,9 @@ async function getDbPool() {
           await pool.query('INSERT INTO life_paths (id, name, `desc`) VALUES (?, ?, ?)', [lp.id, lp.name, lp.desc]);
         }
       }
+    } catch (e: any) { console.error("[MYSQL Seed] life_paths:", e.message); }
 
+    try {
       const [testRows]: any = await pool.query('SELECT COUNT(*) as cnt FROM testimonials');
       if (testRows[0].cnt === 0) {
         const tests = [
@@ -168,24 +339,37 @@ async function getDbPool() {
             [t.id, t.text, t.initial, t.name, t.loc, t.date, t.rating]);
         }
       }
+    } catch (e: any) { console.error("[MYSQL Seed] testimonials:", e.message); }
 
+    try {
       const [pagesRows]: any = await pool.query('SELECT COUNT(*) as cnt FROM content_pages');
       if (pagesRows[0].cnt === 0) {
         await pool.query(`INSERT INTO content_pages (slug, title, content) VALUES (?, ?, ?)`, ['terms', 'Terms & Conditions', 'Welcome to our Terms & Conditions.']);
         await pool.query(`INSERT INTO content_pages (slug, title, content) VALUES (?, ?, ?)`, ['privacy', 'Privacy Policy', 'Welcome to our Privacy Policy.']);
         await pool.query(`INSERT INTO content_pages (slug, title, content) VALUES (?, ?, ?)`, ['faq', 'FAQ', '']);
       }
+    } catch (e: any) { console.error("[MYSQL Seed] content_pages:", e.message); }
 
+    try {
       const [faqsRows]: any = await pool.query('SELECT COUNT(*) as cnt FROM faqs');
       if (faqsRows[0].cnt === 0) {
         await pool.query(`INSERT INTO faqs (question, answer) VALUES (?, ?)`, ['What is Numerology?', 'Numerology is the study of numbers and their influence on our lives.']);
         await pool.query(`INSERT INTO faqs (question, answer) VALUES (?, ?)`, ['How can I book a reading?', 'You can book a reading by visiting the Booking section on our homepage.']);
       }
-    } catch (e: any) {
-      console.error("Database initialization failed. Are credentials correct?", e.message);
-    }
+    } catch (e: any) { console.error("[MYSQL Seed] faqs:", e.message); }
+
+    console.log("[DB ENGINE] Active: MySQL");
+    activeEngine = {
+      async query(sql: string, params?: any[]) {
+        return pool!.query(sql, params);
+      }
+    };
+  } catch (err: any) {
+    console.warn(`[DB ENGINE] MySQL connection blocked or failed: ${err.message}. Enabling high-fidelity JSON Engine fallback.`);
+    activeEngine = new JsonDbEngine();
   }
-  return pool;
+
+  return activeEngine;
 }
 
 async function startServer() {
