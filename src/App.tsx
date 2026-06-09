@@ -210,7 +210,6 @@ export default function App() {
       {/* ═══ FOOTER LINKS ═══ */}
       <div className="relative z-10 border-t border-gold/10 bg-bg-dark px-6 md:px-12 py-8 flex justify-center mt-auto">
         <ul className="flex flex-wrap justify-center gap-8 md:gap-16 text-[10px] md:text-[11px] uppercase tracking-[0.2em]">
-          <li><Link to="/pricing" className="text-dim hover:text-gold transition-colors">Pricing</Link></li>
           <li><Link to="/pages/terms" className="text-dim hover:text-gold transition-colors">Terms & Conditions</Link></li>
           <li><Link to="/pages/privacy" className="text-dim hover:text-gold transition-colors">Privacy Policy</Link></li>
           <li><Link to="/pages/faq" className="text-dim hover:text-gold transition-colors">FAQs</Link></li>
