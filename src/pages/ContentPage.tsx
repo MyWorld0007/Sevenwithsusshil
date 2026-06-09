@@ -45,7 +45,7 @@ export default function ContentPage() {
   if (error) return <div className="min-h-[60vh] flex items-center justify-center text-red-400">{error}</div>;
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-24 mb-20 w-full flex-grow">
+    <div className="max-w-6xl mx-auto px-6 py-24 mb-20 w-full flex-grow">
       <h1 className="text-4xl md:text-5xl font-display text-gold mb-12 text-center md:text-left">{title || (slug === 'faq' ? 'FAQs' : '')}</h1>
       <div 
         className="ql-editor p-0 max-w-none text-text-main leading-relaxed"

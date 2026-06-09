@@ -15,6 +15,7 @@ export default function Admin() {
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [pages, setPages] = useState<{slug: string; title: string; content: string}[]>([]);
   const [faqs, setFaqs] = useState<Faq[]>([]);
+  const [selectedFaqs, setSelectedFaqs] = useState<number[]>([]);
   const [newFaqAnswer, setNewFaqAnswer] = useState<string>('');
 
   const [activeTab, setActiveTab] = useState<'settings' | 'testimonials' | 'lifepaths' | 'pages' | 'faqs' | 'profile'>('settings');
@@ -262,6 +263,40 @@ export default function Admin() {
          headers: { 'Authorization': `Bearer ${token}` }
      });
      fetchData();
+  };
+
+  const deleteSelectedFaqs = async () => {
+    if (selectedFaqs.length === 0) return;
+    if (!confirm(`Delete ${selectedFaqs.length} selected FAQs?`)) return;
+    
+    for (const id of selectedFaqs) {
+      await apiFetch(`/api/faqs/${id}`, {
+         method: 'DELETE',
+         headers: { 'Authorization': `Bearer ${token}` }
+      });
+    }
+    fetchData();
+    setSelectedFaqs([]);
+  };
+
+  const moveFaq = async (index: number, direction: 'up' | 'down') => {
+    if (direction === 'up' && index === 0) return;
+    if (direction === 'down' && index === faqs.length - 1) return;
+    
+    const newFaqs = [...faqs];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    
+    const temp = newFaqs[index];
+    newFaqs[index] = newFaqs[targetIndex];
+    newFaqs[targetIndex] = temp;
+    
+    setFaqs(newFaqs);
+    
+    await apiFetch('/api/faqs/reorder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ orderIds: newFaqs.map(f => f.id) })
+    });
   };
 
   const addFaq = async (e: any) => {
@@ -560,18 +595,37 @@ export default function Admin() {
           <section className="max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500">
              <div className="flex justify-between items-center mb-8">
                <h2 className="text-3xl font-serif text-gold">FAQ (Questions & Answers)</h2>
+               {selectedFaqs.length > 0 && (
+                 <button onClick={deleteSelectedFaqs} className="bg-red-900/50 text-red-200 px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] hover:bg-red-800/80 transition-colors rounded border-red-500/50 border">
+                    Delete Selected ({selectedFaqs.length})
+                 </button>
+               )}
              </div>
              <p className="text-sm text-muted mb-8 tracking-wide">
                These questions and answers will be displayed dynamically on the FAQ page.
              </p>
              <div className="space-y-6 mb-10">
-                {faqs.map(faq => (
-                    <div key={faq.id} className="bg-bg-card border border-gold/20 p-6 flex flex-col relative group">
+                {faqs.map((faq, index) => (
+                    <div key={faq.id} className={`bg-bg-card border ${selectedFaqs.includes(faq.id!) ? 'border-gold/60' : 'border-gold/20'} p-6 flex flex-col relative group transition-colors`}>
                         <div className="flex justify-between items-center mb-4">
-                          <h3 className="text-sm uppercase tracking-widest font-serif text-muted">ID: {faq.id}</h3>
-                          <div className="space-x-4">
-                            <button onClick={() => saveFaq(faq)} className="border border-gold/30 text-gold px-6 py-2 text-[10px] uppercase tracking-[0.2em] hover:bg-gold/10 transition-colors rounded">Save Update</button>
-                            <button onClick={() => deleteFaq(faq.id)} className="border border-red-500/30 text-red-400 px-6 py-2 text-[10px] uppercase tracking-[0.2em] hover:bg-red-500/10 transition-colors rounded">Delete</button>
+                          <div className="flex items-center space-x-4">
+                            <input 
+                              type="checkbox" 
+                              className="accent-gold w-4 h-4"
+                              checked={selectedFaqs.includes(faq.id!)}
+                              onChange={(e) => {
+                                if (e.target.checked) setSelectedFaqs([...selectedFaqs, faq.id!]);
+                                else setSelectedFaqs(selectedFaqs.filter(id => id !== faq.id));
+                              }}
+                            />
+                            <h3 className="text-sm uppercase tracking-widest font-serif text-muted">ID: {faq.id}</h3>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <button onClick={() => moveFaq(index, 'up')} disabled={index === 0} className="border border-gold/30 text-gold px-3 py-2 text-[10px] uppercase hover:bg-gold/10 transition-colors rounded disabled:opacity-30 disabled:cursor-not-allowed">▲</button>
+                            <button onClick={() => moveFaq(index, 'down')} disabled={index === faqs.length - 1} className="border border-gold/30 text-gold px-3 py-2 text-[10px] uppercase hover:bg-gold/10 transition-colors rounded disabled:opacity-30 disabled:cursor-not-allowed">▼</button>
+                            <div className="w-2" />
+                            <button onClick={() => saveFaq(faq)} className="border border-gold/30 text-gold px-6 py-2 text-[10px] uppercase tracking-[0.2em] hover:bg-gold/10 transition-colors rounded">Save</button>
+                            <button onClick={() => deleteFaq(faq.id!)} className="border border-red-500/30 text-red-400 px-6 py-2 text-[10px] uppercase tracking-[0.2em] hover:bg-red-500/10 transition-colors rounded">Delete</button>
                           </div>
                         </div>
                         <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Question</label>

@@ -162,6 +162,14 @@ class JsonDbEngine {
       });
       writeJsonDb(data);
       lastInsertIdVal = newId;
+    } else if (cleanSql.includes("UPDATE faqs SET display_order")) {
+      const id = Number(params[1]);
+      const item = (data.faqs || []).find((x: any) => x.id === id);
+      if (item) {
+        item.display_order = Number(params[0]);
+        writeJsonDb(data);
+      }
+      affectedRowsCount = 1;
     } else if (cleanSql.includes("UPDATE faqs SET")) {
       const id = Number(params[2]);
       const item = (data.faqs || []).find((x: any) => x.id === id);
@@ -656,6 +664,17 @@ async function startServer() {
       const db = await getDbPool();
       const [rows] = await db.query('SELECT * FROM faqs ORDER BY display_order ASC, id ASC');
       res.json(rows);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.post("/api/faqs/reorder", requireAuth, async (req, res) => {
+    try {
+      const db = await getDbPool();
+      const { orderIds } = req.body;
+      for (let i = 0; i < orderIds.length; i++) {
+        await db.query('UPDATE faqs SET display_order=? WHERE id=?', [i, orderIds[i]]);
+      }
+      res.json({ success: true });
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
 
