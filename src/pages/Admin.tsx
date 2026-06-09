@@ -1,8 +1,111 @@
 import { apiFetch } from '../lib/api';
 import React, { useState, useEffect } from 'react';
-import ReactQuill from 'react-quill-new';
+import ReactQuill, { Quill } from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import { Settings, LifePath, Testimonial, Faq } from '../Types';
+import { GripVertical } from 'lucide-react';
+import { Reorder, useDragControls } from 'motion/react';
+
+// Register custom fonts on the global Quill instance
+const QuillInstance = (ReactQuill as any).Quill || Quill;
+if (QuillInstance) {
+  const Font = QuillInstance.import('formats/font');
+  Font.whitelist = ['serif', 'monospace', 'times-new-roman', 'arial', 'calibri'];
+  QuillInstance.register(Font, true);
+}
+
+const quillModules = {
+  toolbar: [
+    [{ 'font': [false, 'serif', 'monospace', 'times-new-roman', 'arial', 'calibri'] }],
+    [{ 'size': ['small', false, 'large', 'huge'] }],
+    ['bold', 'italic', 'underline', 'strike'],
+    [{ 'color': [] }, { 'background': [] }],
+    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+    [{ 'align': [] }],
+    ['link'],
+    ['clean']
+  ]
+};
+
+const quillFormats = [
+  'font', 'size',
+  'bold', 'italic', 'underline', 'strike',
+  'color', 'background',
+  'list', 'bullet',
+  'align', 'link'
+];
+
+function FaqAdminItem({ 
+  faq, 
+  isSelected,
+  onToggleSelect,
+  onChangeQuestion, 
+  onChangeAnswer, 
+  onSave, 
+  onDelete 
+}: {
+  faq: Faq;
+  isSelected: boolean;
+  onToggleSelect: (checked: boolean) => void;
+  onChangeQuestion: (q: string) => void;
+  onChangeAnswer: (a: string) => void;
+  onSave: () => void | Promise<void>;
+  onDelete: () => void | Promise<void>;
+  key?: React.Key;
+}) {
+  const controls = useDragControls();
+
+  return (
+    <Reorder.Item 
+      value={faq} 
+      dragListener={false} 
+      dragControls={controls}
+      className={`bg-bg-card border ${isSelected ? 'border-gold/60' : 'border-gold/20'} p-6 flex flex-col relative group transition-colors`}
+    >
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center space-x-4">
+           <div 
+             className="cursor-grab active:cursor-grabbing p-1 text-gold/50 hover:text-gold"
+             onPointerDown={(e) => controls.start(e)}
+             style={{ touchAction: "none" }}
+             title="Drag to reorder"
+           >
+             <GripVertical size={20} />
+           </div>
+           
+           <input 
+             type="checkbox" 
+             className="accent-gold w-4 h-4"
+             checked={isSelected}
+             onChange={(e) => onToggleSelect(e.target.checked)}
+           />
+           <h3 className="text-sm uppercase tracking-widest font-serif text-muted">ID: {faq.id}</h3>
+        </div>
+        <div className="flex items-center space-x-2">
+           <button onClick={onSave} className="border border-gold/30 text-gold px-6 py-2 text-[10px] uppercase tracking-[0.2em] hover:bg-gold/10 transition-colors rounded">Save</button>
+           <button onClick={onDelete} className="border border-red-500/30 text-red-400 px-6 py-2 text-[10px] uppercase tracking-[0.2em] hover:bg-red-500/10 transition-colors rounded">Delete</button>
+        </div>
+      </div>
+      
+      <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Question</label>
+      <input type="text" value={faq.question || ''} placeholder="Question" onChange={e => {
+        onChangeQuestion(e.target.value);
+      }} className="w-full bg-bg-input border border-gold/20 p-3 mb-4 outline-none focus:border-gold" />
+      
+      <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Answer</label>
+      <ReactQuill 
+        theme="snow"
+        modules={quillModules}
+        formats={quillFormats}
+        value={faq.answer || ''} 
+        onChange={(content) => {
+          onChangeAnswer(content);
+        }} 
+        className="w-full bg-bg-input border border-gold/20 text-text-main h-48 mb-12 font-sans pb-10" 
+      />
+    </Reorder.Item>
+  );
+}
 
 export default function Admin() {
   const [token, setToken] = useState(localStorage.getItem('admin_token') || '');
@@ -279,24 +382,18 @@ export default function Admin() {
     setSelectedFaqs([]);
   };
 
-  const moveFaq = async (index: number, direction: 'up' | 'down') => {
-    if (direction === 'up' && index === 0) return;
-    if (direction === 'down' && index === faqs.length - 1) return;
+  const handleFaqReorder = async (newOrder: Faq[]) => {
+    setFaqs(newOrder);
     
-    const newFaqs = [...faqs];
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    
-    const temp = newFaqs[index];
-    newFaqs[index] = newFaqs[targetIndex];
-    newFaqs[targetIndex] = temp;
-    
-    setFaqs(newFaqs);
-    
-    await apiFetch('/api/faqs/reorder', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify({ orderIds: newFaqs.map(f => f.id) })
-    });
+    try {
+      await apiFetch('/api/faqs/reorder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ orderIds: newOrder.map(f => f.id) })
+      });
+    } catch (err) {
+      console.error("Reorder failed", err);
+    }
   };
 
   const addFaq = async (e: any) => {
@@ -579,6 +676,8 @@ export default function Admin() {
                         <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Page Content</label>
                         <ReactQuill
                           theme="snow"
+                          modules={quillModules}
+                          formats={quillFormats}
                           value={page.content || ''} 
                           onChange={(content) => {
                             setPages(pages.map(p => p.slug === page.slug ? {...p, content} : p));
@@ -604,47 +703,27 @@ export default function Admin() {
              <p className="text-sm text-muted mb-8 tracking-wide">
                These questions and answers will be displayed dynamically on the FAQ page.
              </p>
-             <div className="space-y-6 mb-10">
-                {faqs.map((faq, index) => (
-                    <div key={faq.id} className={`bg-bg-card border ${selectedFaqs.includes(faq.id!) ? 'border-gold/60' : 'border-gold/20'} p-6 flex flex-col relative group transition-colors`}>
-                        <div className="flex justify-between items-center mb-4">
-                          <div className="flex items-center space-x-4">
-                            <input 
-                              type="checkbox" 
-                              className="accent-gold w-4 h-4"
-                              checked={selectedFaqs.includes(faq.id!)}
-                              onChange={(e) => {
-                                if (e.target.checked) setSelectedFaqs([...selectedFaqs, faq.id!]);
-                                else setSelectedFaqs(selectedFaqs.filter(id => id !== faq.id));
-                              }}
-                            />
-                            <h3 className="text-sm uppercase tracking-widest font-serif text-muted">ID: {faq.id}</h3>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <button onClick={() => moveFaq(index, 'up')} disabled={index === 0} className="border border-gold/30 text-gold px-3 py-2 text-[10px] uppercase hover:bg-gold/10 transition-colors rounded disabled:opacity-30 disabled:cursor-not-allowed">▲</button>
-                            <button onClick={() => moveFaq(index, 'down')} disabled={index === faqs.length - 1} className="border border-gold/30 text-gold px-3 py-2 text-[10px] uppercase hover:bg-gold/10 transition-colors rounded disabled:opacity-30 disabled:cursor-not-allowed">▼</button>
-                            <div className="w-2" />
-                            <button onClick={() => saveFaq(faq)} className="border border-gold/30 text-gold px-6 py-2 text-[10px] uppercase tracking-[0.2em] hover:bg-gold/10 transition-colors rounded">Save</button>
-                            <button onClick={() => deleteFaq(faq.id!)} className="border border-red-500/30 text-red-400 px-6 py-2 text-[10px] uppercase tracking-[0.2em] hover:bg-red-500/10 transition-colors rounded">Delete</button>
-                          </div>
-                        </div>
-                        <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Question</label>
-                        <input type="text" value={faq.question || ''} placeholder="Question" onChange={e => {
-                            setFaqs(faqs.map(f => f.id === faq.id ? {...f, question: e.target.value} : f));
-                        }} className="w-full bg-bg-input border border-gold/20 p-3 mb-4 outline-none focus:border-gold" />
-                        
-                        <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Answer</label>
-                        <ReactQuill 
-                          theme="snow"
-                          value={faq.answer || ''} 
-                          onChange={(content) => {
-                            setFaqs(faqs.map(f => f.id === faq.id ? {...f, answer: content} : f));
-                          }} 
-                          className="w-full bg-bg-input border border-gold/20 text-text-main h-32 mb-12 font-sans pb-10" 
-                        />
-                    </div>
+             <Reorder.Group axis="y" values={faqs} onReorder={handleFaqReorder} className="space-y-6 mb-10">
+                {faqs.map((faq) => (
+                    <FaqAdminItem 
+                      key={faq.id} 
+                      faq={faq} 
+                      isSelected={selectedFaqs.includes(faq.id!)}
+                      onToggleSelect={(checked) => {
+                        if (checked) setSelectedFaqs([...selectedFaqs, faq.id!]);
+                        else setSelectedFaqs(selectedFaqs.filter(id => id !== faq.id));
+                      }}
+                      onChangeQuestion={(q) => {
+                        setFaqs(faqs.map(f => f.id === faq.id ? {...f, question: q} : f));
+                      }}
+                      onChangeAnswer={(a) => {
+                        setFaqs(faqs.map(f => f.id === faq.id ? {...f, answer: a} : f));
+                      }}
+                      onSave={() => saveFaq(faq)}
+                      onDelete={() => deleteFaq(faq.id!)}
+                    />
                 ))}
-             </div>
+             </Reorder.Group>
 
              <div className="bg-bg-card border border-gold/20 p-8 shadow-sm">
                <h3 className="text-lg font-serif text-gold mb-6">Add New FAQ</h3>
@@ -658,7 +737,7 @@ export default function Admin() {
                        <ReactQuill 
                           theme="snow" 
                           value={newFaqAnswer} 
-                          onChange={(content) => { setNewFaqAnswer(content); }} 
+                          onChange={(content) => { setNewFaqAnswer(content); }} modules={quillModules} formats={quillFormats} 
                           className="w-full bg-bg-input border border-gold/20 text-text-main h-48 mb-8 font-sans pb-10" 
                         />
                    </div>

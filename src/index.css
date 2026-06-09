@@ -69,16 +69,123 @@ html {
 }
 
 /* React Quill Editor Overrides */
-.ql-editor ul {
+.ql-editor ul, 
+.ql-editor ul[data-checked] {
   list-style-type: disc !important;
-  padding-left: 1.5rem !important;
+  list-style-position: outside !important;
+  padding-left: 2rem !important;
   margin-bottom: 1rem !important;
+  display: block !important;
 }
 
 .ql-editor ol {
   list-style-type: decimal !important;
-  padding-left: 1.5rem !important;
+  list-style-position: outside !important;
+  padding-left: 2rem !important;
   margin-bottom: 1rem !important;
+  display: block !important;
+}
+
+.ql-editor li {
+  list-style: inherit !important;
+  list-style-type: inherit !important;
+  display: list-item !important;
+  margin-bottom: 0.25rem !important;
+}
+
+/* Custom Quill Fonts & Sizes mapped to the app theme */
+.ql-editor .ql-font-serif,
+.ql-editor.ql-font-serif,
+.ql-editor p .ql-font-serif,
+.ql-editor li .ql-font-serif,
+.ql-editor span .ql-font-serif,
+.ql-font-serif {
+  font-family: var(--font-serif) !important;
+}
+
+.ql-editor .ql-font-sans,
+.ql-editor.ql-font-sans,
+.ql-editor p .ql-font-sans,
+.ql-editor li .ql-font-sans,
+.ql-editor span .ql-font-sans,
+.ql-font-sans {
+  font-family: var(--font-sans) !important;
+}
+
+.ql-editor .ql-font-monospace,
+.ql-editor.ql-font-monospace,
+.ql-editor p .ql-font-monospace,
+.ql-editor li .ql-font-monospace,
+.ql-editor span .ql-font-monospace,
+.ql-font-monospace {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+}
+
+/* Custom requested fonts */
+.ql-editor .ql-font-times-new-roman,
+.ql-editor.ql-font-times-new-roman,
+.ql-editor p .ql-font-times-new-roman,
+.ql-editor li .ql-font-times-new-roman,
+.ql-editor span .ql-font-times-new-roman,
+.ql-font-times-new-roman {
+  font-family: "Times New Roman", Times, serif !important;
+}
+
+.ql-editor .ql-font-arial,
+.ql-editor.ql-font-arial,
+.ql-editor p .ql-font-arial,
+.ql-editor li .ql-font-arial,
+.ql-editor span .ql-font-arial,
+.ql-font-arial {
+  font-family: Arial, Helvetica, sans-serif !important;
+}
+
+.ql-editor .ql-font-calibri,
+.ql-editor.ql-font-calibri,
+.ql-editor p .ql-font-calibri,
+.ql-editor li .ql-font-calibri,
+.ql-editor span .ql-font-calibri,
+.ql-font-calibri {
+  font-family: Calibri, Candara, Segoe, "Segoe UI", Optima, Arial, sans-serif !important;
+}
+
+/* Customize the pickers dropdown styles so they display the correct font preview and labels */
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="times-new-roman"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="times-new-roman"]::before {
+  content: "Times New Roman" !important;
+  font-family: "Times New Roman", Times, serif !important;
+}
+
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="arial"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="arial"]::before {
+  content: "Arial" !important;
+  font-family: Arial, Helvetica, sans-serif !important;
+}
+
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="calibri"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="calibri"]::before {
+  content: "Calibri" !important;
+  font-family: Calibri, Candara, Segoe, "Segoe UI", Optima, Arial, sans-serif !important;
+}
+
+/* Align and format line spacing */
+.ql-editor p, .ql-editor li {
+  line-height: 1.75 !important;
+}
+
+.ql-editor .ql-size-small {
+  font-size: 0.825em !important;
+}
+
+.ql-editor .ql-size-large {
+  font-size: 1.35em !important;
+  line-height: 1.4 !important;
+}
+
+.ql-editor .ql-size-huge {
+  font-size: 1.85em !important;
+  line-height: 1.3 !important;
+  font-weight: 500 !important;
 }
 
 .ql-editor strong, .ql-editor b {

@@ -3,6 +3,7 @@ import {BrowserRouter} from 'react-router-dom';
 import App from './App.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import './index.css';
+import 'react-quill-new/dist/quill.snow.css';
 
 createRoot(document.getElementById('root')!).render(
     <ErrorBoundary>
