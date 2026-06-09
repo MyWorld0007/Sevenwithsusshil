@@ -1,12 +1,233 @@
 import { apiFetch } from '../lib/api';
 import React, { useState, useEffect, useRef } from 'react';
 import { Testimonial } from '../Types';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, X, Quote, Star, ThumbsUp, CornerDownLeft } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'motion/react';
 
-export default function Stories() {
+interface StoriesProps {
+  isFullPage?: boolean;
+}
+
+// Helper to truncate text to display a brief start line
+const getTruncatedText = (text: string, limit: number = 130) => {
+  let cleanText = text;
+  if (cleanText.startsWith('"') && cleanText.endsWith('"')) {
+    cleanText = cleanText.substring(1, cleanText.length - 1);
+  }
+  if (cleanText.length <= limit) return cleanText;
+  return cleanText.slice(0, limit).trim() + '...';
+};
+
+// Generates dynamic, elegant background for review avatars
+const getAvatarBg = (name: string) => {
+  const colors = [
+    'bg-[#5a7f78]', // Teal/Sage
+    'bg-[#806f96]', // Amethyst/Lavender
+    'bg-[#a38a5c]', // Brand Gold/Sand
+    'bg-[#526f8d]', // Celestial Steel Blue
+    'bg-[#996a6a]', // Jasper Rose
+    'bg-[#697a66]', // Forest Sage
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+};
+
+// Component 1: BriefStoryCard (defined outside to avoid nested component recreation)
+interface BriefStoryCardProps {
+  key?: React.Key;
+  tst: Testimonial;
+  onSelect: () => void;
+}
+
+const BriefStoryCard = ({ tst, onSelect }: BriefStoryCardProps) => {
+  const isTruncated = tst.text.replace(/^"|"$/g, '').length > 130;
+  return (
+    <motion.div 
+      layoutId={`story-card-${tst.id}`}
+      onClick={onSelect}
+      className="bg-bg-card border border-gold/15 p-8 rounded-sm shadow-[0_4px_30px_rgba(0,0,0,0.5)] hover:border-gold/40 transition-all duration-300 flex flex-col justify-between cursor-pointer group h-[320px] relative overflow-hidden"
+      whileHover={{ y: -6, boxShadow: "0 12px 30px rgba(201,160,80,0.06)" }}
+    >
+      <div className="absolute top-1 right-2 opacity-[0.03] group-hover:opacity-[0.06] transition-opacity">
+        <Quote className="w-24 h-24 text-gold transform rotate-180" />
+      </div>
+
+      <div className="relative z-10 flex-grow">
+        {/* Header Ratings */}
+        <div className="flex items-center gap-1 text-gold mb-4 text-xs">
+          {Array.from({ length: 5 }).map((_, idx) => (
+            <Star 
+              key={idx} 
+              className={`w-3.5 h-3.5 fill-current ${idx < (tst.rating || 5) ? 'text-gold' : 'text-gold/25'}`} 
+            />
+          ))}
+        </div>
+
+        {/* Snippet / Brief text showing start lines */}
+        <p className="font-serif text-[15px] md:text-[16px] font-light leading-[1.75] text-muted mb-6 italic">
+          "{getTruncatedText(tst.text)}"
+        </p>
+      </div>
+
+      {/* Action Link & Footer */}
+      <div className="relative z-10 mt-auto">
+        {isTruncated && (
+          <span className="text-[10px] tracking-[0.2em] text-gold/75 group-hover:text-gold uppercase font-medium transition-colors flex items-center gap-1.5 mb-5">
+            Read Full Journey <span className="transform group-hover:translate-x-1 transition-transform">&rarr;</span>
+          </span>
+        )}
+
+        <div className="flex items-center justify-between border-t border-gold/10 pt-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-gold/10 border border-gold/20 flex items-center justify-center font-serif text-sm text-gold flex-shrink-0">
+              {tst.initial}
+            </div>
+            <div>
+              <h4 className="text-[13px] font-medium text-white tracking-wide">{tst.name}</h4>
+              <p className="text-[10px] text-dim">{tst.loc}</p>
+            </div>
+          </div>
+          {tst.date && (
+            <p className="text-[9px] text-dim uppercase tracking-wider">{tst.date}</p>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+// Component 2: TestimonialCard (defined outside)
+const TestimonialCard = ({ tst }: { tst: Testimonial; key?: React.Key }) => (
+  <div className="bg-bg-card border border-gold/20 p-8 rounded-sm shadow-[0_0_20px_rgba(201,160,80,0.03)] h-full flex flex-col justify-between">
+    <div>
+      <div className="text-gold text-[10px] tracking-[0.12em] mb-4">
+        {'★'.repeat(tst.rating || 5)}{'☆'.repeat(5 - (tst.rating || 5))}
+      </div>
+      <p className="font-serif text-lg font-light italic leading-[1.85] text-muted mb-6">{tst.text}</p>
+    </div>
+    <div className="flex items-center justify-between mt-auto">
+      <div className="flex items-center gap-4">
+        <div className="w-10 h-10 rounded-full bg-gold/10 border border-gold/20 flex items-center justify-center font-serif text-lg text-gold flex-shrink-0">{tst.initial}</div>
+        <div>
+          <div className="text-[14px] font-medium">{tst.name}</div>
+          <div className="text-[11px] text-dim mt-1">{tst.loc}</div>
+        </div>
+      </div>
+      {tst.date && (
+         <div className="text-[10px] text-dim uppercase tracking-widest text-right max-w-[80px]">{tst.date}</div>
+      )}
+    </div>
+  </div>
+);
+
+interface GoogleReviewItemProps {
+  tst: Testimonial;
+  key?: React.Key;
+  isVoted: boolean;
+  votes: number;
+  onHelpfulToggle: () => void;
+}
+
+const GoogleReviewItem = ({ tst, isVoted, votes, onHelpfulToggle }: GoogleReviewItemProps) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  // Clean narrative text
+  let cleanText = tst.text;
+  if (cleanText.startsWith('"') && cleanText.endsWith('"')) {
+    cleanText = cleanText.substring(1, cleanText.length - 1);
+  }
+  const isLongText = cleanText.length > 280;
+  const renderText = isLongText && !isExpanded ? cleanText.slice(0, 280) + '...' : cleanText;
+
+  return (
+    <div className="border-b border-gold/10 pb-8 pt-8 flex items-start gap-4 md:gap-6 last:border-b-0">
+      {/* Left Side Avatar */}
+      <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-serif font-semibold flex-shrink-0 shadow-sm ${getAvatarBg(tst.name)}`}>
+        {tst.initial || tst.name.charAt(0)}
+      </div>
+
+      {/* Right Side Column Contents */}
+      <div className="flex-grow">
+        {/* Reviewer Name */}
+        <h3 className="font-sans font-medium text-[15px] md:text-[16px] text-text-main flex items-center gap-2">
+          <span>{tst.name}</span>
+        </h3>
+
+        {/* User Review Stats Info */}
+        <p className="text-dim text-[11px] font-light mt-0.5 tracking-wide">
+          Verified Client • {tst.loc}
+        </p>
+
+        {/* Stars Array & Time Indicator */}
+        <div className="flex items-center gap-1.5 mt-2 mb-3">
+          <div className="flex gap-0.5">
+            {Array.from({ length: 5 }).map((_, idx) => (
+              <Star 
+                key={idx} 
+                className={`w-3.5 h-3.5 fill-current ${idx < (tst.rating || 5) ? 'text-[#c9a050]' : 'text-gold/20'}`} 
+              />
+            ))}
+          </div>
+          <span className="text-[11px] text-dim font-light ml-2">
+            {tst.date || '3 months ago'}
+          </span>
+        </div>
+
+        {/* Testimonial Core Message */}
+        <p className="font-serif text-[15px] md:text-[16.5px] font-light leading-relaxed text-text-main/90 italic">
+          "{renderText}"
+          {isLongText && (
+            <button 
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="text-gold hover:text-gold-lt text-xs tracking-wider font-semibold ml-2 inline-block focus:outline-none transition-colors"
+            >
+              {isExpanded ? 'Show Less' : 'Read Full Narrative'}
+            </button>
+          )}
+        </p>
+
+        {/* Client Feedback Action Buttons */}
+        <div className="flex items-center gap-6 mt-4">
+          {/* Helpful Interaction Button */}
+          <button 
+            onClick={onHelpfulToggle}
+            className={`flex items-center gap-2 text-xs font-light transition-all focus:outline-none cursor-pointer ${isVoted ? 'text-gold font-medium' : 'text-dim hover:text-gold'}`}
+          >
+            <ThumbsUp className={`w-3.5 h-3.5 ${isVoted ? 'fill-current text-gold' : ''}`} />
+            <span>Helpful{votes > 0 ? ` (${votes})` : ''}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default function Stories({ isFullPage = false }: StoriesProps) {
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedStory, setSelectedStory] = useState<Testimonial | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Google Reviews inspired interactive state managers
+  const [sortBy, setSortBy] = useState<'recent' | 'helpful' | 'rating-desc' | 'rating-asc'>('recent');
+  const [helpfulVotes, setHelpfulVotes] = useState<Record<number, number>>({});
+  const [userVoted, setUserVoted] = useState<Record<number, boolean>>({});
+
+  useEffect(() => {
+    if (selectedStory) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [selectedStory]);
 
   useEffect(() => {
     apiFetch('/api/testimonials')
@@ -48,29 +269,168 @@ export default function Stories() {
 
   const visibleTestimonials = testimonials.slice(currentIndex, currentIndex + 3);
 
-  const TestimonialCard = ({ tst }: { tst: Testimonial; key?: React.Key }) => (
-    <div className="bg-bg-card border border-gold/20 p-8 rounded-sm reveal vis shadow-[0_0_20px_rgba(201,160,80,0.03)] h-full flex flex-col justify-between">
-      <div>
-        <div className="text-gold text-[10px] tracking-[0.12em] mb-4">
-          {'★'.repeat(tst.rating || 5)}{'☆'.repeat(5 - (tst.rating || 5))}
-        </div>
-        <p className="font-serif text-lg font-light italic leading-[1.85] text-muted mb-6">{tst.text}</p>
-      </div>
-      <div className="flex items-center justify-between mt-auto">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-full bg-gold/10 border border-gold/20 flex items-center justify-center font-serif text-lg text-gold flex-shrink-0">{tst.initial}</div>
-          <div>
-            <div className="text-[14px] font-medium">{tst.name}</div>
-            <div className="text-[11px] text-dim mt-1">{tst.loc}</div>
-          </div>
-        </div>
-        {tst.date && (
-           <div className="text-[10px] text-dim uppercase tracking-widest text-right max-w-[80px]">{tst.date}</div>
-        )}
-      </div>
-    </div>
+  // Seed standard realistic helpful count like on Google Reviews
+  const getInitialHelpfulCount = (id: number) => {
+    return (id * 3 + 2) % 11; 
+  };
+
+  const handleHelpfulToggle = (id: number) => {
+    setUserVoted(prevVoted => {
+      const wasVoted = !!prevVoted[id];
+      const nextVoted = !wasVoted;
+      
+      setHelpfulVotes(prevVotes => {
+        const current = prevVotes[id] !== undefined ? prevVotes[id] : getInitialHelpfulCount(id);
+        return {
+          ...prevVotes,
+          [id]: nextVoted ? current + 1 : Math.max(0, current - 1)
+        };
+      });
+      
+      return {
+        ...prevVoted,
+        [id]: nextVoted
+      };
+    });
+  };
+
+  const filteredTestimonials = testimonials.filter(t => 
+    t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    t.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (t.loc && t.loc.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
+  const sortedTestimonials = [...filteredTestimonials].sort((a, b) => {
+    if (sortBy === 'rating-desc') {
+      return (b.rating || 5) - (a.rating || 5);
+    }
+    if (sortBy === 'rating-asc') {
+      return (a.rating || 5) - (b.rating || 5);
+    }
+    if (sortBy === 'helpful') {
+      const votesA = helpfulVotes[a.id] !== undefined ? helpfulVotes[a.id] : getInitialHelpfulCount(a.id);
+      const votesB = helpfulVotes[b.id] !== undefined ? helpfulVotes[b.id] : getInitialHelpfulCount(b.id);
+      return votesB - votesA;
+    }
+    return b.id - a.id; // default recent
+  });
+
+  const totalReviewsCount = testimonials.length;
+  const averageRating = totalReviewsCount > 0 
+    ? (testimonials.reduce((sum, t) => sum + (t.rating || 5), 0) / totalReviewsCount).toFixed(1) 
+    : "5.0";
+
+  if (isFullPage) {
+    return (
+      <div className="w-full relative min-h-screen py-16 px-6 md:px-12 max-w-[1000px] mx-auto flex flex-col">
+        {/* Breadcrumb or Back Button */}
+        <div className="mb-12 self-start">
+          <Link to="/" className="text-[10px] tracking-[0.25em] text-gold/70 hover:text-gold uppercase transition flex items-center gap-2">
+            <span>&larr;</span> Back to Sanctuary
+          </Link>
+        </div>
+
+        {/* Heading Header with Fixed Font Color for Contrast */}
+        <div className="text-center mb-16">
+          <p className="text-[10px] font-medium tracking-[0.38em] uppercase text-gold mb-4">Metaphysical Journeys</p>
+          <div className="w-[48px] h-[1px] bg-gold mx-auto mb-6"></div>
+          {/* UPDATED TITLE FONT COLOR TO text-text-main (#1a1a24) FOR HIGH READABILITY CONTRAST */}
+          <h1 className="text-4xl md:text-6xl font-light font-serif mb-4 text-text-main tracking-tight leading-[1.12]">
+            Voices of Transformation
+          </h1>
+          <p className="text-dim text-base md:text-lg font-light max-w-[620px] mx-auto leading-relaxed">
+            A dynamic catalog of live spiritual transitions, brand breakthroughs, name alignments, and numerical revelations.
+          </p>
+        </div>
+
+        {/* Google-Style Aggregate Rating Header Block */}
+        <div className="bg-bg-card border border-gold/15 p-6 md:p-8 rounded-sm mb-12 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 shadow-[0_4px_24px_rgba(201,160,80,0.03)]">
+          <div className="flex items-center gap-4">
+            <span className="text-5xl md:text-6xl font-semibold font-sans text-text-main tracking-tight">
+              {averageRating}
+            </span>
+            <div>
+              <div className="flex gap-0.5">
+                {Array.from({ length: 5 }).map((_, idx) => (
+                  <Star 
+                    key={idx} 
+                    className="w-5 h-5 fill-current text-[#c9a050]" 
+                  />
+                ))}
+              </div>
+              <p className="text-xs text-dim tracking-wide mt-1 font-light">
+                {totalReviewsCount} cumulative reviews
+              </p>
+            </div>
+          </div>
+
+          {/* Interactive Sorting Selector resembling Google layout */}
+          <div className="flex items-center gap-2 sm:self-center border-t sm:border-t-0 border-gold/10 pt-4 sm:pt-0">
+            <span className="text-xs text-dim font-light">Sort by:</span>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="bg-transparent border-none text-gold hover:text-gold-lt text-xs uppercase tracking-wider font-semibold cursor-pointer outline-none focus:ring-0"
+            >
+              <option value="recent">Most Recent</option>
+              <option value="helpful">Most Helpful</option>
+              <option value="rating-desc">Highest Rating</option>
+              <option value="rating-asc">Lowest Rating</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Search Filtration Bar */}
+        <div className="max-w-[480px] w-full mx-auto mb-12 relative">
+          <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-gold/50">
+            <Search className="w-4 h-4" />
+          </div>
+          <input
+            type="text"
+            placeholder="Search journeys, names, or locations..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-12 pr-4 py-3 bg-bg-card border border-gold/25 rounded-full text-text-main text-sm font-light placeholder:text-muted/60 focus:outline-none focus:border-gold/60 focus:ring-1 focus:ring-gold/30 transition-all"
+          />
+          {searchQuery && (
+            <button 
+              onClick={() => setSearchQuery('')}
+              className="absolute inset-y-0 right-4 flex items-center text-muted/60 hover:text-white"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
+        {/* Google Style Testimonials Grid/List Layout */}
+        {sortedTestimonials.length > 0 ? (
+          <div className="space-y-6 mb-24">
+            {sortedTestimonials.map((tst) => (
+              <GoogleReviewItem 
+                key={tst.id} 
+                tst={tst} 
+                isVoted={!!userVoted[tst.id]}
+                votes={helpfulVotes[tst.id] !== undefined ? helpfulVotes[tst.id] : getInitialHelpfulCount(tst.id)}
+                onHelpfulToggle={() => handleHelpfulToggle(tst.id)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-20 border border-dashed border-gold/15 rounded-sm mb-24 bg-bg-card/30">
+            <p className="text-muted font-light">No corresponding reviews match your query.</p>
+            <button 
+              onClick={() => setSearchQuery('')} 
+              className="mt-4 px-6 py-2 border border-gold/20 text-gold text-xs uppercase tracking-widest hover:bg-gold/10 transition-colors"
+            >
+              Clear Search Filter
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Fallback Inline Homepage Component
   return (
     <section id="testimonials" className="w-full relative z-10 py-32 px-6 md:px-12 max-w-[1280px] mx-auto min-h-screen flex flex-col justify-center">
       <p className="text-[10px] font-medium tracking-[0.38em] uppercase text-gold text-center mb-4">Client Stories</p>
@@ -117,6 +477,16 @@ export default function Stories() {
                 <TestimonialCard key={i} tst={tst} />
               ))}
             </div>
+          </div>
+
+          {/* LINK TO FULL stories MPA WITH PREVIEW ON HOVER */}
+          <div className="text-center mt-16">
+            <Link 
+              to="/stories" 
+              className="inline-flex items-center gap-2 px-8 py-3 border border-gold/30 text-[11px] uppercase tracking-[0.25em] text-gold hover:bg-gold/10 hover:border-gold transition-all duration-300 font-medium"
+            >
+              Explore All Transformation Journeys &rarr;
+            </Link>
           </div>
         </>
       ) : (

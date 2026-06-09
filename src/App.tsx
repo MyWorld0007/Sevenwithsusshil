@@ -152,7 +152,7 @@ export default function App() {
             <li><a href="/#about" className="hover:text-gold transition-colors">About</a></li>
             <li><Link to="/pricing" className="hover:text-gold transition-colors">Pricing</Link></li>
             <li><a href="/#calculator" className="hover:text-gold transition-colors">Calculator</a></li>
-            <li><a href="/#testimonials" className="hover:text-gold transition-colors">Stories</a></li>
+            <li><Link to="/stories" className="hover:text-gold transition-colors">Stories</Link></li>
           </ul>
           <div className="flex items-center gap-4">
             <a href="/#booking" className="hidden md:inline-block px-6 py-2 border border-gold/30 text-[11px] uppercase tracking-[0.2em] hover:bg-gold/10 transition-colors text-gold">
@@ -181,7 +181,7 @@ export default function App() {
             <li><a href="/#about" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block py-3 px-2">About</a></li>
             <li><Link to="/pricing" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block py-3 px-2">Pricing</Link></li>
             <li><a href="/#calculator" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block py-3 px-2">Calculator</a></li>
-            <li><a href="/#testimonials" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block py-3 px-2">Stories</a></li>
+            <li><Link to="/stories" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block py-3 px-2">Stories</Link></li>
             <li className="pt-4 mt-2 border-t border-gold/10">
               <a href="/#booking" onClick={() => setIsMobileMenuOpen(false)} className="inline-block px-6 py-3.5 border border-gold/30 text-gold w-full text-center uppercase tracking-[0.2em]">
                 Book a Session
@@ -199,7 +199,7 @@ export default function App() {
             <Route path="/services" element={<Services isFullPage={true} />} />
             <Route path="/service/:slug" element={<ServiceDetail />} />
             <Route path="/calculator" element={<Calculator />} />
-            <Route path="/stories" element={<Stories />} />
+            <Route path="/stories" element={<Stories isFullPage={true} />} />
             <Route path="/booking" element={<Booking />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/pages/:slug" element={<ContentPage />} />
