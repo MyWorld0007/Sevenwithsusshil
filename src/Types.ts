@@ -34,3 +34,14 @@ export interface Faq {
   answer: string;
   display_order: number;
 }
+
+export interface PricingService {
+  id?: number;
+  title: string;
+  price: string;
+  rawPrice: string;
+  description: string;
+  iconText: string;
+  features: string | string[]; // holds serialized array from DB, parsed as string[] in the UI
+  display_order?: number;
+}

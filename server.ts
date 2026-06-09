@@ -184,6 +184,51 @@ class JsonDbEngine {
       data.faqs = (data.faqs || []).filter((x: any) => x.id !== id);
       writeJsonDb(data);
       affectedRowsCount = 1;
+    } else if (cleanSql.includes("SELECT * FROM services")) {
+      resultRows = (data.services || []).sort((a: any, b: any) => (a.display_order || 0) - (b.display_order || 0) || a.id - b.id);
+    } else if (cleanSql.includes("SELECT COUNT(*) as cnt FROM services")) {
+      resultRows = [{ cnt: (data.services || []).length }];
+    } else if (cleanSql.includes("INSERT INTO services")) {
+      if (!data.services) data.services = [];
+      const newId = (data.services || []).reduce((m: number, x: any) => Math.max(m, x.id || 0), 0) + 1;
+      data.services.push({
+        id: newId,
+        title: params[0],
+        price: params[1],
+        rawPrice: params[2],
+        description: params[3],
+        iconText: params[4],
+        features: params[5],
+        display_order: Number(params[6]) || 0
+      });
+      writeJsonDb(data);
+      lastInsertIdVal = newId;
+    } else if (cleanSql.includes("UPDATE services SET display_order")) {
+      const id = Number(params[1]);
+      const item = (data.services || []).find((x: any) => x.id === id);
+      if (item) {
+        item.display_order = Number(params[0]);
+        writeJsonDb(data);
+      }
+      affectedRowsCount = 1;
+    } else if (cleanSql.includes("UPDATE services SET")) {
+      const id = Number(params[6]);
+      const item = (data.services || []).find((x: any) => x.id === id);
+      if (item) {
+        item.title = params[0];
+        item.price = params[1];
+        item.rawPrice = params[2];
+        item.description = params[3];
+        item.iconText = params[4];
+        item.features = params[5];
+        writeJsonDb(data);
+      }
+      affectedRowsCount = 1;
+    } else if (cleanSql.includes("DELETE FROM services")) {
+      const id = Number(params[0]);
+      data.services = (data.services || []).filter((x: any) => x.id !== id);
+      writeJsonDb(data);
+      affectedRowsCount = 1;
     }
 
     return [resultRows, { affectedRows: affectedRowsCount, insertId: lastInsertIdVal }];
@@ -308,6 +353,21 @@ async function getDbPool() {
       `);
     } catch (e: any) { console.error("[MYSQL Setup] faqs table:", e.message); }
 
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS services (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          title VARCHAR(255),
+          price VARCHAR(255),
+          rawPrice VARCHAR(255),
+          description TEXT,
+          iconText VARCHAR(50),
+          features TEXT,
+          display_order INT DEFAULT 0
+        )
+      `);
+    } catch (e: any) { console.error("[MYSQL Setup] services table:", e.message); }
+
     // Seed data with individual try-catch blocks
     try {
       const [adminRows]: any = await pool.query('SELECT COUNT(*) as cnt FROM admins');
@@ -411,6 +471,132 @@ async function getDbPool() {
       }
     } catch (e: any) { console.error("[MYSQL Seed] faqs:", e.message); }
 
+    try {
+      const [servicesRows]: any = await pool.query('SELECT COUNT(*) as cnt FROM services');
+      if (servicesRows[0].cnt === 0) {
+        const initialServices = [
+          {
+            title: "Child Birth Date & Name Alignment Analysis",
+            price: "₹51,000",
+            rawPrice: "₹51k",
+            description: "Discover the optimal name vibration and cosmic alignment for your child's birth energy.",
+            iconText: "👶",
+            features: JSON.stringify([
+              "Astro-Numerological Compatibility",
+              "Name Vibration & Alignment Solutions",
+              "Fortunate Starting Letters",
+              "Personalized Child Character Insights"
+            ]),
+            display_order: 0
+          },
+          {
+            title: "Career Path & Success Guidance",
+            price: "₹15,000",
+            rawPrice: "₹15k",
+            description: "Explore your professional potential, ideal sectors, and key timing for career breakthroughs or transitions.",
+            iconText: "💼",
+            features: JSON.stringify([
+              "Career Aptitude Blueprint",
+              "Upcoming Opportunities Analysis",
+              "Obstacle Mitigation Strategy",
+              "Optimal Transition Timelines"
+            ]),
+            display_order: 1
+          },
+          {
+            title: "Relationship Compatibility Analysis",
+            price: "₹51,000",
+            rawPrice: "₹51k",
+            description: "Decipher the numerical resonance between partners to nourish harmony and conscious relationship growth.",
+            iconText: "💑",
+            features: JSON.stringify([
+              "Vibrational Synergy Mapping",
+              "Core Conflict Point Assessment",
+              "Communication Bridge Remedies",
+              "Auspicious Timeline Tendencies"
+            ]),
+            display_order: 2
+          },
+          {
+            title: "Birth Date, Name Analysis & Name Correction",
+            price: "₹51,000",
+            rawPrice: "₹51k",
+            description: "A comprehensive analysis of your birth energy and full name correction for lifetime cosmic harmony.",
+            iconText: "✨",
+            features: JSON.stringify([
+              "Lagna & Planetary Signature Review",
+              "Full Name Vibration Correction",
+              "Spelling Optimization Remedies",
+              "Signature Design Formatting"
+            ]),
+            display_order: 3
+          },
+          {
+            title: "Business Numerology & Prosperity Blueprint",
+            price: "₹1,00,005",
+            rawPrice: "₹1,00,005",
+            description: "Optimize corporate/brand alignment, choose lucky launch dates, and blueprint your business success.",
+            iconText: "🏢",
+            features: JSON.stringify([
+              "Brand Name Spelling Harmonizer",
+              "Official Launch / Registration Timing",
+              "Key Shareholder Compatibility",
+              "Prosperity & Branding Colors Grid"
+            ]),
+            display_order: 4
+          },
+          {
+            title: "Lucky Numbers, Alphabets & Colour Alignment",
+            price: "₹37,000",
+            rawPrice: "₹37k",
+            description: "Elevate your daily frequency by aligning with your supportive numbers, letters, and visual energies.",
+            iconText: "🎨",
+            features: JSON.stringify([
+              "Fortunate Personal Numbers Selection",
+              "Vibrational Color Wardrobe Selection",
+              "Daily Routine Harmonizing",
+              "Alphabetic Signature Alignment"
+            ]),
+            display_order: 5
+          },
+          {
+            title: "Focused Insight Session",
+            price: "₹1,005",
+            rawPrice: "₹1005",
+            description: "Directly target a single query or burning question for swift, clear metaphysical clarity (Single Question).",
+            iconText: "🎯",
+            features: JSON.stringify([
+              "Single Question Guidance",
+              "Precision Astral Calculations",
+              "Actionable Advice Blueprint",
+              "Swift Metaphysical Answers"
+            ]),
+            display_order: 6
+          },
+          {
+            title: "Gemstone, Crystal, Rudraksha Recommendation",
+            price: "₹5,001",
+            rawPrice: "₹5001",
+            description: "Receive personalized astronomical cosmic prescription of specific crystals, powerful Rudrakshas, and precious gemstones to amplify protective fields and lucky energy bands.",
+            iconText: "💎",
+            features: JSON.stringify([
+              "Aura Strengthening Analysis",
+              "Planetary Energy Balancers",
+              "Gemstone Grade & Weight Advice",
+              "Rudraksha Mukhi Recommendations"
+            ]),
+            display_order: 7
+          }
+        ];
+        for (const s of initialServices) {
+          await pool.query(
+            `INSERT INTO services (title, price, rawPrice, description, iconText, features, display_order) VALUES (?, ?, ?, ?, ?, ?, ?)`, 
+            [s.title, s.price, s.rawPrice, s.description, s.iconText, s.features, s.display_order]
+          );
+        }
+      }
+    } catch (e: any) { console.error("[MYSQL Seed] services:", e.message); }
+
     console.log("[DB ENGINE] Active: MySQL");
     activeEngine = {
       async query(sql: string, params?: any[]) {
@@ -497,6 +683,14 @@ async function startServer() {
       const [rows]: any = await db.query('SELECT * FROM content_pages WHERE slug = ?', [req.params.slug]);
       if (rows.length > 0) res.json(rows[0]);
       else res.status(404).json({ error: "Page not found" });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.get("/api/services", async (req, res) => {
+    try {
+      const db = await getDbPool();
+      const [rows]: any = await db.query('SELECT * FROM services ORDER BY display_order ASC, id ASC');
+      res.json(rows);
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
 
@@ -700,6 +894,54 @@ async function startServer() {
     try {
       const db = await getDbPool();
       await db.query('DELETE FROM faqs WHERE id=?', [req.params.id]);
+      res.json({ success: true });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  // Services admin endpoints
+  app.post("/api/services", requireAuth, async (req, res) => {
+    try {
+      const db = await getDbPool();
+      const { title, price, rawPrice, description, iconText, features } = req.body;
+      const strFeatures = typeof features === 'string' ? features : JSON.stringify(features || []);
+      const [rows]: any = await db.query('SELECT COUNT(*) as cnt FROM services');
+      const order = rows[0].cnt;
+      const [result]: any = await db.query(
+        'INSERT INTO services (title, price, rawPrice, description, iconText, features, display_order) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [title, price, rawPrice, description, iconText, strFeatures, order]
+      );
+      res.json({ id: result.insertId });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.post("/api/services/reorder", requireAuth, async (req, res) => {
+    try {
+      const db = await getDbPool();
+      const { orderIds } = req.body;
+      for (let i = 0; i < orderIds.length; i++) {
+        await db.query('UPDATE services SET display_order=? WHERE id=?', [i, orderIds[i]]);
+      }
+      res.json({ success: true });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.put("/api/services/:id", requireAuth, async (req, res) => {
+    try {
+      const db = await getDbPool();
+      const { title, price, rawPrice, description, iconText, features } = req.body;
+      const strFeatures = typeof features === 'string' ? features : JSON.stringify(features || []);
+      await db.query(
+        'UPDATE services SET title=?, price=?, rawPrice=?, description=?, iconText=?, features=? WHERE id=?',
+        [title, price, rawPrice, description, iconText, strFeatures, req.params.id]
+      );
+      res.json({ success: true });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.delete("/api/services/:id", requireAuth, async (req, res) => {
+    try {
+      const db = await getDbPool();
+      await db.query('DELETE FROM services WHERE id=?', [req.params.id]);
       res.json({ success: true });
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });

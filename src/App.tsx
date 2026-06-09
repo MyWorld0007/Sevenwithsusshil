@@ -11,6 +11,7 @@ import Booking from './pages/Booking';
 import Admin from './pages/Admin';
 import NotFound from './pages/NotFound';
 import ContentPage from './pages/ContentPage';
+import Pricing from './pages/Pricing';
 
 export default function App() {
   const [navScrolled, setNavScrolled] = useState(false);
@@ -149,6 +150,7 @@ export default function App() {
           <ul className="hidden md:flex gap-10 text-[11px] uppercase tracking-[0.2em] text-muted items-center">
             <li><a href="/#services" className="hover:text-gold transition-colors">Services</a></li>
             <li><a href="/#about" className="hover:text-gold transition-colors">About</a></li>
+            <li><Link to="/pricing" className="hover:text-gold transition-colors">Pricing</Link></li>
             <li><a href="/#calculator" className="hover:text-gold transition-colors">Calculator</a></li>
             <li><a href="/#testimonials" className="hover:text-gold transition-colors">Stories</a></li>
           </ul>
@@ -177,6 +179,7 @@ export default function App() {
           <ul className="flex flex-col text-[11px] uppercase tracking-[0.2em] text-muted p-6 gap-2">
             <li><a href="/#services" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block py-3 px-2">Services</a></li>
             <li><a href="/#about" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block py-3 px-2">About</a></li>
+            <li><Link to="/pricing" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block py-3 px-2">Pricing</Link></li>
             <li><a href="/#calculator" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block py-3 px-2">Calculator</a></li>
             <li><a href="/#testimonials" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block py-3 px-2">Stories</a></li>
             <li className="pt-4 mt-2 border-t border-gold/10">
@@ -192,6 +195,7 @@ export default function App() {
          <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/about" element={<About />} />
+            <Route path="/pricing" element={<Pricing />} />
             <Route path="/services" element={<Services isFullPage={true} />} />
             <Route path="/service/:slug" element={<ServiceDetail />} />
             <Route path="/calculator" element={<Calculator />} />
@@ -206,6 +210,7 @@ export default function App() {
       {/* ═══ FOOTER LINKS ═══ */}
       <div className="relative z-10 border-t border-gold/10 bg-bg-dark px-6 md:px-12 py-8 flex justify-center mt-auto">
         <ul className="flex flex-wrap justify-center gap-8 md:gap-16 text-[10px] md:text-[11px] uppercase tracking-[0.2em]">
+          <li><Link to="/pricing" className="text-dim hover:text-gold transition-colors">Pricing</Link></li>
           <li><Link to="/pages/terms" className="text-dim hover:text-gold transition-colors">Terms & Conditions</Link></li>
           <li><Link to="/pages/privacy" className="text-dim hover:text-gold transition-colors">Privacy Policy</Link></li>
           <li><Link to="/pages/faq" className="text-dim hover:text-gold transition-colors">FAQs</Link></li>

@@ -2,7 +2,7 @@ import { apiFetch } from '../lib/api';
 import React, { useState, useEffect } from 'react';
 import ReactQuill, { Quill } from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
-import { Settings, LifePath, Testimonial, Faq } from '../Types';
+import { Settings, LifePath, Testimonial, Faq, PricingService } from '../Types';
 import { GripVertical } from 'lucide-react';
 import { Reorder, useDragControls } from 'motion/react';
 
@@ -107,6 +107,118 @@ function FaqAdminItem({
   );
 }
 
+function ServiceAdminItem({
+  service,
+  onChange,
+  onSave,
+  onDelete
+}: {
+  service: PricingService;
+  onChange: (updated: PricingService) => void;
+  onSave: () => void | Promise<void>;
+  onDelete: () => void | Promise<void>;
+  key?: React.Key;
+}) {
+  const [featureInput, setFeatureInput] = useState(() => {
+    let parsedFeatures: string[] = [];
+    if (typeof service.features === 'string') {
+      try {
+        parsedFeatures = JSON.parse(service.features);
+      } catch (e) {
+        parsedFeatures = service.features.split(',').map((f: string) => f.trim());
+      }
+    } else if (Array.isArray(service.features)) {
+      parsedFeatures = service.features;
+    }
+    return parsedFeatures.join('\n');
+  });
+
+  const handleFeaturesChange = (text: string) => {
+    setFeatureInput(text);
+    const parsed = text.split('\n').map((x: string) => x.trim()).filter(Boolean);
+    onChange({
+      ...service,
+      features: JSON.stringify(parsed)
+    });
+  };
+
+  return (
+    <div className="bg-bg-card border border-gold/20 p-6 flex flex-col relative group transition-colors rounded">
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center space-x-3">
+          <input
+            type="text"
+            value={service.iconText || '✨'}
+            onChange={e => onChange({ ...service, iconText: e.target.value })}
+            className="w-12 bg-bg-input border border-gold/20 p-2 text-center text-xl rounded outline-none focus:border-gold"
+            title="Emoji / Icon text"
+          />
+          <h3 className="text-sm uppercase tracking-widest font-serif text-muted">ID: {service.id || 'NEW'}</h3>
+        </div>
+        <div className="flex items-center space-x-2">
+          <button onClick={onSave} className="border border-gold/30 text-gold px-4 py-2 text-[10px] uppercase tracking-[0.2em] hover:bg-gold/10 transition-colors rounded">Save</button>
+          <button onClick={onDelete} className="border border-red-500/30 text-red-400 px-4 py-2 text-[10px] uppercase tracking-[0.2em] hover:bg-red-500/10 transition-colors rounded">Delete</button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label className="block text-[10px] uppercase tracking-[0.1em] text-muted mb-1 font-semibold">Service Title</label>
+          <input
+            type="text"
+            value={service.title || ''}
+            placeholder="e.g. Astro-Numerology Correction"
+            onChange={e => onChange({ ...service, title: e.target.value })}
+            className="w-full bg-bg-input border border-gold/20 p-2.5 outline-none focus:border-gold rounded text-sm text-text-main"
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="block text-[10px] uppercase tracking-[0.1em] text-muted mb-1 font-semibold">Price (Formatted)</label>
+            <input
+              type="text"
+              value={service.price || ''}
+              placeholder="e.g. ₹51,000"
+              onChange={e => onChange({ ...service, price: e.target.value })}
+              className="w-full bg-bg-input border border-gold/20 p-2.5 outline-none focus:border-gold rounded text-sm text-text-main font-mono"
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] uppercase tracking-[0.1em] text-muted mb-1 font-semibold font-mono font-bold text-gold">Short Charge</label>
+            <input
+              type="text"
+              value={service.rawPrice || ''}
+              placeholder="e.g. ₹51k"
+              onChange={e => onChange({ ...service, rawPrice: e.target.value })}
+              className="w-full bg-bg-input border border-gold/20 p-2.5 outline-none focus:border-gold rounded text-sm text-text-main font-mono"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="mb-4">
+        <label className="block text-[10px] uppercase tracking-[0.1em] text-muted mb-1 font-semibold">Service Description</label>
+        <textarea
+          value={service.description || ''}
+          placeholder="Detailed service explanation..."
+          onChange={e => onChange({ ...service, description: e.target.value })}
+          className="w-full bg-bg-input border border-gold/20 p-2.5 outline-none h-16 resize-none focus:border-gold rounded text-sm text-text-main"
+        />
+      </div>
+
+      <div>
+        <label className="block text-[10px] uppercase tracking-[0.1em] text-muted mb-1 font-semibold">Highlights / Features (One per line)</label>
+        <textarea
+          value={featureInput}
+          placeholder="Astro Compatibility&#10;Correct Placement Remedies&#10;Ideal Path Plan"
+          onChange={e => handleFeaturesChange(e.target.value)}
+          className="w-full bg-bg-input border border-gold/20 p-2.5 outline-none h-24 focus:border-gold rounded text-xs text-text-main font-mono"
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function Admin() {
   const [token, setToken] = useState(localStorage.getItem('admin_token') || '');
   const [email, setEmail] = useState('');
@@ -120,8 +232,9 @@ export default function Admin() {
   const [faqs, setFaqs] = useState<Faq[]>([]);
   const [selectedFaqs, setSelectedFaqs] = useState<number[]>([]);
   const [newFaqAnswer, setNewFaqAnswer] = useState<string>('');
+  const [services, setServices] = useState<PricingService[]>([]);
 
-  const [activeTab, setActiveTab] = useState<'settings' | 'testimonials' | 'lifepaths' | 'pages' | 'faqs' | 'profile'>('settings');
+  const [activeTab, setActiveTab] = useState<'settings' | 'testimonials' | 'lifepaths' | 'pages' | 'faqs' | 'profile' | 'pricing'>('settings');
 
   useEffect(() => {
     if (token) {
@@ -131,24 +244,27 @@ export default function Admin() {
 
   const fetchData = async () => {
      try {
-       const [setRes, lpRes, testRes, pagesRes, faqsRes] = await Promise.all([
+       const [setRes, lpRes, testRes, pagesRes, faqsRes, servicesRes] = await Promise.all([
            apiFetch('/api/settings'),
            apiFetch('/api/life_paths'),
            apiFetch('/api/testimonials'),
            apiFetch('/api/pages'),
-           apiFetch('/api/faqs')
+           apiFetch('/api/faqs'),
+           apiFetch('/api/services')
        ]);
        const setResText = await setRes.json();
        const lpResText = await lpRes.json();
        const testResText = await testRes.json();
        const pagesResText = await pagesRes.json();
        const faqsResText = await faqsRes.json();
+       const servicesResText = await servicesRes.json();
 
        setSettings(setResText.error ? null : setResText);
        setLifePaths(Array.isArray(lpResText) ? lpResText : []);
        setTestimonials(Array.isArray(testResText) ? testResText : []);
        setPages(Array.isArray(pagesResText) ? pagesResText : []);
        setFaqs(Array.isArray(faqsResText) ? faqsResText : []);
+       setServices(Array.isArray(servicesResText) ? servicesResText : []);
      } catch (err) {
          console.error(err);
      }
@@ -417,6 +533,60 @@ export default function Admin() {
      }
   };
 
+  const addService = async (e: any) => {
+    e.preventDefault();
+    const form = e.target;
+    const title = form.title.value;
+    const price = form.price.value;
+    const rawPrice = form.rawPrice.value;
+    const description = form.description.value;
+    const iconText = form.iconText.value || "✨";
+    const features = []; // initially empty, user can add on list
+
+    const res = await apiFetch('/api/services', {
+      method: "POST",
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ title, price, rawPrice, description, iconText, features })
+    });
+    const data = await res.json();
+    if (data.error) {
+      alert(data.error);
+    } else {
+      form.reset();
+      fetchData();
+    }
+  };
+
+  const saveService = async (service: PricingService) => {
+    if (!service.id) return;
+    const res = await apiFetch(`/api/services/${service.id}`, {
+      method: "PUT",
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify(service)
+    });
+    const data = await res.json();
+    if (data.error) {
+      alert(data.error);
+    } else {
+      alert("Pricing service saved successfully!");
+      fetchData();
+    }
+  };
+
+  const deleteService = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this pricing service?")) return;
+    const res = await apiFetch(`/api/services/${id}`, {
+      method: "DELETE",
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await res.json();
+    if (data.error) {
+      alert(data.error);
+    } else {
+      fetchData();
+    }
+  };
+
 
 
   if (!token) {
@@ -440,6 +610,12 @@ export default function Admin() {
       <aside className="w-64 border-r border-gold/10 bg-bg-card flex flex-col py-8 px-6 overflow-y-auto">
         <img src="/logo.png" alt="SEVEN 7" className="w-24 mb-10 mx-auto" />
         <nav className="w-full space-y-2 flex-grow">
+           <button 
+             onClick={() => setActiveTab('pricing')} 
+             className={`w-full text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] transition-colors rounded ${activeTab === 'pricing' ? 'bg-gold text-bg-dark font-bold' : 'text-gold hover:bg-gold/10'}`}
+           >
+             Pricing Control
+           </button>
            <button 
              onClick={() => setActiveTab('settings')} 
              className={`w-full text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] transition-colors rounded ${activeTab === 'settings' ? 'bg-gold text-bg-dark font-bold' : 'text-gold hover:bg-gold/10'}`}
@@ -903,6 +1079,105 @@ export default function Admin() {
            </section>
          )}
         
+          {activeTab === 'pricing' && (
+            <section className="max-w-5xl animate-in fade-in slide-in-from-bottom-4 duration-500 font-sans p-2">
+              <div className="flex justify-between items-center mb-8">
+                <div>
+                  <h2 className="text-3xl font-serif text-gold mb-2">Service Modalities &amp; Pricing</h2>
+                  <p className="text-sm text-muted leading-relaxed max-w-xl">
+                    Adjust active price plans, titles, descriptions, and highlights for divine booking exchange alignment.
+                  </p>
+                </div>
+                <span className="text-xs text-muted uppercase tracking-widest">{services.length} Services Active</span>
+              </div>
+
+              {/* Existing Services Grid */}
+              <div className="space-y-6 mb-12">
+                <h3 className="text-lg font-serif text-gold border-b border-gold/10 pb-2 mb-4">Active Services</h3>
+                {services.length === 0 ? (
+                  <p className="text-xs uppercase tracking-widest text-muted py-6">No services loaded</p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {services.map((service, index) => (
+                      <ServiceAdminItem
+                        key={service.id || index}
+                        service={service}
+                        onChange={(updated) => {
+                          const copy = [...services];
+                          copy[index] = updated;
+                          setServices(copy);
+                        }}
+                        onSave={() => saveService(service)}
+                        onDelete={() => service.id && deleteService(service.id)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Create Service Section */}
+              <div className="bg-bg-card border border-gold/20 p-8 rounded shadow-sm max-w-3xl">
+                <h3 className="text-lg font-serif text-gold mb-6 border-b border-gold/15 pb-2">Add New Modality / Plan</h3>
+                <form onSubmit={addService} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2 font-semibold">Service Title</label>
+                    <input
+                      type="text"
+                      name="title"
+                      required
+                      placeholder="e.g. Relationship Compatibility Analysis"
+                      className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold rounded text-sm text-text-main"
+                    />
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="col-span-2">
+                      <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2 font-semibold font-mono">Price (Formatted)</label>
+                      <input
+                        type="text"
+                        name="price"
+                        required
+                        placeholder="e.g. ₹51,000"
+                        className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold rounded font-mono text-sm text-text-main"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2 font-semibold text-gold font-mono font-bold">Short Cost</label>
+                      <input
+                        type="text"
+                        name="rawPrice"
+                        required
+                        placeholder="e.g. ₹51k"
+                        className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold rounded font-mono text-sm text-text-main"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2 font-semibold">Emoji / Icon text</label>
+                    <input
+                      type="text"
+                      name="iconText"
+                      placeholder="e.g. 💑"
+                      className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold rounded text-sm text-text-main"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2 font-semibold font-serif">Service Description</label>
+                    <textarea
+                      name="description"
+                      required
+                      placeholder="Summarize this service vibration in few elegant lines..."
+                      className="w-full bg-bg-input border border-gold/20 p-3 h-24 outline-none focus:border-gold rounded text-sm text-text-main"
+                    />
+                  </div>
+                  <div className="md:col-span-2 pt-2">
+                    <button type="submit" className="bg-gold text-bg-dark px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-gold-lt transition-colors rounded-sm w-full font-semibold">
+                      Add Service Modality
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </section>
+          )}
        </main>
     </div>
   );
