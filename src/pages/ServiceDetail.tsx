@@ -112,6 +112,19 @@ const serviceData = {
         <p>A focused insight session can often provide the clarity needed to move forward with confidence, peace of mind, and better direction.</p>
       </div>
     ),
+  },
+  'gemstone-crystal-rudraksha-recommendation': {
+    title: 'Gemstone, Crystal & Rudraksha Recommendation',
+    subtitle: 'Energetic Harmonization & Balance',
+    content: (
+      <div className="space-y-6 text-muted font-light leading-relaxed text-base md:text-lg">
+        <p>Gemstones, crystals, and Rudraksha beads have been valued for centuries for their symbolic, spiritual, and energetic significance. Personalized recommendations are based on an individual’s birth details, name alignment, personality patterns, emotional needs, and life goals to help create greater balance and positivity.</p>
+        <p>Every gemstone and crystal is believed to carry a unique vibration that may support different aspects of life such as confidence, emotional healing, focus, prosperity, communication, protection, or spiritual growth. Similarly, Rudraksha beads are traditionally associated with inner stability, peace of mind, strength, and spiritual awareness.</p>
+        <p>A personalized recommendation process helps identify which gemstone, crystal, or Rudraksha is naturally aligned with a person’s energy rather than selecting one randomly. This guidance can be especially useful for individuals facing challenges related to career growth, emotional stress, decision-making, financial instability, relationships, or lack of focus.</p>
+        <p>The recommendation may also include guidance on suitable metals, wearing methods, activation practices, and supportive combinations to maximize alignment and comfort. The goal is not superstition or dependency, but creating a positive and supportive influence in daily life.</p>
+        <p>When selected thoughtfully and worn correctly, gemstones, crystals, and Rudraksha can act as meaningful tools for confidence, emotional balance, clarity, and personal growth while supporting an individual’s journey toward harmony and success.</p>
+      </div>
+    ),
   }
 };
 

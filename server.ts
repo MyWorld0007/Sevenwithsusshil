@@ -574,7 +574,7 @@ async function getDbPool() {
             display_order: 6
           },
           {
-            title: "Gemstone, Crystal, Rudraksha Recommendation",
+            title: "Gemstone, Crystal & Rudraksha Recommendation",
             price: "₹5,001",
             rawPrice: "₹5001",
             description: "Receive personalized astronomical cosmic prescription of specific crystals, powerful Rudrakshas, and precious gemstones to amplify protective fields and lucky energy bands.",

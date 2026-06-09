@@ -10,7 +10,8 @@ const ALL_SERVICES = [
   { n: '05', title: 'Child Birth Date & Name Alignment Analysis', slug: 'child-name-alignment', desc: 'Ensure your child\'s name aligns perfectly with their birth date frequencies, giving them a harmonious start to their life journey.' },
   { n: '06', title: 'Business Numerology & Prosperity Blueprint', slug: 'business-numerology', desc: 'Optimize your business name, launch dates, and brand frequencies to attract abundance, success, and long-term prosperity.' },
   { n: '07', title: 'Lucky Numbers, Alphabets & Colour Alignment Guidance', slug: 'lucky-alignment', desc: 'Discover your most auspicious numbers, letters, and colors. Learn how to integrate them into your daily life for enhanced luck and flow.' },
-  { n: '08', title: 'Focused Insight Session (Single Question Guidance)', slug: 'focused-insight', desc: 'Have a specific, burning question? Receive targeted, clear numerological guidance on a single pressing issue or decision.' }
+  { n: '08', title: 'Focused Insight Session (Single Question Guidance)', slug: 'focused-insight', desc: 'Have a specific, burning question? Receive targeted, clear numerological guidance on a single pressing issue or decision.' },
+  { n: '09', title: 'Gemstone, Crystal & Rudraksha Recommendation', slug: 'gemstone-crystal-rudraksha-recommendation', desc: 'Identify which gemstone, crystal, or Rudraksha is naturally aligned with your energy to create greater balance, inner stability, and support your journey toward success.' }
 ];
 
 export default function Services({ isFullPage = false }: { isFullPage?: boolean }) {
