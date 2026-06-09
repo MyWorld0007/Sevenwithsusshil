@@ -1,5 +1,7 @@
 import { apiFetch } from '../lib/api';
 import React, { useState, useEffect } from 'react';
+import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
 import { Settings, LifePath, Testimonial, Faq } from '../Types';
 
 export default function Admin() {
@@ -13,6 +15,7 @@ export default function Admin() {
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [pages, setPages] = useState<{slug: string; title: string; content: string}[]>([]);
   const [faqs, setFaqs] = useState<Faq[]>([]);
+  const [newFaqAnswer, setNewFaqAnswer] = useState<string>('');
 
   const [activeTab, setActiveTab] = useState<'settings' | 'testimonials' | 'lifepaths' | 'pages' | 'faqs' | 'profile'>('settings');
 
@@ -265,7 +268,7 @@ export default function Admin() {
       e.preventDefault();
       const form = e.target;
       const question = form.question.value;
-      const answer = form.answer.value;
+      const answer = newFaqAnswer;
       
       const res = await apiFetch('/api/faqs', {
          method: 'POST',
@@ -277,6 +280,7 @@ export default function Admin() {
          alert(data.error);
      } else {
          form.reset();
+         setNewFaqAnswer('');
          fetchData();
      }
   };
@@ -533,14 +537,19 @@ export default function Admin() {
                           </div>
                         </div>
                         <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Page Title</label>
-                        <input type="text" value={page.title} placeholder="Title" onChange={e => {
+                        <input type="text" value={page.title || ''} placeholder="Title" onChange={e => {
                             setPages(pages.map(p => p.slug === page.slug ? {...p, title: e.target.value} : p));
                         }} className="w-full bg-bg-input border border-gold/20 p-3 mb-4 outline-none focus:border-gold" />
                         
-                        <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Page Content (HTML Supported)</label>
-                        <textarea value={page.content} placeholder="Content" onChange={e => {
-                            setPages(pages.map(p => p.slug === page.slug ? {...p, content: e.target.value} : p));
-                        }} className="w-full bg-bg-input border border-gold/20 p-3 h-64 outline-none focus:border-gold font-mono text-sm leading-relaxed" />
+                        <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Page Content</label>
+                        <ReactQuill
+                          theme="snow"
+                          value={page.content || ''} 
+                          onChange={(content) => {
+                            setPages(pages.map(p => p.slug === page.slug ? {...p, content} : p));
+                          }} 
+                          className="w-full bg-bg-input border border-gold/20 text-text-main h-64 mb-12 font-sans pb-10" 
+                        />
                     </div>
                 ))}
              </div>
@@ -566,14 +575,19 @@ export default function Admin() {
                           </div>
                         </div>
                         <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Question</label>
-                        <input type="text" value={faq.question} placeholder="Question" onChange={e => {
+                        <input type="text" value={faq.question || ''} placeholder="Question" onChange={e => {
                             setFaqs(faqs.map(f => f.id === faq.id ? {...f, question: e.target.value} : f));
                         }} className="w-full bg-bg-input border border-gold/20 p-3 mb-4 outline-none focus:border-gold" />
                         
-                        <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Answer (HTML Supported)</label>
-                        <textarea value={faq.answer} placeholder="Answer" onChange={e => {
-                            setFaqs(faqs.map(f => f.id === faq.id ? {...f, answer: e.target.value} : f));
-                        }} className="w-full bg-bg-input border border-gold/20 p-3 h-32 outline-none focus:border-gold leading-relaxed" />
+                        <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Answer</label>
+                        <ReactQuill 
+                          theme="snow"
+                          value={faq.answer || ''} 
+                          onChange={(content) => {
+                            setFaqs(faqs.map(f => f.id === faq.id ? {...f, answer: content} : f));
+                          }} 
+                          className="w-full bg-bg-input border border-gold/20 text-text-main h-32 mb-12 font-sans pb-10" 
+                        />
                     </div>
                 ))}
              </div>
@@ -587,7 +601,12 @@ export default function Admin() {
                    </div>
                    <div>
                        <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Answer</label>
-                       <textarea name="answer" required className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold min-h-[100px]" placeholder="Answer..." />
+                       <ReactQuill 
+                          theme="snow" 
+                          value={newFaqAnswer} 
+                          onChange={(content) => { setNewFaqAnswer(content); }} 
+                          className="w-full bg-bg-input border border-gold/20 text-text-main h-48 mb-8 font-sans pb-10" 
+                        />
                    </div>
                    <div className="mt-2">
                        <button className="bg-gold text-bg-dark px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-gold-lt transition-colors rounded">Add FAQ</button>

@@ -192,7 +192,7 @@ export default function App() {
          <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/about" element={<About />} />
-            <Route path="/services" element={<Services />} />
+            <Route path="/services" element={<Services isFullPage={true} />} />
             <Route path="/service/:slug" element={<ServiceDetail />} />
             <Route path="/calculator" element={<Calculator />} />
             <Route path="/stories" element={<Stories />} />
@@ -208,7 +208,7 @@ export default function App() {
         <ul className="flex flex-wrap justify-center gap-8 md:gap-16 text-[10px] md:text-[11px] uppercase tracking-[0.2em]">
           <li><Link to="/pages/terms" className="text-dim hover:text-gold transition-colors">Terms & Conditions</Link></li>
           <li><Link to="/pages/privacy" className="text-dim hover:text-gold transition-colors">Privacy Policy</Link></li>
-          <li><Link to="/pages/faq" className="text-dim hover:text-gold transition-colors">FAQ</Link></li>
+          <li><Link to="/pages/faq" className="text-dim hover:text-gold transition-colors">FAQs</Link></li>
         </ul>
       </div>
 

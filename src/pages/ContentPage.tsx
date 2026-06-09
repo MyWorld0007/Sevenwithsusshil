@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import { ChevronDown } from 'lucide-react';
 import { apiFetch } from '../lib/api';
 import { Faq } from '../Types';
 
@@ -8,6 +9,7 @@ export default function ContentPage() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [faqs, setFaqs] = useState<Faq[]>([]);
+  const [expandedFaqId, setExpandedFaqId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -44,14 +46,14 @@ export default function ContentPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-24 mb-20 w-full flex-grow">
-      <h1 className="text-4xl md:text-5xl font-display text-gold mb-12 text-center md:text-left">{title}</h1>
+      <h1 className="text-4xl md:text-5xl font-display text-gold mb-12 text-center md:text-left">{title || (slug === 'faq' ? 'FAQs' : '')}</h1>
       <div 
-        className="content-html max-w-none text-text-main leading-relaxed"
+        className="ql-editor p-0 max-w-none text-text-main leading-relaxed"
         dangerouslySetInnerHTML={{ __html: content }}
       />
       
       {slug === 'faq' && faqs.length > 0 && (
-        <div className="mt-12 space-y-6">
+        <div className="mt-12 space-y-4">
           <script 
             type="application/ld+json" 
             dangerouslySetInnerHTML={{
@@ -69,28 +71,22 @@ export default function ContentPage() {
               })
             }}
           />
-          {faqs.map((faq) => (
-            <div key={faq.id} className="bg-bg-card border border-gold/20 p-6 rounded-sm shadow-sm group">
-              <h3 className="text-xl font-serif text-gold mb-4 group-hover:text-gold-lt transition-colors">{faq.question}</h3>
-              <div 
-                 className="text-text-main/90 font-light leading-relaxed text-sm content-html"
-                 dangerouslySetInnerHTML={{ __html: faq.answer }}
-              />
+          {faqs.map((faq) => {
+            const isExpanded = expandedFaqId === faq.id;
+            return (
+            <div key={faq.id} className="bg-bg-card border border-gold/20 p-6 rounded-sm shadow-sm group cursor-pointer" onClick={() => setExpandedFaqId(isExpanded ? null : faq.id)}>
+              <div className="flex justify-between items-center">
+                  <h3 className="text-xl font-serif text-gold pr-4 group-hover:text-gold-lt transition-colors">{faq.question}</h3>
+                  <ChevronDown className={`w-5 h-5 text-gold transition-transform duration-300 flex-shrink-0 ${isExpanded ? 'rotate-180' : ''}`} />
+              </div>
+              <div className={`transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-[1000px] opacity-100 mt-4' : 'max-h-0 opacity-0 overflow-hidden mt-0'}`}>
+                <div className="ql-editor p-0 text-text-main/90 font-light leading-relaxed text-[15px]" dangerouslySetInnerHTML={{ __html: faq.answer }} />
+              </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
-
-      <style>{`
-        .content-html h1, .content-html h2, .content-html h3 { color: #D4AF37; margin-top: 2rem; margin-bottom: 1rem; font-family: Playfair Display, serif; }
-        .content-html h1 { font-size: 2.25rem; }
-        .content-html h2 { font-size: 1.875rem; }
-        .content-html h3 { font-size: 1.5rem; }
-        .content-html p { margin-bottom: 1.25rem; }
-        .content-html ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 1.25rem; }
-        .content-html ol { list-style-type: decimal; margin-left: 1.5rem; margin-bottom: 1.25rem; }
-        .content-html a { color: #D4AF37; text-decoration: underline; }
-      `}</style>
     </div>
   );
 }

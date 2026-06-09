@@ -32,6 +32,11 @@ export class ErrorBoundary extends React.Component<Props, State> {
           <p className="text-text-muted max-w-md mx-auto mb-10 text-lg">
             A disruption occurred in the cosmic alignment. We're working to restore the balance.
           </p>
+          <pre className="text-left text-xs bg-black/50 p-4 overflow-auto max-w-full text-red-400">
+            {this.state.error?.toString()}
+            <br />
+            {this.state.error?.stack}
+          </pre>
           <a
             href="/"
             className="px-8 py-3 bg-gold/10 border border-gold/40 text-gold rounded-full hover:bg-gold/20 transition-all font-medium tracking-wide shadow-[0_0_15px_rgba(212,175,55,0.1)] hover:shadow-[0_0_25px_rgba(212,175,55,0.2)]"

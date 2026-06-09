@@ -22,107 +22,94 @@ const serviceData = {
       </div>
     ),
   },
-  'name-analysis': {
-    title: 'Name Analysis',
-    subtitle: 'The Hidden Power in Your Name',
+  'birth-name-analysis': {
+    title: 'Birth Date, Name Analysis & Name Correction',
+    subtitle: 'Shaping Your Destiny',
     content: (
       <div className="space-y-6 text-muted font-light leading-relaxed text-base md:text-lg">
-        <p>Your parents may have chosen your name instinctively or after great deliberation — but numerology suggests that the name you were given at birth is no accident. Each letter of the alphabet corresponds to a specific number, and those numbers combine to create a unique vibrational signature that influences your personality, your desires, and the energy you project into the world.</p>
-        <p>A Name Analysis examines several key elements of your name to produce a multi-layered picture of who you are:</p>
-        
-        <ul className="list-none space-y-6 mt-8 mb-10">
-          <li className="pl-6 border-l border-gold/30">
-            <strong className="text-gold block mb-2 text-xl font-serif">Expression Number (Destiny Number)</strong>
-            Derived from all the letters in your full birth name, this number reveals your natural abilities, your inherent talents, and the role you are destined to play in the world. It shows what you are capable of achieving.
-          </li>
-          <li className="pl-6 border-l border-gold/30">
-            <strong className="text-gold block mb-2 text-xl font-serif">Soul Urge Number (Heart's Desire)</strong>
-            Calculated from only the vowels in your name, this number uncovers your innermost motivations — what you truly want at the deepest level of your being, often beneath what you consciously acknowledge. It answers the question: what does your soul crave?
-          </li>
-          <li className="pl-6 border-l border-gold/30">
-            <strong className="text-gold block mb-2 text-xl font-serif">Personality Number</strong>
-            Drawn from the consonants in your name, this number reveals the face you present to the outside world — how others perceive you before they truly get to know you. It is your social mask, your first impression.
-          </li>
-        </ul>
-        
-        <h3 className="text-2xl font-serif text-gold mt-10 mb-6">Name Analysis is also invaluable when:</h3>
-        <ul className="list-disc pl-6 space-y-3 mb-8">
-          <li>Choosing a name for a newborn child</li>
-          <li>Deciding on a business or brand name</li>
-          <li>Considering a legal name change</li>
-          <li>Understanding why certain names feel more "right" than others</li>
-        </ul>
-        <p className="mt-8">A comprehensive Name Analysis brings all these layers together to give you a rich, nuanced portrait of your identity — one that goes far deeper than any personality quiz or test.</p>
+        <p>Names carry a lasting influence because they become part of our identity, communication, and personal energy throughout life. Birth date and name analysis focuses on understanding whether a person’s name is aligned with their natural strengths and life path.</p>
+        <p>Sometimes individuals experience repeated obstacles, lack of confidence, emotional imbalance, career delays, or relationship challenges despite genuine effort. In many cases, small energetic imbalances in the name may contribute to these patterns. Name correction aims to create a more supportive and balanced alignment.</p>
+        <p>The process involves analyzing the birth date alongside the numerical value and vibration of the current name. Based on this analysis, suitable modifications may be suggested while preserving the individuality and identity of the original name whenever possible.</p>
+        <p>Name correction does not change a person’s destiny overnight, but it can help improve confidence, clarity, opportunities, communication, and overall personal flow over time. Many people choose this guidance during important life phases such as career changes, business launches, marriage, or personal transformation.</p>
+        <p>A balanced and aligned name can act as a supportive force that strengthens self-expression, personal growth, and long-term progress.</p>
       </div>
     ),
   },
   'relationship-compatibility': {
-    title: 'Relationship Compatibility',
-    subtitle: 'Understanding the Numbers Between You',
+    title: 'Relationship Compatibility Analysis',
+    subtitle: 'Understanding Emotional Dynamics',
     content: (
       <div className="space-y-6 text-muted font-light leading-relaxed text-base md:text-lg">
-        <p>Every relationship has its own energetic signature. When two people come together — romantically, professionally, or as lifelong friends — their individual numbers interact in ways that can create harmony, tension, growth, or challenge. Relationship Compatibility reading in numerology is the art of understanding that interaction.</p>
-        <p>This reading compares the core numerological profiles of two individuals — their Life Path numbers, Expression numbers, Soul Urge numbers, and often their Personal Year cycles — to create a detailed picture of the dynamic between them.</p>
-
-        <h3 className="text-2xl font-serif text-gold mt-10 mb-6">What a Relationship Compatibility Reading explores:</h3>
-        <ul className="list-none space-y-6 mt-8 mb-10">
-          <li className="pl-6 border-l border-gold/30">
-            <strong className="text-gold block mb-2 text-xl font-serif">Natural Strengths</strong>
-            Where your numbers align and complement each other, creating effortless understanding, shared values, or natural chemistry.
-          </li>
-          <li className="pl-6 border-l border-gold/30">
-            <strong className="text-gold block mb-2 text-xl font-serif">Areas of Tension</strong>
-            Where your numbers may clash, creating recurring misunderstandings or areas where you push each other's buttons — not out of fault, but out of fundamental difference in approach or desire.
-          </li>
-          <li className="pl-6 border-l border-gold/30">
-            <strong className="text-gold block mb-2 text-xl font-serif">Growth Opportunities</strong>
-            Sometimes the most powerful relationships are those where numbers challenge us to grow. This reading identifies where friction is actually an invitation to evolve.
-          </li>
-          <li className="pl-6 border-l border-gold/30">
-            <strong className="text-gold block mb-2 text-xl font-serif">Soul-Level Purpose</strong>
-            In numerology, many relationships carry a deeper purpose. Some partnerships are karmic — designed to teach a specific lesson. Others are soulmate connections built for long-term growth and support.
-          </li>
-          <li className="pl-6 border-l border-gold/30">
-            <strong className="text-gold block mb-2 text-xl font-serif">Communication Styles</strong>
-            Understanding how each person naturally expresses and receives love, feedback, and connection can transform even the most difficult relationship.
-          </li>
-        </ul>
-        <p className="mt-8">This reading is not about deciding whether a relationship is "good" or "bad." It is about understanding it — so you can navigate it with more compassion, patience, and wisdom. Whether you are in a new romance, a long-term marriage, or a challenging business partnership, this reading gives you the tools to relate more consciously and lovingly.</p>
+        <p>Relationships are built on emotional understanding, communication, trust, and compatibility. Relationship compatibility analysis helps individuals understand the natural dynamics between two people and identify areas of harmony as well as possible challenges.</p>
+        <p>Every person carries a unique emotional and behavioral pattern that affects how they communicate, express love, handle conflicts, and build connections. Compatibility analysis studies these patterns to provide deeper insight into emotional bonding, mutual understanding, and long-term relationship balance.</p>
+        <p>This guidance is useful for couples, married partners, business partnerships, friendships, and even family relationships. It can help reveal emotional strengths, communication styles, decision-making compatibility, and areas where patience or understanding may be needed.</p>
+        <p>Rather than creating fear or rigid predictions, compatibility analysis is meant to improve awareness and strengthen relationships through better understanding. It often helps people recognize each other’s emotional needs and create healthier communication patterns.</p>
+        <p>Strong relationships grow when both individuals understand and respect each other’s nature. Compatibility insights can support emotional harmony, trust, stability, and a more balanced connection in personal and professional relationships alike.</p>
       </div>
     ),
   },
-  'career-purpose-mapping': {
-    title: 'Career & Purpose Mapping',
-    subtitle: 'Aligning Your Work With Your Soul',
+  'career-success-guidance': {
+    title: 'Career Path & Success Guidance',
+    subtitle: 'Aligning With Your Strengths',
     content: (
       <div className="space-y-6 text-muted font-light leading-relaxed text-base md:text-lg">
-        <p>One of the most common sources of unhappiness in modern life is the feeling that your work doesn't truly reflect who you are. You may be successful by external measures — a good salary, a respected title — and yet feel a nagging sense that something is missing, that you are not doing what you were truly meant to do.</p>
-        <p>Career & Purpose Mapping uses numerology to help bridge that gap. By examining a combination of your most important numbers — particularly your Life Path, Expression Number, and current Personal Year cycle — we create a personalized map of the vocational landscape most suited to your soul's design.</p>
-
-        <h3 className="text-2xl font-serif text-gold mt-10 mb-6">What Career & Purpose Mapping covers:</h3>
-        <ul className="list-none space-y-6 mt-8 mb-10">
-          <li className="pl-6 border-l border-gold/30">
-            <strong className="text-gold block mb-2 text-xl font-serif">Natural Vocational Gifts</strong>
-            Every Life Path number is associated with certain types of work, roles, and environments where that individual is most likely to feel energized and effective. This section identifies those areas clearly.
-          </li>
-          <li className="pl-6 border-l border-gold/30">
-            <strong className="text-gold block mb-2 text-xl font-serif">Work Style & Environment</strong>
-            Some people thrive in collaborative, social environments. Others are most productive in solitude. Some are natural leaders; others are the essential support behind the scenes. Your numbers reveal your optimal working style.
-          </li>
-          <li className="pl-6 border-l border-gold/30">
-            <strong className="text-gold block mb-2 text-xl font-serif">Purpose Beyond Profession</strong>
-            Career mapping in numerology goes beyond job titles. It helps you understand the type of contribution you are here to make in the world — whether that's healing, building, teaching, creating, leading, or something else entirely.
-          </li>
-          <li className="pl-6 border-l border-gold/30">
-            <strong className="text-gold block mb-2 text-xl font-serif">Timing & Transition Guidance</strong>
-            Your Personal Year number reveals the current chapter of your nine-year life cycle. Understanding where you are in that cycle helps you make smarter decisions about when to launch, when to consolidate, when to rest, and when to leap.
-          </li>
-          <li className="pl-6 border-l border-gold/30">
-            <strong className="text-gold block mb-2 text-xl font-serif">Overcoming Self-Sabotage</strong>
-            Each number also carries shadow tendencies — habitual patterns that can unconsciously derail your professional success. This reading helps you recognize and gently address those patterns.
-          </li>
-        </ul>
-        <p className="mt-8">Career & Purpose Mapping is ideal for anyone at a professional crossroads, considering a career change, launching a business, returning to work after a break, or simply searching for more meaning and fulfillment in what they do every day.</p>
+        <p>Every individual has unique strengths, ambitions, and natural abilities that influence their career journey. Career path and success guidance helps identify suitable professional directions based on personal energy patterns, decision-making style, leadership qualities, and growth potential.</p>
+        <p>Many people struggle not because they lack talent, but because they are working in environments that do not match their natural abilities. Understanding your personal strengths can help you make clearer career decisions and avoid unnecessary confusion or repeated setbacks.</p>
+        <p>This guidance explores areas such as career compatibility, business potential, leadership capabilities, communication skills, creativity, and financial growth patterns. It can also provide clarity during career transitions, job changes, startup planning, or professional uncertainty.</p>
+        <p>Whether someone is pursuing corporate success, entrepreneurship, creative professions, or independent ventures, personalized guidance can help identify opportunities that align with their strengths and long-term goals.</p>
+        <p>Success is not only about hard work; it is also about direction, timing, confidence, and making decisions with clarity. Career guidance helps individuals move forward with better focus, improved confidence, and a stronger understanding of their personal path toward achievement.</p>
+      </div>
+    ),
+  },
+  'child-name-alignment': {
+    title: 'Child Birth Date & Name Alignment Analysis',
+    subtitle: 'Harmonizing Early Potential',
+    content: (
+      <div className="space-y-6 text-muted font-light leading-relaxed text-base md:text-lg">
+        <p>A child’s birth date carries a unique energetic pattern that can influence personality, learning style, emotional nature, strengths, and future opportunities. When combined with name alignment analysis, it becomes a powerful way to understand how a child may naturally grow and respond to life experiences.</p>
+        <p>Birth date and name alignment analysis focuses on balancing the vibration of the child’s date of birth with the numerical value of their name. Sometimes a name may naturally support confidence, creativity, intelligence, and emotional stability. In other situations, minor imbalances can create unnecessary obstacles in communication, focus, health, or self-expression.</p>
+        <p>This guidance is often helpful for parents who want to select a meaningful name for a newborn or understand their child’s behavioral patterns more deeply. The analysis can highlight personality traits, educational strengths, emotional sensitivity, leadership qualities, and natural talents.</p>
+        <p>Rather than predicting life in a rigid way, this approach provides insight into the child’s natural energy and potential path. It can also help parents make supportive decisions regarding education, confidence building, and emotional development.</p>
+        <p>A properly aligned name can create a positive energetic foundation that supports growth, harmony, and future success throughout different stages of life.</p>
+      </div>
+    ),
+  },
+  'business-numerology': {
+    title: 'Business Numerology & Prosperity Blueprint',
+    subtitle: 'Structuring For Growth',
+    content: (
+      <div className="space-y-6 text-muted font-light leading-relaxed text-base md:text-lg">
+        <p>Every successful business is built on strategy, timing, vision, and strong decision-making. Business numerology and prosperity guidance focuses on understanding the energetic foundation of a business and aligning it for growth, stability, and long-term success.</p>
+        <p>A business name, launch date, brand identity, and leadership energy can all influence how the business connects with clients, opportunities, and financial growth. Proper alignment helps create stronger business visibility, better decision-making flow, and improved market confidence.</p>
+        <p>This guidance can support entrepreneurs, startups, professionals, and established business owners who want deeper clarity about branding, partnerships, expansion, and financial direction. It may also help in selecting business names, launch dates, office numbers, or strategic timing for important decisions.</p>
+        <p>Business prosperity is not only about profits; it also involves stability, reputation, client relationships, and consistent growth. Understanding the energetic strengths and challenges within a business structure can help owners make more balanced and informed choices.</p>
+        <p>A well-aligned business foundation can support stronger momentum, positive opportunities, and a clearer path toward sustainable success and prosperity.</p>
+      </div>
+    ),
+  },
+  'lucky-alignment': {
+    title: 'Lucky Numbers, Alphabets & Colour Alignment Guidance',
+    subtitle: 'Daily Resonances',
+    content: (
+      <div className="space-y-6 text-muted font-light leading-relaxed text-base md:text-lg">
+        <p>Numbers, alphabets, and colors often carry symbolic energy that can influence confidence, communication, and personal alignment. Lucky alignment guidance helps individuals identify combinations that naturally resonate with their personality and life path.</p>
+        <p>This analysis may include favorable numbers, supportive alphabets, beneficial colors, important dates, and personalized alignment suggestions based on an individual’s birth details and name patterns. These insights are often used in daily life, branding, personal decisions, business identity, and important occasions.</p>
+        <p>For some people, certain colors may increase confidence and positivity, while specific numbers or alphabets may strengthen communication, creativity, leadership, or financial energy. The purpose of this guidance is to create greater harmony between personal energy and external choices.</p>
+        <p>Many individuals use these insights while selecting business names, mobile numbers, vehicle numbers, branding themes, signatures, or important dates for major decisions.</p>
+        <p>Rather than depending entirely on luck, alignment guidance encourages individuals to make choices that feel naturally supportive and balanced for their personal and professional growth.</p>
+      </div>
+    ),
+  },
+  'focused-insight': {
+    title: 'Focused Insight Session (Single Question Guidance)',
+    subtitle: 'Targeted Clarity',
+    content: (
+      <div className="space-y-6 text-muted font-light leading-relaxed text-base md:text-lg">
+        <p>Sometimes a person does not need a complete life reading but simply wants clarity regarding one important question. A focused insight session is designed to provide direct guidance and deeper understanding about a specific concern or situation.</p>
+        <p>This session can cover areas such as career decisions, business opportunities, relationships, finances, emotional confusion, personal growth, partnerships, timing, or future direction. The goal is to provide clarity, practical understanding, and a balanced perspective.</p>
+        <p>Many people seek focused guidance during moments of uncertainty when they feel mentally stuck or emotionally overwhelmed. A single-question session helps simplify complex thoughts and bring attention to the most important factors influencing the situation.</p>
+        <p>Rather than giving unrealistic promises, the session aims to offer supportive insights that help individuals make clearer and more confident decisions. It encourages self-awareness, emotional balance, and practical understanding of possible outcomes and opportunities.</p>
+        <p>A focused insight session can often provide the clarity needed to move forward with confidence, peace of mind, and better direction.</p>
       </div>
     ),
   }

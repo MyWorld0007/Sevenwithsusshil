@@ -4,6 +4,7 @@ import About from './About';
 import Services from './Services';
 import Calculator from './Calculator';
 import Stories from './Stories';
+import WhyChooseUs from './WhyChooseUs';
 import Booking from './Booking';
 
 export default function Landing() {
@@ -14,6 +15,7 @@ export default function Landing() {
       <Services />
       <Calculator />
       <Stories />
+      <WhyChooseUs />
       <Booking />
     </>
   );

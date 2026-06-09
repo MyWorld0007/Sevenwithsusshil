@@ -26,6 +26,7 @@
     "mysql2": "^3.22.4",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
+    "react-quill-new": "^3.8.3",
     "react-router-dom": "^7.17.0",
     "sqlite": "^5.1.1",
     "sqlite3": "^6.0.1",
