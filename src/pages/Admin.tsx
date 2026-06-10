@@ -272,9 +272,23 @@ export default function Admin() {
            return;
        }
 
+       // Resolve all promises
        const setResText = await resolveRes(results[0]);
        const lpResText = await resolveRes(results[1]);
-       const testResText = await resolveRes(results[2]);
+       
+       let testResText = await resolveRes(results[2]);
+       
+       // Fallback for testimonials if the user hasn't deployed the latest api.php to their server yet
+       // The new route returns 404 Not Found if api.php is outdated.
+       if (!Array.isArray(testResText) && testResText?.error === 'not ok' || testResText?.error === 'API Not Found') {
+           try {
+               const fallbackRes = await apiFetch('/api/testimonials', { headers: { 'Authorization': `Bearer ${token}` } });
+               if (fallbackRes.ok) {
+                   testResText = await fallbackRes.json();
+               }
+           } catch(e) {}
+       }
+
        const pagesResText = await resolveRes(results[3]);
        const faqsResText = await resolveRes(results[4]);
        const servicesResText = await resolveRes(results[5]);
@@ -282,7 +296,10 @@ export default function Admin() {
        // Fallback for settings to null, rest to array. Provide default empty values if error
        setSettings(setResText?.error ? null : setResText);
        setLifePaths(Array.isArray(lpResText) ? lpResText : []);
-       setTestimonials(Array.isArray(testResText) ? testResText : []);
+       
+       // CRITICAL DEBUG: force store whatever raw text came back to find the issue
+       setTestimonials(testResText as any);
+       
        setPages(Array.isArray(pagesResText) ? pagesResText : []);
        setFaqs(Array.isArray(faqsResText) ? faqsResText : []);
        setServices(Array.isArray(servicesResText) ? servicesResText : []);
@@ -747,7 +764,13 @@ export default function Admin() {
                <h2 className="text-3xl font-serif text-gold">Stories</h2>
              </div>
              
-             {testimonials.length === 0 ? (
+             {!testimonials ? (
+                <div className="text-muted italic mb-10 text-sm">Loading or empty...</div>
+             ) : !Array.isArray(testimonials) ? (
+                <div className="bg-red-500/10 text-red-500 border border-red-500/30 p-4 mb-4 text-xs font-mono overflow-auto">
+                    DEBUG RESPONSE: {JSON.stringify(testimonials, null, 2)}
+                </div>
+             ) : testimonials.length === 0 ? (
                 <div className="text-muted italic mb-10 text-sm">No stories found.</div>
              ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
