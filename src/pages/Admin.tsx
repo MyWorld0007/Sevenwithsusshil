@@ -635,7 +635,7 @@ export default function Admin() {
              onClick={() => setActiveTab('testimonials')} 
              className={`w-full text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] transition-colors rounded ${activeTab === 'testimonials' ? 'bg-gold text-bg-dark font-bold' : 'text-gold hover:bg-gold/10'}`}
            >
-             Testimonials
+             Stories
            </button>
            <button 
              onClick={() => setActiveTab('lifepaths')} 
@@ -723,7 +723,7 @@ export default function Admin() {
         {activeTab === 'testimonials' && (
           <section className="max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500">
              <div className="flex justify-between items-center mb-8">
-               <h2 className="text-3xl font-serif text-gold">Testimonials</h2>
+               <h2 className="text-3xl font-serif text-gold">Stories</h2>
              </div>
              
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
@@ -757,10 +757,10 @@ export default function Admin() {
              </div>
 
              <div className="bg-bg-card border border-gold/20 p-8 shadow-sm">
-                   <h3 className="text-lg font-serif text-gold mb-6">Add New Testimonial</h3>
+                   <h3 className="text-lg font-serif text-gold mb-6">Add New Story</h3>
                    <form onSubmit={addTestimonial} className="grid grid-cols-1 md:grid-cols-2 gap-6">
                        <div className="md:col-span-2">
-                           <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Testimonial Text</label>
+                           <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Story Text</label>
                            <textarea name="text" required className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold min-h-[100px]" />
                        </div>
                        <div>
@@ -790,7 +790,7 @@ export default function Admin() {
                            </select>
                        </div>
                        <div className="md:col-span-2 mt-4">
-                           <button className="bg-gold text-bg-dark px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-gold-lt transition-colors rounded">Add Testimonial</button>
+                           <button className="bg-gold text-bg-dark px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-gold-lt transition-colors rounded">Add Story</button>
                        </div>
                    </form>
                  </div>

@@ -482,6 +482,23 @@ try {
     if ($resource === 'testimonials') {
         if ($method === 'GET') {
             if (!$useFallback) {
+                try {
+                    $stmt = $pdo->query("SELECT * FROM testimonials");
+                    $checkRows = $stmt->fetchAll();
+                    if (count($checkRows) === 0) {
+                        $tests = [
+                            [1, '"My session was nothing short of revelatory. The accuracy with which the numbers reflected my life\'s patterns left me speechless. I finally understand why certain things kept repeating."', 'P', 'Priya Malhotra', 'Mumbai, India', 'October 2023', 5, 'approved'],
+                            [2, '"I was at a complete crossroads in my career. The reading gave me the courage and clarity to make a decision I\'d been avoiding for two years. Genuinely life-changing."', 'R', 'Rohan Kapoor', 'Bangalore, India', 'November 2023', 5, 'approved'],
+                            [3, '"The relationship compatibility reading transformed how my partner and I communicate. Understanding our numbers made everything feel less like conflict and more like growth."', 'A', 'Anjali Singh', 'Delhi, India', 'January 2024', 5, 'approved'],
+                            [4, '"Simply incredible. The insights into my personal year cycle explained exactly what I was feeling."', 'S', 'Sarah T.', 'London, UK', 'March 2024', 5, 'approved']
+                        ];
+                        $insertStmt = $pdo->prepare("INSERT INTO testimonials (id, text, initial, name, loc, date, rating, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                        foreach ($tests as $t) {
+                            $insertStmt->execute($t);
+                        }
+                    }
+                } catch (\Exception $e) {}
+
                 $stmt = $pdo->query("SELECT * FROM testimonials WHERE status = 'approved' OR status IS NULL ORDER BY id ASC");
                 echo json_encode($stmt->fetchAll());
             } else {
@@ -639,6 +656,23 @@ try {
         if ($method === 'GET') {
             requireAuth();
             if (!$useFallback) {
+                try {
+                    $stmt = $pdo->query("SELECT * FROM testimonials");
+                    $checkRows = $stmt->fetchAll();
+                    if (count($checkRows) === 0) {
+                        $tests = [
+                            [1, '"My session was nothing short of revelatory. The accuracy with which the numbers reflected my life\'s patterns left me speechless. I finally understand why certain things kept repeating."', 'P', 'Priya Malhotra', 'Mumbai, India', 'October 2023', 5, 'approved'],
+                            [2, '"I was at a complete crossroads in my career. The reading gave me the courage and clarity to make a decision I\'d been avoiding for two years. Genuinely life-changing."', 'R', 'Rohan Kapoor', 'Bangalore, India', 'November 2023', 5, 'approved'],
+                            [3, '"The relationship compatibility reading transformed how my partner and I communicate. Understanding our numbers made everything feel less like conflict and more like growth."', 'A', 'Anjali Singh', 'Delhi, India', 'January 2024', 5, 'approved'],
+                            [4, '"Simply incredible. The insights into my personal year cycle explained exactly what I was feeling."', 'S', 'Sarah T.', 'London, UK', 'March 2024', 5, 'approved']
+                        ];
+                        $insertStmt = $pdo->prepare("INSERT INTO testimonials (id, text, initial, name, loc, date, rating, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                        foreach ($tests as $t) {
+                            $insertStmt->execute($t);
+                        }
+                    }
+                } catch (\Exception $e) {}
+
                 try {
                    $stmt = $pdo->query("SELECT * FROM testimonials ORDER BY id ASC");
                    echo json_encode($stmt->fetchAll());

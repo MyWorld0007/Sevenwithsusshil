@@ -733,6 +733,7 @@ async function startServer() {
     try {
       const db = await getDbPool();
       const [rows]: any = await db.query('SELECT * FROM testimonials ORDER BY id ASC');
+      console.log('Admin testimonials fetched:', rows);
       res.json(rows);
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
