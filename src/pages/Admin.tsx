@@ -252,6 +252,12 @@ export default function Admin() {
            apiFetch('/api/faqs'),
            apiFetch('/api/services')
        ]);
+       if (testRes.status === 401) {
+           setToken('');
+           localStorage.removeItem('admin_token');
+           return;
+       }
+
        const setResText = await setRes.json();
        const lpResText = await lpRes.json();
        const testResText = await testRes.json();

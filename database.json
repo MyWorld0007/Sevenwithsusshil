@@ -99,7 +99,8 @@
       "name": "Priya Malhotra",
       "loc": "Mumbai, India",
       "date": "October 2023",
-      "rating": 5
+      "rating": 5,
+      "helpful_count": 0
     },
     {
       "id": 2,
@@ -130,11 +131,11 @@
     },
     {
       "id": 5,
-      "text": "\"This is a test pending testimonial.\"",
+      "text": "Test Review",
       "initial": "T",
-      "name": "Test User",
-      "loc": "Test City",
-      "date": "April 2024",
+      "name": "Test Name",
+      "loc": "Test Loc",
+      "date": "June 10, 2026",
       "rating": 5,
       "status": "pending"
     }
