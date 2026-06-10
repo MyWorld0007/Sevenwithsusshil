@@ -244,35 +244,50 @@ export default function Admin() {
 
   const fetchData = async () => {
      try {
-       const [setRes, lpRes, testRes, pagesRes, faqsRes, servicesRes] = await Promise.all([
+       const calls = [
            apiFetch('/api/settings'),
            apiFetch('/api/life_paths'),
            apiFetch('/api/admin/testimonials', { headers: { 'Authorization': `Bearer ${token}` } }),
            apiFetch('/api/pages'),
            apiFetch('/api/faqs'),
            apiFetch('/api/services')
-       ]);
-       if (testRes.status === 401) {
+       ];
+       const results = await Promise.allSettled(calls);
+       
+       const resolveRes = async (res: any) => {
+          if (res.status !== 'fulfilled') return { error: 'failed' };
+          const response = res.value;
+          if (!response.ok) return { error: 'not ok' };
+          try {
+             return await response.json();
+          } catch(e) {
+             return { error: 'json parsing failed' };
+          }
+       };
+
+       // Check token invalidation specifically for testimonials (index 2)
+       if (results[2].status === 'fulfilled' && results[2].value.status === 401) {
            setToken('');
            localStorage.removeItem('admin_token');
            return;
        }
 
-       const setResText = await setRes.json();
-       const lpResText = await lpRes.json();
-       const testResText = await testRes.json();
-       const pagesResText = await pagesRes.json();
-       const faqsResText = await faqsRes.json();
-       const servicesResText = await servicesRes.json();
+       const setResText = await resolveRes(results[0]);
+       const lpResText = await resolveRes(results[1]);
+       const testResText = await resolveRes(results[2]);
+       const pagesResText = await resolveRes(results[3]);
+       const faqsResText = await resolveRes(results[4]);
+       const servicesResText = await resolveRes(results[5]);
 
-       setSettings(setResText.error ? null : setResText);
+       // Fallback for settings to null, rest to array. Provide default empty values if error
+       setSettings(setResText?.error ? null : setResText);
        setLifePaths(Array.isArray(lpResText) ? lpResText : []);
        setTestimonials(Array.isArray(testResText) ? testResText : []);
        setPages(Array.isArray(pagesResText) ? pagesResText : []);
        setFaqs(Array.isArray(faqsResText) ? faqsResText : []);
        setServices(Array.isArray(servicesResText) ? servicesResText : []);
      } catch (err) {
-         console.error(err);
+         console.error("fetchData error:", err);
      }
   };
 
