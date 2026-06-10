@@ -241,6 +241,10 @@ export default function Stories({ isFullPage = false }: StoriesProps) {
           return JSON.parse(text);
       })
       .then(data => {
+          if (data.error) throw new Error(data.error);
+          if (!Array.isArray(data) || data.length === 0) {
+              throw new Error("No testimonials found, using defaults");
+          }
           setTestimonials(data);
           const initialVotes: Record<number, number> = {};
           data.forEach((t: Testimonial) => {
@@ -376,10 +380,19 @@ export default function Stories({ isFullPage = false }: StoriesProps) {
 
   const SubmitModal = isSubmitModalOpen ? (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
-      <div className="bg-bg-dark border border-gold/20 p-8 w-full max-w-lg shadow-2xl relative">
-        <button 
-          onClick={() => setIsSubmitModalOpen(false)}
-          className="absolute top-4 right-4 text-muted hover:text-gold transition-colors"
+      <div 
+        className="absolute inset-0 z-0" 
+        onClick={() => setIsSubmitModalOpen(false)} 
+      />
+      <div className="bg-bg-dark border border-gold/20 p-8 w-full max-w-lg shadow-2xl relative z-10">
+        <button
+          type="button" 
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsSubmitModalOpen(false);
+          }}
+          className="absolute top-4 right-4 p-2 text-muted hover:text-gold transition-colors cursor-pointer z-20"
         >
           <X className="w-5 h-5" />
         </button>
@@ -413,6 +426,8 @@ export default function Stories({ isFullPage = false }: StoriesProps) {
                     <option value="5">★★★★★</option>
                     <option value="4">★★★★☆</option>
                     <option value="3">★★★☆☆</option>
+                    <option value="2">★★☆☆☆</option>
+                    <option value="1">★☆☆☆☆</option>
                   </select>
                 </div>
               </div>
