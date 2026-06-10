@@ -148,10 +148,10 @@ export default function App() {
             <img src="/logo.png" alt="SEVEN 7" className="h-14 md:h-20 w-auto object-contain" />
           </Link>
           <ul className="hidden md:flex gap-10 text-[11px] uppercase tracking-[0.2em] text-muted items-center">
-            <li><a href="/#services" className="hover:text-gold transition-colors">Services</a></li>
             <li><a href="/#about" className="hover:text-gold transition-colors">About</a></li>
-            <li><Link to="/pricing" className="hover:text-gold transition-colors">Pricing</Link></li>
             <li><a href="/#calculator" className="hover:text-gold transition-colors">Calculator</a></li>
+            <li><Link to="/pricing" className="hover:text-gold transition-colors">Pricing</Link></li>
+            <li><a href="/#services" className="hover:text-gold transition-colors">Services</a></li>
             <li><Link to="/stories" className="hover:text-gold transition-colors">Stories</Link></li>
           </ul>
           <div className="flex items-center gap-4">
@@ -177,10 +177,10 @@ export default function App() {
         {/* Mobile menu */}
         <div className={`md:hidden absolute top-full left-0 right-0 bg-bg-dark border-b border-gold-bd transition-all duration-300 overflow-hidden ${isMobileMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
           <ul className="flex flex-col text-[11px] uppercase tracking-[0.2em] text-muted p-6 gap-2">
-            <li><a href="/#services" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block py-3 px-2">Services</a></li>
             <li><a href="/#about" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block py-3 px-2">About</a></li>
-            <li><Link to="/pricing" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block py-3 px-2">Pricing</Link></li>
             <li><a href="/#calculator" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block py-3 px-2">Calculator</a></li>
+            <li><Link to="/pricing" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block py-3 px-2">Pricing</Link></li>
+            <li><a href="/#services" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block py-3 px-2">Services</a></li>
             <li><Link to="/stories" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block py-3 px-2">Stories</Link></li>
             <li className="pt-4 mt-2 border-t border-gold/10">
               <a href="/#booking" onClick={() => setIsMobileMenuOpen(false)} className="inline-block px-6 py-3.5 border border-gold/30 text-gold w-full text-center uppercase tracking-[0.2em]">
