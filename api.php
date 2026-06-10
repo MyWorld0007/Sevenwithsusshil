@@ -17,7 +17,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // 1. Connection Configurations
-define('DB_HOST', '193.203.184.86');
+define('DB_HOST_LOCAL', 'localhost');
+define('DB_HOST_REMOTE', '193.203.184.86');
 define('DB_USER', 'u709894810_masteradmin');
 define('DB_PASS', '@Masteradmin_2026');
 define('DB_NAME', 'u709894810_sevenastro');
@@ -31,16 +32,26 @@ $pdo = null;
 $useFallback = false;
 
 try {
-    $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4";
+    // Attempt local database connection (localhost) - typical for Hostinger hosting environments
+    $dsn = "mysql:host=" . DB_HOST_LOCAL . ";dbname=" . DB_NAME . ";charset=utf8mb4";
     $options = [
         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES   => false,
-        PDO::ATTR_TIMEOUT            => 4 // Fail fast to avoid freezing the backend
+        PDO::ATTR_TIMEOUT            => 2 // Fail fast to try remote next
     ];
     $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
+    $pdo->exec("SET NAMES utf8mb4");
 } catch (Exception $e) {
-    $useFallback = true;
+    try {
+        // Fallback to remote IP connection if requested
+        $dsn = "mysql:host=" . DB_HOST_REMOTE . ";dbname=" . DB_NAME . ";charset=utf8mb4";
+        $options[PDO::ATTR_TIMEOUT] = 4;
+        $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
+        $pdo->exec("SET NAMES utf8mb4");
+    } catch (Exception $e2) {
+        $useFallback = true;
+    }
 }
 
 // 3. Helper Functions for JSON Engine Fallback
@@ -229,11 +240,18 @@ try {
     // ---- 2. SERVICES ----
     if ($resource === 'services') {
         if ($method === 'GET') {
+            $fetched = false;
             if (!$useFallback) {
-                $stmt = $pdo->query("SELECT * FROM services ORDER BY display_order ASC, id ASC");
-                $rows = $stmt->fetchAll();
-                echo json_encode($rows);
-            } else {
+                try {
+                    $stmt = $pdo->query("SELECT * FROM services ORDER BY display_order ASC, id ASC");
+                    $rows = $stmt->fetchAll();
+                    echo json_encode($rows);
+                    $fetched = true;
+                } catch (Exception $e) {
+                    // Fall back to JSON DB
+                }
+            }
+            if (!$fetched) {
                 $db = readJsonDb();
                 $rows = $db['services'] ?? [];
                 usort($rows, function($a, $b) {
@@ -464,11 +482,14 @@ try {
     if ($resource === 'testimonials') {
         if ($method === 'GET') {
             if (!$useFallback) {
-                $stmt = $pdo->query("SELECT * FROM testimonials ORDER BY id ASC");
+                $stmt = $pdo->query("SELECT * FROM testimonials WHERE status = 'approved' OR status IS NULL ORDER BY id ASC");
                 echo json_encode($stmt->fetchAll());
             } else {
                 $db = readJsonDb();
-                echo json_encode($db['testimonials'] ?? []);
+                $rows = array_filter($db['testimonials'] ?? [], function($t) {
+                    return !isset($t['status']) || $t['status'] === 'approved';
+                });
+                echo json_encode(array_values($rows));
             }
             exit();
         }
@@ -481,12 +502,23 @@ try {
             $loc = $inputData['loc'] ?? '';
             $date = $inputData['date'] ?? '';
             $rating = intval($inputData['rating'] ?? 5);
+            $status = $inputData['status'] ?? 'approved';
 
             if (!$useFallback) {
                 $maxId = $pdo->query("SELECT IFNULL(MAX(id), 0) FROM testimonials")->fetchColumn();
                 $newId = $maxId + 1;
-                $stmt = $pdo->prepare("INSERT INTO testimonials (id, text, initial, name, loc, date, rating) VALUES (?, ?, ?, ?, ?, ?, ?)");
-                $stmt->execute([$newId, $text, $initial, $name, $loc, $date, $rating]);
+                try {
+                    $stmt = $pdo->prepare("INSERT INTO testimonials (id, text, initial, name, loc, date, rating, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->execute([$newId, $text, $initial, $name, $loc, $date, $rating, $status]);
+                } catch(PDOException $e) {
+                    if (strpos($e->getMessage(), 'Unknown column') !== false) {
+                        $pdo->exec("ALTER TABLE testimonials ADD COLUMN status VARCHAR(20) DEFAULT 'approved'");
+                        $stmt = $pdo->prepare("INSERT INTO testimonials (id, text, initial, name, loc, date, rating, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                        $stmt->execute([$newId, $text, $initial, $name, $loc, $date, $rating, $status]);
+                    } else {
+                        throw $e;
+                    }
+                }
                 echo json_encode(['id' => $newId]);
             } else {
                 $db = readJsonDb();
@@ -503,11 +535,83 @@ try {
                     'name' => $name,
                     'loc' => $loc,
                     'date' => $date,
-                    'rating' => $rating
+                    'rating' => $rating,
+                    'status' => $status
                 ];
                 writeJsonDb($db);
                 echo json_encode(['id' => $newId]);
             }
+            exit();
+        }
+
+        if ($method === 'PUT') {
+            requireAuth();
+            $id = intval($subResource);
+            $status = $inputData['status'] ?? 'approved';
+            
+            if (!$useFallback) {
+                try {
+                    $stmt = $pdo->prepare("UPDATE testimonials SET status = ? WHERE id = ?");
+                    $stmt->execute([$status, $id]);
+                } catch(PDOException $e) {
+                    if (strpos($e->getMessage(), 'Unknown column') !== false) {
+                        $pdo->exec("ALTER TABLE testimonials ADD COLUMN status VARCHAR(20) DEFAULT 'approved'");
+                        $stmt = $pdo->prepare("UPDATE testimonials SET status = ? WHERE id = ?");
+                        $stmt->execute([$status, $id]);
+                    } else {
+                        throw $e;
+                    }
+                }
+            } else {
+                $db = readJsonDb();
+                foreach ($db['testimonials'] as &$t) {
+                    if ($t['id'] === $id) {
+                        $t['status'] = $status;
+                        break;
+                    }
+                }
+                writeJsonDb($db);
+            }
+            echo json_encode(['success' => true]);
+            exit();
+        }
+
+        if ($method === 'POST' && $subResource && preg_match('/^testimonials\/\d+\/helpful$/', $route)) {
+            $parts = explode('/', trim($route, '/'));
+            $id = intval($parts[1]);
+            $increment = $inputData['increment'] ?? false;
+            
+            if (!$useFallback) {
+                try {
+                    $sql = $increment ? "UPDATE testimonials SET helpful_count = IFNULL(helpful_count, 0) + 1 WHERE id = ?" : "UPDATE testimonials SET helpful_count = GREATEST(0, IFNULL(helpful_count, 0) - 1) WHERE id = ?";
+                    $stmt = $pdo->prepare($sql);
+                    $stmt->execute([$id]);
+                } catch(PDOException $e) {
+                    if (strpos($e->getMessage(), 'Unknown column') !== false) {
+                        $pdo->exec("ALTER TABLE testimonials ADD COLUMN helpful_count INT DEFAULT 0");
+                        $sql = $increment ? "UPDATE testimonials SET helpful_count = IFNULL(helpful_count, 0) + 1 WHERE id = ?" : "UPDATE testimonials SET helpful_count = GREATEST(0, IFNULL(helpful_count, 0) - 1) WHERE id = ?";
+                        $stmt = $pdo->prepare($sql);
+                        $stmt->execute([$id]);
+                    } else {
+                        throw $e;
+                    }
+                }
+            } else {
+                $db = readJsonDb();
+                foreach ($db['testimonials'] as &$t) {
+                    if ($t['id'] === $id) {
+                        $t['helpful_count'] = isset($t['helpful_count']) ? $t['helpful_count'] : 0;
+                        if ($increment) {
+                            $t['helpful_count']++;
+                        } else {
+                            $t['helpful_count'] = max(0, $t['helpful_count'] - 1);
+                        }
+                        break;
+                    }
+                }
+                writeJsonDb($db);
+            }
+            echo json_encode(['success' => true]);
             exit();
         }
 
@@ -526,6 +630,83 @@ try {
                 writeJsonDb($db);
             }
             echo json_encode(['success' => true]);
+            exit();
+        }
+    }
+
+    // ---- 4.1 ADMIN TESTIMONIALS ----
+    if ($resource === 'admin' && $subResource === 'testimonials') {
+        if ($method === 'GET') {
+            requireAuth();
+            if (!$useFallback) {
+                try {
+                   $stmt = $pdo->query("SELECT * FROM testimonials ORDER BY id ASC");
+                   echo json_encode($stmt->fetchAll());
+                } catch(PDOException $e) {
+                   if (strpos($e->getMessage(), 'Unknown column') !== false) {
+                       $pdo->exec("ALTER TABLE testimonials ADD COLUMN status VARCHAR(20) DEFAULT 'approved'");
+                       $stmt = $pdo->query("SELECT * FROM testimonials ORDER BY id ASC");
+                       echo json_encode($stmt->fetchAll());
+                   } else {
+                       throw $e;
+                   }
+                }
+            } else {
+                $db = readJsonDb();
+                echo json_encode($db['testimonials'] ?? []);
+            }
+            exit();
+        }
+    }
+
+    // ---- 4.2 USER SUBMIT TESTIMONIALS ----
+    if ($resource === 'user-testimonials') {
+        if ($method === 'POST') {
+            $text = $inputData['text'] ?? '';
+            $initial = $inputData['initial'] ?? '';
+            $name = $inputData['name'] ?? '';
+            $loc = $inputData['loc'] ?? '';
+            $date = $inputData['date'] ?? date('F j, Y');
+            $rating = intval($inputData['rating'] ?? 5);
+            $status = 'pending';
+
+            if (!$useFallback) {
+                $maxId = $pdo->query("SELECT IFNULL(MAX(id), 0) FROM testimonials")->fetchColumn();
+                $newId = $maxId + 1;
+                try {
+                    $stmt = $pdo->prepare("INSERT INTO testimonials (id, text, initial, name, loc, date, rating, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->execute([$newId, $text, $initial, $name, $loc, $date, $rating, $status]);
+                } catch(PDOException $e) {
+                    if (strpos($e->getMessage(), 'Unknown column') !== false) {
+                        $pdo->exec("ALTER TABLE testimonials ADD COLUMN status VARCHAR(20) DEFAULT 'approved'");
+                        $stmt = $pdo->prepare("INSERT INTO testimonials (id, text, initial, name, loc, date, rating, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                        $stmt->execute([$newId, $text, $initial, $name, $loc, $date, $rating, $status]);
+                    } else {
+                        throw $e;
+                    }
+                }
+                echo json_encode(['id' => $newId, 'success' => true]);
+            } else {
+                $db = readJsonDb();
+                if (!isset($db['testimonials'])) $db['testimonials'] = [];
+                $maxId = 0;
+                foreach ($db['testimonials'] as $t) {
+                    if ($t['id'] > $maxId) $maxId = $t['id'];
+                }
+                $newId = $maxId + 1;
+                $db['testimonials'][] = [
+                    'id' => $newId,
+                    'text' => $text,
+                    'initial' => $initial,
+                    'name' => $name,
+                    'loc' => $loc,
+                    'date' => $date,
+                    'rating' => $rating,
+                    'status' => $status
+                ];
+                writeJsonDb($db);
+                echo json_encode(['id' => $newId, 'success' => true]);
+            }
             exit();
         }
     }

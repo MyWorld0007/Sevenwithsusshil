@@ -96,6 +96,10 @@ class JsonDbEngine {
       data.life_paths = (data.life_paths || []).filter((x: any) => x.id !== id);
       writeJsonDb(data);
       affectedRowsCount = 1;
+    } else if (cleanSql.includes("SELECT * FROM testimonials WHERE query")) {
+      // Intentionally unreachable if exact match, but we will handle the actual query below
+    } else if (cleanSql.includes("SELECT * FROM testimonials WHERE status = 'approved' OR status IS NULL")) {
+      resultRows = (data.testimonials || []).filter((x: any) => x.status === 'approved' || !x.status).sort((a: any, b: any) => a.id - b.id);
     } else if (cleanSql.includes("SELECT * FROM testimonials")) {
       resultRows = (data.testimonials || []).sort((a: any, b: any) => a.id - b.id);
     } else if (cleanSql.includes("SELECT COUNT(*) as cnt FROM testimonials")) {
@@ -112,9 +116,33 @@ class JsonDbEngine {
         name: params[3],
         loc: params[4],
         date: params[5],
-        rating: Number(params[6]) || 5
+        rating: Number(params[6]) || 5,
+        status: params[7] || 'approved'
       });
       writeJsonDb(data);
+      affectedRowsCount = 1;
+    } else if (cleanSql.includes("UPDATE testimonials SET status")) {
+      const id = Number(params[1]);
+      const status = String(params[0]);
+      const item = (data.testimonials || []).find((x: any) => x.id === id);
+      if (item) {
+        item.status = status;
+        writeJsonDb(data);
+      }
+      affectedRowsCount = 1;
+    } else if (cleanSql.includes("UPDATE testimonials SET helpful_count")) {
+      const id = Number(params[0]);
+      const isIncrement = cleanSql.includes("+ 1");
+      const item = (data.testimonials || []).find((x: any) => x.id === id);
+      if (item) {
+        item.helpful_count = item.helpful_count || 0;
+        if (isIncrement) {
+            item.helpful_count += 1;
+        } else {
+            item.helpful_count = Math.max(0, item.helpful_count - 1);
+        }
+        writeJsonDb(data);
+      }
       affectedRowsCount = 1;
     } else if (cleanSql.includes("DELETE FROM testimonials")) {
       const id = Number(params[0]);
@@ -317,9 +345,28 @@ async function getDbPool() {
           name VARCHAR(255),
           loc VARCHAR(255),
           date VARCHAR(255),
-          rating INT
+          rating INT,
+          status VARCHAR(20) DEFAULT 'approved'
         )
       `);
+      
+      // Upgrade existing table if it exists
+      try {
+        await pool.query(`ALTER TABLE testimonials ADD COLUMN status VARCHAR(20) DEFAULT 'approved'`);
+      } catch (e: any) {
+        // Ignore duplicate column errors
+        if (!e.message.includes('Duplicate column name')) {
+          console.error("[MYSQL Upgrade] testimonials status column:", e.message);
+        }
+      }
+
+      try {
+        await pool.query(`ALTER TABLE testimonials ADD COLUMN helpful_count INT DEFAULT 0`);
+      } catch (e: any) {
+        if (!e.message.includes('Duplicate column name')) {
+          console.error("[MYSQL Upgrade] testimonials helpful_count column:", e.message);
+        }
+      }
     } catch (e: any) { console.error("[MYSQL Setup] testimonials table:", e.message); }
 
     try {
@@ -641,6 +688,19 @@ async function startServer() {
   app.use(express.json());
   app.use("/uploads", express.static(path.join(process.cwd(), "public/uploads")));
 
+  // Admin Auth Middleware
+  const requireAuth = (req: any, res: any, next: any) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ error: "Unauthorized" });
+    const token = authHeader.split(' ')[1];
+    try {
+      jwt.verify(token, JWT_SECRET);
+      next();
+    } catch (e) {
+      res.status(401).json({ error: "Invalid token" });
+    }
+  };
+
   // API ROUTES
   
   // Public routes
@@ -662,6 +722,14 @@ async function startServer() {
   });
 
   app.get("/api/testimonials", async (req, res) => {
+    try {
+      const db = await getDbPool();
+      const [rows]: any = await db.query("SELECT * FROM testimonials WHERE status = 'approved' OR status IS NULL ORDER BY id ASC");
+      res.json(rows);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.get("/api/admin/testimonials", requireAuth, async (req, res) => {
     try {
       const db = await getDbPool();
       const [rows]: any = await db.query('SELECT * FROM testimonials ORDER BY id ASC');
@@ -711,19 +779,6 @@ async function startServer() {
       res.status(500).json({ error: err.message });
     }
   });
-
-  // Admin Auth Middleware
-  const requireAuth = (req: any, res: any, next: any) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) return res.status(401).json({ error: "Unauthorized" });
-    const token = authHeader.split(' ')[1];
-    try {
-      jwt.verify(token, JWT_SECRET);
-      next();
-    } catch (e) {
-      res.status(401).json({ error: "Invalid token" });
-    }
-  };
 
   // Protected Admin Routes
   app.put("/api/settings", requireAuth, async (req, res) => {
@@ -817,19 +872,56 @@ async function startServer() {
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
 
-  app.post("/api/testimonials", requireAuth, async (req, res) => {
+  app.post("/api/user-testimonials", async (req, res) => {
     try {
       const db = await getDbPool();
-      const [rows]: any = await db.query('SELECT COUNT(*) as cnt FROM testimonials');
-      if (rows[0].cnt >= 7) return res.status(400).json({ error: "Maximum 7 testimonials allowed." });
-      
       const { text, initial, name, loc, date, rating } = req.body;
       const [idRows]: any = await db.query('SELECT MAX(id) as maxId FROM testimonials');
       const nextId = (idRows[0].maxId || 0) + 1;
       
-      await db.query('INSERT INTO testimonials (id, text, initial, name, loc, date, rating) VALUES (?, ?, ?, ?, ?, ?, ?)', 
-        [nextId, text, initial, name, loc, date || 'October 2023', rating ? parseInt(rating) : 5]);
+      await db.query('INSERT INTO testimonials (id, text, initial, name, loc, date, rating, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', 
+        [nextId, text, initial, name, loc, date || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), rating ? parseInt(rating) : 5, 'pending']);
+      res.json({ success: true, id: nextId });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.post("/api/testimonials", requireAuth, async (req, res) => {
+    try {
+      const db = await getDbPool();
+      const [rows]: any = await db.query('SELECT COUNT(*) as cnt FROM testimonials');
+      if (rows[0].cnt >= 50) return res.status(400).json({ error: "Maximum 50 testimonials allowed." });
+      
+      const { text, initial, name, loc, date, rating, status } = req.body;
+      const [idRows]: any = await db.query('SELECT MAX(id) as maxId FROM testimonials');
+      const nextId = (idRows[0].maxId || 0) + 1;
+      
+      await db.query('INSERT INTO testimonials (id, text, initial, name, loc, date, rating, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', 
+        [nextId, text, initial, name, loc, date || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), rating ? parseInt(rating) : 5, status || 'approved']);
       res.json({ id: nextId });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.put("/api/testimonials/:id", requireAuth, async (req, res) => {
+    try {
+      const db = await getDbPool();
+      const id = parseInt(req.params.id);
+      const { status } = req.body;
+      await db.query('UPDATE testimonials SET status=? WHERE id=?', [status || 'approved', id]);
+      res.json({ success: true });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.post("/api/testimonials/:id/helpful", async (req, res) => {
+    try {
+      const db = await getDbPool();
+      const id = parseInt(req.params.id);
+      const { increment } = req.body;
+      if (increment) {
+        await db.query('UPDATE testimonials SET helpful_count = helpful_count + 1 WHERE id=?', [id]);
+      } else {
+        await db.query('UPDATE testimonials SET helpful_count = GREATEST(0, helpful_count - 1) WHERE id=?', [id]);
+      }
+      res.json({ success: true });
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
 

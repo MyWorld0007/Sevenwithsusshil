@@ -218,6 +218,9 @@ export default function Stories({ isFullPage = false }: StoriesProps) {
   const [helpfulVotes, setHelpfulVotes] = useState<Record<number, number>>({});
   const [userVoted, setUserVoted] = useState<Record<number, boolean>>({});
 
+  const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+
   useEffect(() => {
     if (selectedStory) {
       document.body.style.overflow = 'hidden';
@@ -237,14 +240,21 @@ export default function Stories({ isFullPage = false }: StoriesProps) {
           if (!text) throw new Error("Empty response");
           return JSON.parse(text);
       })
-      .then(data => setTestimonials(data))
+      .then(data => {
+          setTestimonials(data);
+          const initialVotes: Record<number, number> = {};
+          data.forEach((t: Testimonial) => {
+              initialVotes[t.id] = t.helpful_count || 0;
+          });
+          setHelpfulVotes(initialVotes);
+      })
       .catch(err => {
           console.error("Could not fetch testimonials, using defaults", err);
           setTestimonials([
-            { id: 1, text: '"My session was nothing short of revelatory. The accuracy with which the numbers reflected my life\'s patterns left me speechless. I finally understand why certain things kept repeating."', initial: 'P', name: 'Priya Malhotra', loc: 'Mumbai, India', date: 'October 2023', rating: 5 },
-            { id: 2, text: '"I was at a complete crossroads in my career. The reading gave me the courage and clarity to make a decision I\'d been avoiding for two years. Genuinely life-changing."', initial: 'R', name: 'Rohan Kapoor', loc: 'Bangalore, India', date: 'November 2023', rating: 5 },
-            { id: 3, text: '"The relationship compatibility reading transformed how my partner and I communicate. Understanding our numbers made everything feel less like conflict and more like growth."', initial: 'A', name: 'Anjali Singh', loc: 'Delhi, India', date: 'January 2024', rating: 5 },
-            { id: 4, text: '"Simply incredible. The insights into my personal year cycle explained exactly what I was feeling."', initial: 'S', name: 'Sarah T.', loc: 'London, UK', date: 'March 2024', rating: 5 }
+            { id: 1, text: '"My session was nothing short of revelatory. The accuracy with which the numbers reflected my life\'s patterns left me speechless. I finally understand why certain things kept repeating."', initial: 'P', name: 'Priya Malhotra', loc: 'Mumbai, India', date: 'October 2023', rating: 5, helpful_count: 5 },
+            { id: 2, text: '"I was at a complete crossroads in my career. The reading gave me the courage and clarity to make a decision I\'d been avoiding for two years. Genuinely life-changing."', initial: 'R', name: 'Rohan Kapoor', loc: 'Bangalore, India', date: 'November 2023', rating: 5, helpful_count: 2 },
+            { id: 3, text: '"The relationship compatibility reading transformed how my partner and I communicate. Understanding our numbers made everything feel less like conflict and more like growth."', initial: 'A', name: 'Anjali Singh', loc: 'Delhi, India', date: 'January 2024', rating: 5, helpful_count: 8 },
+            { id: 4, text: '"Simply incredible. The insights into my personal year cycle explained exactly what I was feeling."', initial: 'S', name: 'Sarah T.', loc: 'London, UK', date: 'March 2024', rating: 5, helpful_count: 0 }
           ]);
       });
   }, []);
@@ -269,29 +279,44 @@ export default function Stories({ isFullPage = false }: StoriesProps) {
 
   const visibleTestimonials = testimonials.slice(currentIndex, currentIndex + 3);
 
-  // Seed standard realistic helpful count like on Google Reviews
-  const getInitialHelpfulCount = (id: number) => {
-    return (id * 3 + 2) % 11; 
-  };
-
-  const handleHelpfulToggle = (id: number) => {
-    setUserVoted(prevVoted => {
-      const wasVoted = !!prevVoted[id];
-      const nextVoted = !wasVoted;
+  const handleHelpfulToggle = async (id: number) => {
+    const wasVoted = !!userVoted[id];
+    const nextVoted = !wasVoted;
       
-      setHelpfulVotes(prevVotes => {
-        const current = prevVotes[id] !== undefined ? prevVotes[id] : getInitialHelpfulCount(id);
+    setUserVoted(prevVoted => ({
+        ...prevVoted,
+        [id]: nextVoted
+    }));
+      
+    setHelpfulVotes(prevVotes => {
+        const current = prevVotes[id] || 0;
         return {
           ...prevVotes,
           [id]: nextVoted ? current + 1 : Math.max(0, current - 1)
         };
-      });
-      
-      return {
-        ...prevVoted,
-        [id]: nextVoted
-      };
     });
+
+    try {
+      await apiFetch(`/api/testimonials/${id}/helpful`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ increment: nextVoted })
+      });
+    } catch(e) {
+      // Revert optimistic update
+      setUserVoted(prevVoted => ({
+          ...prevVoted,
+          [id]: wasVoted
+      }));
+      setHelpfulVotes(prevVotes => {
+          const current = prevVotes[id] || 0;
+          return {
+            ...prevVotes,
+            [id]: !nextVoted ? current + 1 : Math.max(0, current - 1)
+          };
+      });
+      console.error(e);
+    }
   };
 
   const filteredTestimonials = testimonials.filter(t => 
@@ -308,17 +333,102 @@ export default function Stories({ isFullPage = false }: StoriesProps) {
       return (a.rating || 5) - (b.rating || 5);
     }
     if (sortBy === 'helpful') {
-      const votesA = helpfulVotes[a.id] !== undefined ? helpfulVotes[a.id] : getInitialHelpfulCount(a.id);
-      const votesB = helpfulVotes[b.id] !== undefined ? helpfulVotes[b.id] : getInitialHelpfulCount(b.id);
+      const votesA = helpfulVotes[a.id] || 0;
+      const votesB = helpfulVotes[b.id] || 0;
       return votesB - votesA;
     }
     return b.id - a.id; // default recent
   });
 
+  const handleSubmitReview = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    
+    try {
+      await apiFetch('/api/user-testimonials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: formData.get('text'),
+          initial: formData.get('initial'),
+          name: formData.get('name'),
+          loc: formData.get('loc'),
+          rating: formData.get('rating')
+        })
+      });
+      setSubmitSuccess(true);
+      setTimeout(() => {
+        setIsSubmitModalOpen(false);
+        setSubmitSuccess(false);
+        form.reset();
+      }, 3000);
+    } catch (e) {
+      console.error(e);
+      alert('Failed to submit review. Please try again.');
+    }
+  };
+
   const totalReviewsCount = testimonials.length;
   const averageRating = totalReviewsCount > 0 
     ? (testimonials.reduce((sum, t) => sum + (t.rating || 5), 0) / totalReviewsCount).toFixed(1) 
     : "5.0";
+
+  const SubmitModal = isSubmitModalOpen ? (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+      <div className="bg-bg-dark border border-gold/20 p-8 w-full max-w-lg shadow-2xl relative">
+        <button 
+          onClick={() => setIsSubmitModalOpen(false)}
+          className="absolute top-4 right-4 text-muted hover:text-gold transition-colors"
+        >
+          <X className="w-5 h-5" />
+        </button>
+        {submitSuccess ? (
+          <div className="text-center py-12">
+            <h3 className="text-2xl font-serif text-gold mb-4">Thank You</h3>
+            <p className="text-muted">Your story has been submitted and is pending approval.</p>
+          </div>
+        ) : (
+          <>
+            <h3 className="text-2xl font-serif text-gold mb-6">Share Your Story</h3>
+            <form onSubmit={handleSubmitReview} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted mb-2">Name</label>
+                  <input type="text" name="name" required className="w-full bg-bg-card border border-gold/20 p-3 text-sm focus:outline-none focus:border-gold transition-colors text-text-main" />
+                </div>
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted mb-2">Initial</label>
+                  <input type="text" name="initial" required maxLength={1} className="w-full bg-bg-card border border-gold/20 p-3 text-sm focus:outline-none focus:border-gold transition-colors text-text-main" placeholder="e.g. A" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted mb-2">Location</label>
+                  <input type="text" name="loc" required className="w-full bg-bg-card border border-gold/20 p-3 text-sm focus:outline-none focus:border-gold transition-colors text-text-main" placeholder="e.g. London, UK" />
+                </div>
+                <div>
+                  <label className="block text-xs uppercase tracking-widest text-muted mb-2">Rating</label>
+                  <select name="rating" required className="w-full bg-bg-card border border-gold/20 p-3 text-sm focus:outline-none focus:border-gold transition-colors text-gold uppercase tracking-widest cursor-pointer">
+                    <option value="5">★★★★★</option>
+                    <option value="4">★★★★☆</option>
+                    <option value="3">★★★☆☆</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs uppercase tracking-widest text-muted mb-2">Story / Review</label>
+                <textarea name="text" required rows={4} className="w-full bg-bg-card border border-gold/20 p-3 text-sm focus:outline-none focus:border-gold transition-colors text-text-main resize-none" placeholder="Share your experience..."></textarea>
+              </div>
+              <button className="w-full bg-gold text-bg-dark px-6 py-4 mt-4 text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-gold-lt transition-colors">
+                Submit Story
+              </button>
+            </form>
+          </>
+        )}
+      </div>
+    </div>
+  ) : null;
 
   if (isFullPage) {
     return (
@@ -364,19 +474,26 @@ export default function Stories({ isFullPage = false }: StoriesProps) {
             </div>
           </div>
 
-          {/* Interactive Sorting Selector resembling Google layout */}
-          <div className="flex items-center gap-2 sm:self-center border-t sm:border-t-0 border-gold/10 pt-4 sm:pt-0">
-            <span className="text-xs text-dim font-light">Sort by:</span>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
-              className="bg-transparent border-none text-gold hover:text-gold-lt text-xs uppercase tracking-wider font-semibold cursor-pointer outline-none focus:ring-0"
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 border-t sm:border-t-0 border-gold/10 pt-4 sm:pt-0">
+            <button 
+                onClick={() => setIsSubmitModalOpen(true)}
+                className="bg-gold text-bg-dark px-6 py-2.5 text-[11px] font-bold uppercase tracking-[0.15em] hover:bg-gold-lt transition-colors rounded-sm"
             >
-              <option value="recent">Most Recent</option>
-              <option value="helpful">Most Helpful</option>
-              <option value="rating-desc">Highest Rating</option>
-              <option value="rating-asc">Lowest Rating</option>
-            </select>
+              Share Your Story
+            </button>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-dim font-light">Sort by:</span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="bg-transparent border-none text-gold hover:text-gold-lt text-xs uppercase tracking-wider font-semibold cursor-pointer outline-none focus:ring-0"
+              >
+                <option value="recent">Most Recent</option>
+                <option value="helpful">Most Helpful</option>
+                <option value="rating-desc">Highest Rating</option>
+                <option value="rating-asc">Lowest Rating</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -410,7 +527,7 @@ export default function Stories({ isFullPage = false }: StoriesProps) {
                 key={tst.id} 
                 tst={tst} 
                 isVoted={!!userVoted[tst.id]}
-                votes={helpfulVotes[tst.id] !== undefined ? helpfulVotes[tst.id] : getInitialHelpfulCount(tst.id)}
+                votes={helpfulVotes[tst.id] || 0}
                 onHelpfulToggle={() => handleHelpfulToggle(tst.id)}
               />
             ))}
@@ -426,6 +543,7 @@ export default function Stories({ isFullPage = false }: StoriesProps) {
             </button>
           </div>
         )}
+        {SubmitModal}
       </div>
     );
   }
@@ -436,7 +554,16 @@ export default function Stories({ isFullPage = false }: StoriesProps) {
       <p className="text-[10px] font-medium tracking-[0.38em] uppercase text-gold text-center mb-4">Client Stories</p>
       <div className="w-[48px] h-[1px] bg-gold mx-auto mb-6"></div>
       <h2 className="text-4xl md:text-5xl font-light font-serif text-center mb-4">Voices of Transformation</h2>
-      <p className="text-muted text-lg font-light text-center max-w-[500px] mx-auto mb-16">Real journeys from people who discovered clarity through the language of numbers.</p>
+      <p className="text-muted text-lg font-light text-center max-w-[500px] mx-auto mb-8">Real journeys from people who discovered clarity through the language of numbers.</p>
+      
+      <div className="flex justify-center mb-16">
+        <button 
+            onClick={() => setIsSubmitModalOpen(true)}
+            className="bg-gold text-bg-dark px-6 py-2.5 text-[11px] font-bold uppercase tracking-[0.15em] hover:bg-gold-lt transition-colors rounded-sm"
+        >
+          Share Your Story
+        </button>
+      </div>
 
       {testimonials.length > 0 ? (
         <>
@@ -492,6 +619,7 @@ export default function Stories({ isFullPage = false }: StoriesProps) {
       ) : (
          <p className="text-center text-muted">No stories available.</p>
       )}
+      {SubmitModal}
     </section>
   );
 }

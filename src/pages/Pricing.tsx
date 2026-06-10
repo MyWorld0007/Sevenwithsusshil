@@ -4,6 +4,129 @@ import { apiFetch } from '../lib/api';
 import { PricingService } from '../Types';
 import { CheckCircle, MessageSquare, Mail, X } from 'lucide-react';
 
+const DEFAULT_SERVICES: PricingService[] = [
+  {
+    id: 1,
+    title: "Child Birth Date & Name Alignment Analysis",
+    price: "₹51,000",
+    rawPrice: "₹51k",
+    description: "Discover the optimal name vibration and cosmic alignment for your child's birth energy.",
+    iconText: "👶",
+    features: [
+      "Astro-Numerological Compatibility",
+      "Name Vibration & Alignment Solutions",
+      "Fortunate Starting Letters",
+      "Personalized Child Character Insights"
+    ],
+    display_order: 0
+  },
+  {
+    id: 2,
+    title: "Career Path & Success Guidance",
+    price: "₹15,000",
+    rawPrice: "₹15k",
+    description: "Explore your professional potential, ideal sectors, and key timing for career breakthroughs or transitions.",
+    iconText: "💼",
+    features: [
+      "Career Aptitude Blueprint",
+      "Upcoming Opportunities Analysis",
+      "Obstacle Mitigation Strategy",
+      "Optimal Transition Timelines"
+    ],
+    display_order: 1
+  },
+  {
+    id: 3,
+    title: "Relationship Compatibility Analysis",
+    price: "₹51,000",
+    rawPrice: "₹51k",
+    description: "Decipher the numerical resonance between partners to nourish harmony and conscious relationship growth.",
+    iconText: "💑",
+    features: [
+      "Vibrational Synergy Mapping",
+      "Core Conflict Point Assessment",
+      "Communication Bridge Remedies",
+      "Auspicious Timeline Tendencies"
+    ],
+    display_order: 2
+  },
+  {
+    id: 4,
+    title: "Birth Date, Name Analysis & Name Correction",
+    price: "₹51,000",
+    rawPrice: "₹51k",
+    description: "A comprehensive analysis of your birth energy and full name correction for lifetime cosmic harmony.",
+    iconText: "✨",
+    features: [
+      "Lagna & Planetary Signature Review",
+      "Full Name Vibration Correction",
+      "Spelling Optimization Remedies",
+      "Signature Design Formatting"
+    ],
+    display_order: 3
+  },
+  {
+    id: 5,
+    title: "Business Numerology & Prosperity Blueprint",
+    price: "₹1,00,005",
+    rawPrice: "₹1,00,005",
+    description: "Optimize corporate/brand alignment, choose lucky launch dates, and blueprint your business success.",
+    iconText: "🏢",
+    features: [
+      "Brand Name Spelling Harmonizer",
+      "Official Launch / Registration Timing",
+      "Key Shareholder Compatibility",
+      "Prosperity & Branding Colors Grid"
+    ],
+    display_order: 4
+  },
+  {
+    id: 6,
+    title: "Lucky Numbers, Alphabets & Colour Alignment",
+    price: "₹37,000",
+    rawPrice: "₹37k",
+    description: "Elevate your daily frequency by aligning with your supportive numbers, letters, and visual energies.",
+    iconText: "🎨",
+    features: [
+      "Fortunate Personal Numbers Selection",
+      "Vibrational Color Wardrobe Selection",
+      "Daily Routine Harmonizing",
+      "Alphabetic Signature Alignment"
+    ],
+    display_order: 5
+  },
+  {
+    id: 7,
+    title: "Focused Insight Session",
+    price: "₹1,005",
+    rawPrice: "₹1005",
+    description: "Directly target a single query or burning question for swift, clear metaphysical clarity (Single Question).",
+    iconText: "🎯",
+    features: [
+      "Single Question Guidance",
+      "Precision Astral Calculations",
+      "Actionable Advice Blueprint",
+      "Swift Metaphysical Answers"
+    ],
+    display_order: 6
+  },
+  {
+    id: 8,
+    title: "Gemstone, Crystal & Rudraksha Recommendation",
+    price: "₹5,001",
+    rawPrice: "₹5001",
+    description: "Receive personalized astronomical cosmic prescription of specific crystals, powerful Rudrakshas, and precious gemstones to amplify protective fields and lucky energy bands.",
+    iconText: "💎",
+    features: [
+      "Aura Strengthening Analysis",
+      "Planetary Energy Balancers",
+      "Gemstone Grade & Weight Advice",
+      "Rudraksha Mukhi Recommendations"
+    ],
+    display_order: 7
+  }
+];
+
 export default function Pricing() {
   const settings = useSettings();
   const [selectedService, setSelectedService] = useState<PricingService | null>(null);
@@ -35,13 +158,18 @@ export default function Pricing() {
             features: parsedFeatures
           };
         });
-        setServices(parsed);
+        if (parsed.length > 0) {
+          setServices(parsed);
+          setLoading(false);
+          return;
+        }
       }
     } catch (e) {
       console.error("Error fetching pricing services:", e);
-    } finally {
-      setLoading(false);
     }
+    // Use fallback services in case of error or empty database response
+    setServices(DEFAULT_SERVICES);
+    setLoading(false);
   };
 
   const handleBookNow = (service: PricingService) => {

@@ -20,6 +20,8 @@ export interface Testimonial {
   loc: string;
   date?: string;
   rating?: number;
+  status?: string;
+  helpful_count?: number;
 }
 
 export interface LifePath {

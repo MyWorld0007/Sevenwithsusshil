@@ -247,7 +247,7 @@ export default function Admin() {
        const [setRes, lpRes, testRes, pagesRes, faqsRes, servicesRes] = await Promise.all([
            apiFetch('/api/settings'),
            apiFetch('/api/life_paths'),
-           apiFetch('/api/testimonials'),
+           apiFetch('/api/admin/testimonials', { headers: { 'Authorization': `Bearer ${token}` } }),
            apiFetch('/api/pages'),
            apiFetch('/api/faqs'),
            apiFetch('/api/services')
@@ -438,6 +438,15 @@ export default function Admin() {
       await apiFetch(`/api/testimonials/${id}`, {
          method: 'DELETE',
          headers: { 'Authorization': `Bearer ${token}` }
+     });
+     fetchData();
+  };
+
+  const updateTestimonialStatus = async (id: number, status: string) => {
+      await apiFetch(`/api/testimonials/${id}`, {
+         method: 'PUT',
+         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+         body: JSON.stringify({ status })
      });
      fetchData();
   };
@@ -715,14 +724,25 @@ export default function Admin() {
           <section className="max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500">
              <div className="flex justify-between items-center mb-8">
                <h2 className="text-3xl font-serif text-gold">Testimonials</h2>
-               <span className="text-xs text-muted uppercase tracking-widest">{testimonials.length} / 7 Setup</span>
              </div>
              
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-                {testimonials.map(t => (
-                    <div key={t.id} className="bg-bg-card border border-gold/20 p-6 relative flex flex-col">
-                       <div className="flex justify-end mb-2">
-                           <button onClick={() => deleteTestimonial(t.id)} className="text-[10px] uppercase tracking-widest text-red-500 hover:text-red-400">Delete</button>
+                {testimonials.map(t => {
+                   const isPending = t.status === 'pending';
+                   return (
+                    <div key={t.id} className={`bg-bg-card border ${isPending ? 'border-red-500/50' : 'border-gold/20'} p-6 relative flex flex-col`}>
+                       <div className="flex justify-between mb-2">
+                           {isPending ? (
+                              <span className="text-[10px] text-red-400 uppercase tracking-widest font-bold">Pending Approval</span>
+                           ) : (
+                              <span className="text-[10px] text-gold/60 uppercase tracking-widest font-bold">Approved</span>
+                           )}
+                           <div className="flex gap-4">
+                             {isPending && (
+                               <button onClick={() => updateTestimonialStatus(t.id, 'approved')} className="text-[10px] uppercase tracking-widest text-green-500 hover:text-green-400">Approve</button>
+                             )}
+                             <button onClick={() => deleteTestimonial(t.id)} className="text-[10px] uppercase tracking-widest text-red-500 hover:text-red-400">Delete</button>
+                           </div>
                        </div>
                        <p className="italic text-[13px] text-muted mb-6 flex-grow">"{t.text}"</p>
                        <div className="flex justify-between items-center">
@@ -733,11 +753,10 @@ export default function Admin() {
                            </div>
                        </div>
                     </div>
-                ))}
+                )})}
              </div>
 
-             {testimonials.length < 7 && (
-                 <div className="bg-bg-card border border-gold/20 p-8 shadow-sm">
+             <div className="bg-bg-card border border-gold/20 p-8 shadow-sm">
                    <h3 className="text-lg font-serif text-gold mb-6">Add New Testimonial</h3>
                    <form onSubmit={addTestimonial} className="grid grid-cols-1 md:grid-cols-2 gap-6">
                        <div className="md:col-span-2">
@@ -775,7 +794,6 @@ export default function Admin() {
                        </div>
                    </form>
                  </div>
-             )}
           </section>
         )}
 

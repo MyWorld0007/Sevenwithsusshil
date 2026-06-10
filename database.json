@@ -127,6 +127,16 @@
       "loc": "London, UK",
       "date": "March 2024",
       "rating": 5
+    },
+    {
+      "id": 5,
+      "text": "\"This is a test pending testimonial.\"",
+      "initial": "T",
+      "name": "Test User",
+      "loc": "Test City",
+      "date": "April 2024",
+      "rating": 5,
+      "status": "pending"
     }
   ],
   "content_pages": [
