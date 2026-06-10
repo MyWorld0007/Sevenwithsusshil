@@ -137,7 +137,10 @@ export default function Calculator() {
       <div className="lg:col-span-7 flex flex-col reveal vis max-w-[1280px] w-full mx-auto">
         <p className="text-[10px] font-medium tracking-[0.38em] uppercase text-gold mb-4">Free Tool</p>
         <h2 className="text-4xl md:text-5xl font-light font-serif leading-[1.2] mb-6">
-            {calcMode === 'lifepath' ? 'Find Your Life Path Number' : 'Find Your Personality Number'}
+            Free Numerology Calculator:<br className="hidden md:block" />
+            <span className="text-3xl md:text-4xl text-text-main/80 mt-2 block">
+                {calcMode === 'lifepath' ? 'Find Your Life Path Number' : 'Find Your Personality Number'}
+            </span>
         </h2>
         <p className="text-muted text-lg font-light max-w-[500px]">
             {calcMode === 'lifepath' 

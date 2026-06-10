@@ -530,7 +530,7 @@ try {
             exit();
         }
 
-        if ($method === 'POST') {
+        if ($method === 'POST' && empty($subResource)) {
             requireAuth();
             $text = $inputData['text'] ?? '';
             $initial = $inputData['initial'] ?? '';
