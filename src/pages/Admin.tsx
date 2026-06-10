@@ -732,12 +732,15 @@ export default function Admin() {
                <h2 className="text-3xl font-serif text-gold">Stories</h2>
              </div>
              
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-                {testimonials.map(t => {
-                   const isPending = t.status === 'pending';
-                   return (
-                    <div key={t.id} className={`bg-bg-card border ${isPending ? 'border-red-500/50' : 'border-gold/20'} p-6 relative flex flex-col`}>
-                       <div className="flex justify-between mb-2">
+             {testimonials.length === 0 ? (
+                <div className="text-muted italic mb-10 text-sm">No stories found.</div>
+             ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+                   {testimonials.map(t => {
+                      const isPending = t.status === 'pending';
+                      return (
+                       <div key={t.id} className={`bg-bg-card border ${isPending ? 'border-red-500/50' : 'border-gold/20'} p-6 relative flex flex-col`}>
+                          <div className="flex justify-between mb-2">
                            {isPending ? (
                               <span className="text-[10px] text-red-400 uppercase tracking-widest font-bold">Pending Approval</span>
                            ) : (
@@ -761,6 +764,7 @@ export default function Admin() {
                     </div>
                 )})}
              </div>
+             )}
 
              <div className="bg-bg-card border border-gold/20 p-8 shadow-sm">
                    <h3 className="text-lg font-serif text-gold mb-6">Add New Story</h3>

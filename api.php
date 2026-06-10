@@ -70,8 +70,22 @@ function writeJsonDb($data) {
 
 // 4. Admin Auth Token Verification
 function requireAuth() {
-    $headers = getallheaders();
-    $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? '';
+    $authHeader = '';
+    if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+        $authHeader = trim($_SERVER["HTTP_AUTHORIZATION"]);
+    } else if (isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
+        $authHeader = trim($_SERVER["REDIRECT_HTTP_AUTHORIZATION"]);
+    } else if (function_exists('apache_request_headers')) {
+        $requestHeaders = apache_request_headers();
+        $requestHeaders = array_combine(array_map('ucwords', array_keys($requestHeaders)), array_values($requestHeaders));
+        if (isset($requestHeaders['Authorization'])) {
+            $authHeader = trim($requestHeaders['Authorization']);
+        }
+    } else if (function_exists('getallheaders')) {
+        $headers = getallheaders();
+        $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? '';
+    }
+
     if (preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
         $token = $matches[1];
         if ($token === 'supersecret123') {
@@ -499,8 +513,13 @@ try {
                     }
                 } catch (\Exception $e) {}
 
-                $stmt = $pdo->query("SELECT * FROM testimonials WHERE status = 'approved' OR status IS NULL ORDER BY id ASC");
-                echo json_encode($stmt->fetchAll());
+                try {
+                    $stmt = $pdo->query("SELECT * FROM testimonials WHERE status = 'approved' OR status IS NULL ORDER BY id ASC");
+                    echo json_encode($stmt->fetchAll());
+                } catch(PDOException $e) {
+                    $stmt = $pdo->query("SELECT * FROM testimonials ORDER BY id ASC");
+                    echo json_encode($stmt->fetchAll());
+                }
             } else {
                 $db = readJsonDb();
                 $rows = array_filter($db['testimonials'] ?? [], function($t) {
