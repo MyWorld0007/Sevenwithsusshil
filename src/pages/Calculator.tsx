@@ -178,15 +178,15 @@ export default function Calculator() {
           <div className="flex flex-col gap-6 mb-8 max-w-[320px] mx-auto">
             <div className="grid grid-cols-3 gap-2 sm:gap-4">
               <div className="flex flex-col gap-1 sm:gap-2">
-                <label className="text-[8px] sm:text-[9px] uppercase tracking-[0.1em] sm:tracking-[0.2em] text-muted text-left">Year</label>
+                <label className="text-[8px] sm:text-[9px] uppercase tracking-[0.1em] sm:tracking-[0.2em] text-muted text-center">Year</label>
                 <input type="text" inputMode="numeric" placeholder="YYYY" value={calcYr} onChange={e=>setCalcYr(e.target.value.replace(/\D/g, '').slice(0, 4))} className="w-full bg-bg-input border border-gold/20 px-1 py-3 sm:p-3 text-center text-base sm:text-lg outline-none focus:border-gold transition-colors font-sans" />
               </div>
               <div className="flex flex-col gap-1 sm:gap-2">
-                <label className="text-[8px] sm:text-[9px] uppercase tracking-[0.1em] sm:tracking-[0.2em] text-muted text-left">Month</label>
+                <label className="text-[8px] sm:text-[9px] uppercase tracking-[0.1em] sm:tracking-[0.2em] text-muted text-center">Month</label>
                 <input type="text" inputMode="numeric" placeholder="MM" value={calcMon} onChange={e=>{ let val = e.target.value.replace(/\D/g, '').slice(0, 2); if (parseInt(val) > 12) val = '12'; setCalcMon(val); }} className="w-full bg-bg-input border border-gold/20 px-1 py-3 sm:p-3 text-center text-base sm:text-lg outline-none focus:border-gold transition-colors font-sans" />
               </div>
               <div className="flex flex-col gap-1 sm:gap-2">
-                <label className="text-[8px] sm:text-[9px] uppercase tracking-[0.1em] sm:tracking-[0.2em] text-muted text-left">Day</label>
+                <label className="text-[8px] sm:text-[9px] uppercase tracking-[0.1em] sm:tracking-[0.2em] text-muted text-center">Day</label>
                 <input type="text" inputMode="numeric" placeholder="DD" value={calcDay} onChange={e=>{ let val = e.target.value.replace(/\D/g, '').slice(0, 2); if (val) { const maxDays = getMaxDays(calcMon, calcYr); if (parseInt(val) > maxDays) val = maxDays.toString(); } setCalcDay(val); }} className="w-full bg-bg-input border border-gold/20 px-1 py-3 sm:p-3 text-center text-base sm:text-lg outline-none focus:border-gold transition-colors font-sans" />
               </div>
             </div>
