@@ -245,6 +245,22 @@ $subResource = $parts[1] ?? null;
 // Determine request method
 $method = $_SERVER['REQUEST_METHOD'];
 
+// Ensure critical tables exist when DB connects
+if (!$useFallback && $pdo) {
+    try {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS services (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            title VARCHAR(255),
+            price VARCHAR(255),
+            rawPrice VARCHAR(255),
+            description TEXT,
+            iconText VARCHAR(50),
+            features TEXT,
+            display_order INT DEFAULT 0
+        )");
+    } catch(Exception $e) {}
+}
+
 // Handle upload specifically if requested
 if ($resource === 'upload') {
     requireAuth();
@@ -1083,7 +1099,7 @@ try {
     }
 
     // ---- 7. CONTACT SUBMISSIONS ----
-    if ($resource === 'contact') {
+    if ($resource === 'contact' || $resource === 'bookings') {
         if ($method === 'POST') {
             $fullName = $inputData['fullName'] ?? '';
             $dob = $inputData['dob'] ?? '';
@@ -1092,6 +1108,8 @@ try {
             $mobile = $inputData['mobile'] ?? '';
             $email = $inputData['email'] ?? '';
             $comments = $inputData['comments'] ?? '';
+            $serviceTitle = $inputData['serviceTitle'] ?? '';
+            $servicePrice = $inputData['servicePrice'] ?? '';
 
             // Get settings for email details
             if (!$useFallback) {
@@ -1200,6 +1218,11 @@ try {
                     <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;\">Inquirer Email:</td>
                     <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5;\">" . htmlspecialchars($email) . "</td>
                   </tr>
+                  " . ($serviceTitle ? "
+                  <tr>
+                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;\">Service Selected:</td>
+                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5; font-weight: bold;\">" . htmlspecialchars($serviceTitle) . " (" . htmlspecialchars($servicePrice) . ")</td>
+                  </tr>" : "") . "
                   <tr>
                     <td style=\"padding: 12px; color: #a5a5a5; vertical-align: top;\">Special Comments:</td>
                     <td style=\"padding: 12px; color: #f5f5f5; line-height: 1.6;\">" . nl2br(htmlspecialchars($comments)) . "</td>
@@ -1224,7 +1247,7 @@ try {
               
               <h1 style=\"font-size: 24px; font-weight: 300; margin: 20px 0; color: #f5f5f5; font-family: 'Georgia', serif;\">Inquiry Received</h1>
               
-              <p style="color: #a5a5a5; font-size: 14px; line-height: 1.8; margin-bottom: 30px; text-align: left; padding: 0 10px;\">
+              <p style=\"color: #a5a5a5; font-size: 14px; line-height: 1.8; margin-bottom: 30px; text-align: left; padding: 0 10px;\">
                 Dear <strong>" . htmlspecialchars($fullName) . "</strong>,<br/><br/>
                 Thank you for providing details, We have received your inquiry. Please allow us 24 to 72 hours to give accurate guidance. Thank you for your patience.
               </p>
@@ -1260,6 +1283,11 @@ try {
                     <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;\">Inquirer Email:</td>
                     <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5;\">" . htmlspecialchars($email) . "</td>
                   </tr>
+                  " . ($serviceTitle ? "
+                  <tr>
+                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;\">Service Booked:</td>
+                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5; font-weight: bold;\">" . htmlspecialchars($serviceTitle) . " (" . htmlspecialchars($servicePrice) . ")</td>
+                  </tr>" : "") . "
                   <tr>
                     <td style=\"padding: 12px; color: #a5a5a5; vertical-align: top;\">Your Question:</td>
                     <td style=\"padding: 12px; color: #f5f5f5; line-height: 1.6;\">" . nl2br(htmlspecialchars($comments)) . "</td>
