@@ -10,6 +10,9 @@ header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 header("Content-Type: application/json; charset=UTF-8");
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Cache-Control: post-check=0, pre-check=0", false);
+header("Pragma: no-cache");
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -17,11 +20,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // 1. Connection Configurations
-define('DB_HOST_LOCAL', 'localhost');
-define('DB_HOST_REMOTE', '193.203.184.86');
-define('DB_USER', 'u709894810_masteradmin');
-define('DB_PASS', '@Masteradmin_2026');
-define('DB_NAME', 'u709894810_sevenastro');
+$env = [];
+$envPath = __DIR__ . '/.env';
+if (!file_exists($envPath)) {
+    $envPath = __DIR__ . '/.env.example';
+}
+if (file_exists($envPath)) {
+    $content = file_get_contents($envPath);
+    $lines = explode("\n", $content);
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if (empty($line) || strpos($line, '#') === 0) continue;
+        if (strpos($line, '=') !== false) {
+            list($key, $val) = explode('=', $line, 2);
+            $key = trim($key);
+            $val = trim($val);
+            $val = preg_replace('/^[\'"]|[\'"]$/', '', $val);
+            $env[$key] = $val;
+        }
+    }
+}
+
+// Merge with getenv system environment variables
+foreach (['DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME', 'DB_PORT'] as $key) {
+    $sysVal = getenv($key);
+    if ($sysVal !== false && $sysVal !== '') {
+        $env[$key] = $sysVal;
+    }
+}
+
+$envHost = isset($env['DB_HOST']) ? trim($env['DB_HOST']) : '';
+if (strpos($envHost, 'sevenastro') !== false || $envHost === 'MY_APP_URL') {
+    $envHost = '193.203.184.86';
+}
+
+$envUser = isset($env['DB_USER']) ? trim($env['DB_USER']) : '';
+if ($envUser === 'masteradmin') {
+    $envUser = 'u709894810_masteradmin';
+}
+
+$envPass = isset($env['DB_PASSWORD']) ? trim($env['DB_PASSWORD']) : '';
+$envName = isset($env['DB_NAME']) ? trim($env['DB_NAME']) : '';
+if ($envName === 'sevenastro') {
+    $envName = 'u709894810_sevenastro';
+}
+
+$envPort = isset($env['DB_PORT']) ? intval($env['DB_PORT']) : 3306;
+
+$finalHostLocal = 'localhost';
+$finalHostRemote = !empty($envHost) ? $envHost : '193.203.184.86';
+$finalUser = !empty($envUser) ? $envUser : 'u709894810_masteradmin';
+$finalPass = !empty($envPass) ? $envPass : '@Masteradmin_2026';
+$finalName = !empty($envName) ? $envName : 'u709894810_sevenastro';
+
+define('DB_HOST_LOCAL', $finalHostLocal);
+define('DB_HOST_REMOTE', $finalHostRemote);
+define('DB_USER', $finalUser);
+define('DB_PASS', $finalPass);
+define('DB_NAME', $finalName);
 define('JSON_DB_PATH', __DIR__ . '/database.json');
 
 // Helper to standardise options / inputs
@@ -31,26 +87,41 @@ $inputData = json_decode(file_get_contents('php://input'), true) ?? [];
 $pdo = null;
 $useFallback = false;
 
+$options = [
+    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    PDO::ATTR_EMULATE_PREPARES   => false,
+    PDO::ATTR_TIMEOUT            => 2
+];
+
 try {
-    // Attempt local database connection (localhost) - typical for Hostinger hosting environments
-    $dsn = "mysql:host=" . DB_HOST_LOCAL . ";dbname=" . DB_NAME . ";charset=utf8mb4";
-    $options = [
-        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_EMULATE_PREPARES   => false,
-        PDO::ATTR_TIMEOUT            => 2 // Fail fast to try remote next
-    ];
-    $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
-    $pdo->exec("SET NAMES utf8mb4");
-} catch (Exception $e) {
+    // Attempt 1: Connect using the configured DB_HOST from system/environmental variables
+    // Omit explicit port parameter for 'localhost' / '127.0.0.1' to allow native Unix Socket fallback (much more robust on shared hostings)
+    if (!empty($envHost) && $envHost !== 'localhost' && $envHost !== '127.0.0.1') {
+        $dsn = "mysql:host=" . $envHost . ";port=" . $envPort . ";dbname=" . $finalName . ";charset=utf8mb4";
+        $options[PDO::ATTR_TIMEOUT] = 3;
+        $pdo = new PDO($dsn, $finalUser, $finalPass, $options);
+        $pdo->exec("SET NAMES utf8mb4");
+    } else {
+        throw new Exception("Localhost or default host is fallback");
+    }
+} catch (Exception $eExternal) {
     try {
-        // Fallback to remote IP connection if requested
-        $dsn = "mysql:host=" . DB_HOST_REMOTE . ";dbname=" . DB_NAME . ";charset=utf8mb4";
-        $options[PDO::ATTR_TIMEOUT] = 4;
+        // Attempt 2: Connect using local socket 'localhost' directly (standard database protocol on Hostinger live site)
+        $dsn = "mysql:host=" . DB_HOST_LOCAL . ";dbname=" . DB_NAME . ";charset=utf8mb4";
+        $options[PDO::ATTR_TIMEOUT] = 2;
         $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
         $pdo->exec("SET NAMES utf8mb4");
-    } catch (Exception $e2) {
-        $useFallback = true;
+    } catch (Exception $e) {
+        try {
+            // Attempt 3: Connect using the remote fallback IP
+            $dsn = "mysql:host=" . DB_HOST_REMOTE . ";dbname=" . DB_NAME . ";charset=utf8mb4";
+            $options[PDO::ATTR_TIMEOUT] = 4;
+            $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
+            $pdo->exec("SET NAMES utf8mb4");
+        } catch (Exception $e2) {
+            $useFallback = true;
+        }
     }
 }
 
@@ -149,10 +220,33 @@ function updateEnvFile($smtpHost, $smtpPort, $smtpUser, $smtpPass, $geminiKey = 
 }
 
 function sendSmartSmtpEmail($to, $subject, $htmlContent, $settings) {
-    $smtp_host = trim($settings['smtp_host'] ?? '');
-    $smtp_port = intval($settings['smtp_port'] ?? 465);
-    $smtp_user = trim($settings['smtp_user'] ?? '');
-    $smtp_pass = trim($settings['smtp_pass'] ?? '');
+    if (!is_array($settings)) {
+        $settings = [];
+    }
+
+    // Load local .env values if settings doesn't have them
+    $envVars = [];
+    $envPath = __DIR__ . '/.env';
+    if (!file_exists($envPath)) {
+        $envPath = __DIR__ . '/.env.example';
+    }
+    if (file_exists($envPath)) {
+        $content = file_get_contents($envPath);
+        $lines = explode("\n", $content);
+        foreach ($lines as $line) {
+            if (preg_match('/^([^#\s][^=]*)=(.*)$/', $line, $matches)) {
+                $k = trim($matches[1]);
+                $v = trim($matches[2]);
+                $v = preg_replace('/^[\'"]|[\'"]$/', '', $v);
+                $envVars[$k] = trim($v);
+            }
+        }
+    }
+
+    $smtp_host = trim($settings['smtp_host'] ?? $envVars['SMTP_HOST'] ?? '');
+    $smtp_port = intval($settings['smtp_port'] ?? $envVars['SMTP_PORT'] ?? 465);
+    $smtp_user = trim($settings['smtp_user'] ?? $envVars['SMTP_USER'] ?? '');
+    $smtp_pass = trim($settings['smtp_pass'] ?? $envVars['SMTP_PASS'] ?? '');
 
     if (empty($smtp_host) || empty($smtp_user) || empty($smtp_pass)) {
         // Fallback to PHP mail()
@@ -259,13 +353,26 @@ if ($resource === 'upload') {
         echo json_encode(['error' => 'Upload failed on server']);
         exit();
     }
-    $uploadDir = __DIR__ . '/public/uploads/';
-    if (!is_dir($uploadDir)) {
-        mkdir($uploadDir, 0755, true);
-    }
+    
     $filename = 'profile-' . time() . '-' . rand(1000, 9999) . '.' . pathinfo($file['name'], PATHINFO_EXTENSION);
-    $targetPath = $uploadDir . $filename;
-    if (move_uploaded_file($file['tmp_name'], $targetPath)) {
+    
+    // Save to target production uploads directory (relative to api.php)
+    $prodUploadDir = __DIR__ . '/uploads/';
+    if (!is_dir($prodUploadDir)) {
+        mkdir($prodUploadDir, 0755, true);
+    }
+    $targetPathProd = $prodUploadDir . $filename;
+    
+    if (move_uploaded_file($file['tmp_name'], $targetPathProd)) {
+        // Synchronize with local /public/uploads/ directory if it exists
+        $devUploadDir = __DIR__ . '/public/uploads/';
+        if (is_dir(__DIR__ . '/public/')) {
+            if (!is_dir($devUploadDir)) {
+                mkdir($devUploadDir, 0755, true);
+            }
+            copy($targetPathProd, $devUploadDir . $filename);
+        }
+        
         echo json_encode(['url' => '/uploads/' . $filename]);
     } else {
         http_response_code(500);
@@ -362,6 +469,27 @@ try {
                 $check = $pdo->query("SELECT COUNT(*) FROM settings WHERE id = 1")->fetchColumn();
                 if ($check == 0) {
                     $pdo->prepare("INSERT INTO settings (id) VALUES (1)")->execute();
+                }
+
+                // Make sure all required columns exist dynamically
+                $columnsToAdd = [
+                    'gemini_api_key' => 'VARCHAR(255)',
+                    'profile_photo' => 'VARCHAR(255)',
+                    'about_title' => 'VARCHAR(255)',
+                    'about_para1' => 'TEXT',
+                    'about_para2' => 'TEXT',
+                    'smtp_host' => 'VARCHAR(255)',
+                    'smtp_port' => 'VARCHAR(10)',
+                    'smtp_user' => 'VARCHAR(255)',
+                    'smtp_pass' => 'VARCHAR(255)'
+                ];
+                
+                foreach ($columnsToAdd as $col => $type) {
+                    try {
+                        $pdo->exec("ALTER TABLE settings ADD COLUMN $col $type");
+                    } catch (\Exception $e) {
+                        // Ignore if column already exists
+                    }
                 }
                 
                 $sql = "UPDATE settings SET 
