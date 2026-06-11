@@ -148,6 +148,94 @@ function updateEnvFile($smtpHost, $smtpPort, $smtpUser, $smtpPass, $geminiKey = 
     }
 }
 
+function sendSmartSmtpEmail($to, $subject, $htmlContent, $settings) {
+    $smtp_host = trim($settings['smtp_host'] ?? '');
+    $smtp_port = intval($settings['smtp_port'] ?? 465);
+    $smtp_user = trim($settings['smtp_user'] ?? '');
+    $smtp_pass = trim($settings['smtp_pass'] ?? '');
+
+    if (empty($smtp_host) || empty($smtp_user) || empty($smtp_pass)) {
+        // Fallback to PHP mail()
+        $headers = "MIME-Version: 1.0" . "\r\n";
+        $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
+        $headers .= "From: Seven Astro Sanctuary <7s.evolve@gmail.com>" . "\r\n";
+        return @mail($to, $subject, $htmlContent, $headers);
+    }
+
+    $host = $smtp_host;
+    if ($smtp_port === 465 && strpos($host, 'ssl://') === false) {
+        $host = 'ssl://' . $host;
+    }
+
+    $socket = @fsockopen($host, $smtp_port, $errno, $errstr, 15);
+    if (!$socket) {
+        // Fallback to php mail()
+        $headers = "MIME-Version: 1.0" . "\r\n";
+        $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
+        $headers .= "From: Seven Astro Sanctuary <$smtp_user>" . "\r\n";
+        return @mail($to, $subject, $htmlContent, $headers);
+    }
+
+    $getResponse = function($socket) {
+        $response = "";
+        while (($line = fgets($socket, 515)) !== false) {
+            $response .= $line;
+            if (substr($line, 3, 1) == " ") {
+                break;
+            }
+        }
+        return $response;
+    };
+
+    $sendCmd = function($socket, $cmd) use ($getResponse) {
+        fputs($socket, $cmd . "\r\n");
+        return $getResponse($socket);
+    };
+
+    $getResponse($socket);
+
+    $sendCmd($socket, "EHLO " . ($_SERVER['SERVER_NAME'] ?? 'localhost'));
+    
+    $res = $sendCmd($socket, "AUTH LOGIN");
+    if (strpos($res, '334') === false) {
+        fclose($socket);
+        $headers = "MIME-Version: 1.0" . "\r\n";
+        $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
+        $headers .= "From: Seven Astro Sanctuary <$smtp_user>" . "\r\n";
+        return @mail($to, $subject, $htmlContent, $headers);
+    }
+
+    $sendCmd($socket, base64_encode($smtp_user));
+    $sendCmd($socket, base64_encode($smtp_pass));
+
+    $sendCmd($socket, "MAIL FROM: <" . $smtp_user . ">");
+
+    $recipients = array_map('trim', explode(',', $to));
+    foreach ($recipients as $rcpt) {
+        if (!empty($rcpt)) {
+            $sendCmd($socket, "RCPT TO: <" . $rcpt . ">");
+        }
+    }
+
+    $sendCmd($socket, "DATA");
+
+    $headers = "MIME-Version: 1.0\r\n";
+    $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
+    $headers .= "From: Seven Astro Sanctuary <" . $smtp_user . ">\r\n";
+    $headers .= "To: " . $to . "\r\n";
+    $headers .= "Subject: " . $subject . "\r\n";
+    $headers .= "Date: " . date('r') . "\r\n";
+    $headers .= "X-Mailer: PHP/" . phpversion() . "\r\n";
+
+    $mailBody = $headers . "\r\n" . $htmlContent . "\r\n.";
+    $sendCmd($socket, $mailBody);
+
+    $sendCmd($socket, "QUIT");
+    fclose($socket);
+
+    return true;
+}
+
 // 5. Parse route mapping
 $route = $_GET['route'] ?? '';
 $parts = explode('/', trim($route, '/'));
@@ -802,7 +890,6 @@ try {
                         throw $e;
                     }
                 }
-                echo json_encode(['id' => $newId, 'success' => true]);
             } else {
                 $db = readJsonDb();
                 if (!isset($db['testimonials'])) $db['testimonials'] = [];
@@ -822,8 +909,9 @@ try {
                     'status' => $status
                 ];
                 writeJsonDb($db);
-                echo json_encode(['id' => $newId, 'success' => true]);
             }
+
+            echo json_encode(['id' => $newId, 'success' => true]);
             exit();
         }
     }
@@ -990,6 +1078,211 @@ try {
                 writeJsonDb($db);
             }
             echo json_encode(['success' => true]);
+            exit();
+        }
+    }
+
+    // ---- 7. CONTACT SUBMISSIONS ----
+    if ($resource === 'contact') {
+        if ($method === 'POST') {
+            $fullName = $inputData['fullName'] ?? '';
+            $dob = $inputData['dob'] ?? '';
+            $tob = $inputData['tob'] ?? '';
+            $pob = $inputData['pob'] ?? '';
+            $mobile = $inputData['mobile'] ?? '';
+            $email = $inputData['email'] ?? '';
+            $comments = $inputData['comments'] ?? '';
+
+            // Get settings for email details
+            if (!$useFallback) {
+                $stmt = $pdo->query("SELECT * FROM settings LIMIT 1");
+                $settings = $stmt->fetch();
+            } else {
+                $db = readJsonDb();
+                $settings = $db['settings'][0] ?? null;
+            }
+
+            $adminEmail = !empty($settings['email']) ? trim($settings['email']) : "info@sevenastro.com";
+            $smtpUser = !empty($settings['smtp_user']) ? trim($settings['smtp_user']) : "";
+
+            // Save to DB or JSON
+            try {
+                if (!$useFallback) {
+                    $pdo->exec("CREATE TABLE IF NOT EXISTS contact_submissions (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        full_name VARCHAR(255),
+                        dob VARCHAR(255),
+                        tob VARCHAR(255),
+                        pob VARCHAR(255),
+                        mobile VARCHAR(255),
+                        email VARCHAR(255),
+                        comments TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )");
+                    $stmt = $pdo->prepare("INSERT INTO contact_submissions (full_name, dob, tob, pob, mobile, email, comments) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->execute([$fullName, $dob, $tob, $pob, $mobile, $email, $comments]);
+                } else {
+                    $db = readJsonDb();
+                    if (!isset($db['contact_submissions'])) {
+                        $db['contact_submissions'] = [];
+                    }
+                    $nextId = 1;
+                    foreach ($db['contact_submissions'] as $cs) {
+                        if ($cs['id'] >= $nextId) {
+                            $nextId = $cs['id'] + 1;
+                        }
+                    }
+                    $db['contact_submissions'][] = [
+                        'id' => $nextId,
+                        'full_name' => $fullName,
+                        'dob' => $dob,
+                        'tob' => $tob,
+                        'pob' => $pob,
+                        'mobile' => $mobile,
+                        'email' => $email,
+                        'comments' => $comments,
+                        'created_at' => date('c')
+                    ];
+                    writeJsonDb($db);
+                }
+            } catch (Exception $dbErr) {
+                // Keep moving
+            }
+
+            // Construct recipients
+            $adminRecipient = !empty($adminEmail) ? strtolower(trim($adminEmail)) : "info@sevenastro.com";
+            $visitorEmailLower = !empty($email) ? strtolower(trim($email)) : "";
+
+            // Separate tailored emails for Admin and Inquirer as requested
+
+            // 1. Admin Email HTML
+            $adminSubject = "✨ [Seven Astro] Celestial Consultation Request – " . $fullName;
+            $adminEmailHtml = "
+            <div style=\"background-color: #0b0c10; color: #c5a880; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px 20px; text-align: center; max-width: 600px; margin: 0 auto; border: 1px solid #c5a880; border-radius: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);\">
+              <div style=\"font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; color: #c5a880; margin-bottom: 10px;\">Divine Sanctuary Registry</div>
+              <div style=\"width: 50px; height: 1px; background-color: #c5a880; margin: 15px auto;\"></div>
+              
+              <h1 style=\"font-size: 26px; font-weight: 300; margin: 20px 0; color: #f5f5f5; font-family: 'Georgia', serif;\">Celestial Inquiry Registered</h1>
+              
+              <p style=\"color: #a5a5a5; font-size: 14px; line-height: 1.8; margin-bottom: 30px; text-align: left; padding: 0 10px;\">
+                Greetings Master Numerologist,<br/><br/>
+                A traveler's details and celestial coordinates have been successfully synchronized with the Seven Astro. Below are the inquiry's registration details:
+              </p>
+              
+              <table style=\"width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 13px; text-align: left; border: 1px solid rgba(197, 168, 128, 0.2);\">
+                <thead>
+                  <tr style=\"background-color: rgba(197, 168, 128, 0.1);\">
+                    <th colspan=\"2\" style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.2); color: #c5a880; text-transform: uppercase; font-size: 11px; letter-spacing: 0.1em; font-family: 'Georgia', serif;\">Visitor Coordinates</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5; width: 33%;\">Full Name:</td>
+                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5; font-weight: bold;\">" . htmlspecialchars($fullName) . "</td>
+                  </tr>
+                  <tr>
+                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;\">Date of Birth:</td>
+                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5;\">" . htmlspecialchars($dob) . "</td>
+                  </tr>
+                  <tr>
+                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;\">Time of Birth:</td>
+                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5;\">" . htmlspecialchars($tob) . "</td>
+                  </tr>
+                  <tr>
+                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;\">Place of Birth:</td>
+                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5;\">" . htmlspecialchars($pob) . "</td>
+                  </tr>
+                  <tr>
+                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;\">Mobile Number:</td>
+                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5;\">" . htmlspecialchars($mobile) . "</td>
+                  </tr>
+                  <tr>
+                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;\">Inquirer Email:</td>
+                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5;\">" . htmlspecialchars($email) . "</td>
+                  </tr>
+                  <tr>
+                    <td style=\"padding: 12px; color: #a5a5a5; vertical-align: top;\">Special Comments:</td>
+                    <td style=\"padding: 12px; color: #f5f5f5; line-height: 1.6;\">" . nl2br(htmlspecialchars($comments)) . "</td>
+                  </tr>
+                </tbody>
+              </table>
+              
+              <div style=\"width: 50px; height: 1px; background-color: rgba(197, 168, 128, 0.2); margin: 20px auto;\"></div>
+              
+              <p style=\"color: #888888; font-size: 11px; line-height: 1.6; max-width: 450px; margin: 0 auto;\">
+                Seven Astro Sanctuary Premium Registry Alerts
+              </p>
+            </div>
+            ";
+
+            // 2. User/Inquirer Email HTML
+            $userSubject = "✨ [Seven Astro] Inquiry Received – " . $fullName;
+            $userEmailHtml = "
+            <div style=\"background-color: #0b0c10; color: #c5a880; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px 20px; text-align: center; max-width: 600px; margin: 0 auto; border: 1px solid #c5a880; border-radius: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);\">
+              <div style=\"font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; color: #c5a880; margin-bottom: 10px;\">Divine Sanctuary Registry</div>
+              <div style=\"width: 50px; height: 1px; background-color: #c5a880; margin: 15px auto;\"></div>
+              
+              <h1 style=\"font-size: 24px; font-weight: 300; margin: 20px 0; color: #f5f5f5; font-family: 'Georgia', serif;\">Inquiry Received</h1>
+              
+              <p style="color: #a5a5a5; font-size: 14px; line-height: 1.8; margin-bottom: 30px; text-align: left; padding: 0 10px;\">
+                Dear <strong>" . htmlspecialchars($fullName) . "</strong>,<br/><br/>
+                Thank you for providing details, We have received your inquiry. Please allow us 24 to 72 hours to give accurate guidance. Thank you for your patience.
+              </p>
+              
+              <table style=\"width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 13px; text-align: left; border: 1px solid rgba(197, 168, 128, 0.2);\">
+                <thead>
+                  <tr style=\"background-color: rgba(197, 168, 128, 0.1);\">
+                    <th colspan=\"2\" style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.2); color: #c5a880; text-transform: uppercase; font-size: 11px; letter-spacing: 0.1em; font-family: 'Georgia', serif;\">Your Submitted Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5; width: 35%;\">Birth Name:</td>
+                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5; font-weight: bold;\">" . htmlspecialchars($fullName) . "</td>
+                  </tr>
+                  <tr>
+                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;\">Date of Birth:</td>
+                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5;\">" . htmlspecialchars($dob) . "</td>
+                  </tr>
+                  <tr>
+                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;\">Time of Birth:</td>
+                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5;\">" . htmlspecialchars($tob) . "</td>
+                  </tr>
+                  <tr>
+                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;\">Place of Birth:</td>
+                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5;\">" . htmlspecialchars($pob) . "</td>
+                  </tr>
+                  <tr>
+                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;\">Mobile Number:</td>
+                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5;\">" . htmlspecialchars($mobile) . "</td>
+                  </tr>
+                  <tr>
+                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;\">Inquirer Email:</td>
+                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5;\">" . htmlspecialchars($email) . "</td>
+                  </tr>
+                  <tr>
+                    <td style=\"padding: 12px; color: #a5a5a5; vertical-align: top;\">Your Question:</td>
+                    <td style=\"padding: 12px; color: #f5f5f5; line-height: 1.6;\">" . nl2br(htmlspecialchars($comments)) . "</td>
+                  </tr>
+                </tbody>
+              </table>
+              
+              <div style=\"width: 50px; height: 1px; background-color: rgba(197, 168, 128, 0.2); margin: 20px auto;\"></div>
+              
+              <p style=\"color: #888888; font-size: 11px; line-height: 1.6; max-width: 450px; margin: 0 auto;\">
+                Seven Astro © " . date('Y') . " • All spiritual alignments reserved.
+              </p>
+            </div>
+            ";
+
+            $adminMailSent = sendSmartSmtpEmail($adminRecipient, $adminSubject, $adminEmailHtml, $settings);
+
+            $userMailSent = false;
+            if (!empty($visitorEmailLower)) {
+                $userMailSent = sendSmartSmtpEmail($visitorEmailLower, $userSubject, $userEmailHtml, $settings);
+            }
+
+            echo json_encode(['success' => true, 'emailSent' => ($adminMailSent || $userMailSent)]);
             exit();
         }
     }

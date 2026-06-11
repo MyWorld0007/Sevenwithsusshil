@@ -757,7 +757,7 @@ export default function Admin() {
               <div className="border-t border-gold/10 pt-6 mt-8 mb-6">
                 <h3 className="text-lg font-serif mb-2 text-gold">Outbound SMTP Mailer Setup</h3>
                 <p className="text-[11px] text-muted mb-4 leading-relaxed max-w-xl">
-                  Configure SMTP server details to permit the celestial engine to send live consultation inquiries directly to <strong className="text-gold">yadavtejas89@gmail.com</strong>.
+                  Configure SMTP server details to permit the celestial engine to send live consultation inquiries directly to your registered administrator email.
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>

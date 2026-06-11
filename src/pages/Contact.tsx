@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useSettings } from '../hooks/useSettings';
 import { apiFetch } from '../lib/api';
 import { motion } from 'motion/react';
-import { Mail, Phone, MapPin, Calendar, Clock, User, MessageSquare, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Mail, Phone, MapPin, Calendar, Clock, User, MessageSquare, Sparkles, CheckCircle2, ChevronDown, Search, Check } from 'lucide-react';
 
 // Custom Cylindrical 3D Scroll Wheel Column element
 interface TimeWheelColumnProps {
@@ -126,6 +126,26 @@ function TimeWheelColumn({ options, value, onChange, itemHeight = 36 }: TimeWhee
   );
 }
 
+const COUNTRIES = [
+  { code: "NG", name: "Nigeria", dial: "+234", flag: "🇳🇬" },
+  { code: "IN", name: "India", dial: "+91", flag: "🇮🇳" },
+  { code: "KE", name: "Kenya", dial: "+254", flag: "🇰🇪" },
+  { code: "ZA", name: "South Africa", dial: "+27", flag: "🇿🇦" },
+  { code: "DE", name: "Germany", dial: "+49", flag: "🇩🇪" },
+  { code: "US", name: "United States", dial: "+1", flag: "🇺🇸" },
+  { code: "GB", name: "United Kingdom", dial: "+44", flag: "🇬🇧" },
+  { code: "AE", name: "United Arab Emirates", dial: "+971", flag: "🇦🇪" },
+  { code: "CA", name: "Canada", dial: "+1", flag: "🇨🇦" },
+  { code: "AU", name: "Australia", dial: "+61", flag: "🇦🇺" },
+  { code: "SG", name: "Singapore", dial: "+65", flag: "🇸🇬" },
+  { code: "MY", name: "Malaysia", dial: "+60", flag: "🇲🇾" },
+  { code: "NZ", name: "New Zealand", dial: "+64", flag: "🇳🇿" },
+  { code: "FR", name: "France", dial: "+33", flag: "🇫🇷" },
+  { code: "IT", name: "Italy", dial: "+39", flag: "🇮🇹" },
+  { code: "ES", name: "Spain", dial: "+34", flag: "🇪🇸" },
+  { code: "JP", name: "Japan", dial: "+81", flag: "🇯🇵" },
+];
+
 export default function Contact() {
   const settings = useSettings();
   
@@ -140,8 +160,29 @@ export default function Contact() {
   const [isTimePopoverOpen, setIsTimePopoverOpen] = useState(false);
 
   const [pob, setPob] = useState('');
+  
+  // Flag phone input states
+  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0]);
+  const [phoneBody, setPhoneBody] = useState('');
+  const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false);
+  const [countrySearch, setCountrySearch] = useState('');
   const [mobile, setMobile] = useState('');
   const [email, setEmail] = useState('');
+
+  // Sync mobile contact string representation
+  useEffect(() => {
+    if (phoneBody.trim()) {
+      setMobile(`${selectedCountry.dial} ${phoneBody.trim()}`);
+    } else {
+      setMobile('');
+    }
+  }, [selectedCountry, phoneBody]);
+
+  const filteredCountries = COUNTRIES.filter(c =>
+    c.name.toLowerCase().includes(countrySearch.toLowerCase()) ||
+    c.dial.includes(countrySearch) ||
+    c.code.toLowerCase().includes(countrySearch.toLowerCase())
+  );
   const [comments, setComments] = useState('');
   
   const [loading, setLoading] = useState(false);
@@ -242,13 +283,21 @@ export default function Contact() {
                 </p>
 
                 {emailSent ? (
-                  <div className="bg-emerald-950/25 border border-emerald-500/20 p-5 rounded-sm text-emerald-100 text-xs tracking-wide leading-relaxed max-w-[480px] mb-6 text-left relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/5 rounded-full blur-xl pointer-events-none"></div>
-                    <p className="font-semibold text-emerald-400 mb-1.5 flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5" />
-                      Live Email Dispatched Successfully!
+                  <div className="bg-bg-dark/85 border border-gold/30 p-6 rounded-sm text-text-main/90 text-xs tracking-wide leading-relaxed max-w-[480px] mb-6 text-left relative overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.6)]">
+                    <div className="absolute -top-10 -right-10 w-24 h-24 bg-gold/10 rounded-full blur-2xl pointer-events-none"></div>
+                    <p className="font-serif text-gold text-sm font-medium mb-3.5 flex items-center gap-2 border-b border-gold/15 pb-2">
+                      <Sparkles className="w-4 h-4 text-gold animate-[pulse_3s_infinite]" />
+                      Spiritual Alignment Initiated
                     </p>
-                    A real confirmation email has been dispatched via SMTP mail servers immediately to <strong className="text-gold font-mono block sm:inline">{email}</strong> and the Master Numerologist address. Please check your inbox (and spam/promotions folder)!
+                    <p className="mb-3 text-[12px] leading-relaxed">
+                      Your celestial registration and natal detail synchronization were successfully processed. A notification receipt has been sent directly to your registered address:
+                    </p>
+                    <div className="bg-gold/5 border border-gold/15 py-1.5 px-3 rounded-xs font-mono text-[11px] text-gold mb-3 inline-block">
+                      {email}
+                    </div>
+                    <p className="text-[11px] text-muted leading-relaxed">
+                      Our Master Numerologist has been alerted. <strong className="text-gold font-medium">Please check your inbox (and spam/promotions folder)</strong> for the receipt and forthcoming guidance.
+                    </p>
                   </div>
                 ) : emailError ? (
                   <div className="bg-red-950/25 border border-red-500/20 p-5 rounded-sm text-red-100 text-xs tracking-wide leading-relaxed max-w-[480px] mb-6 text-left relative overflow-hidden">
@@ -283,6 +332,7 @@ export default function Contact() {
                     setFullName('');
                     setDob('');
                     setPob('');
+                    setPhoneBody('');
                     setMobile('');
                     setEmail('');
                     setComments('');
@@ -432,20 +482,105 @@ export default function Contact() {
                     />
                   </div>
 
-                  {/* 5. Mobile number */}
-                  <div className="space-y-2">
+                  {/* 5. Mobile number (With country flag selector mockup alignment) */}
+                  <div className="space-y-2 relative">
                     <label className="text-[10px] uppercase tracking-[0.18em] text-muted flex items-center gap-1.5 font-medium">
                       <Phone className="w-3.5 h-3.5 text-gold" />
                       Mobile Number <span className="text-gold/80">*</span>
                     </label>
-                    <input
-                      type="tel"
-                      required
-                      placeholder="e.g. +91 98765 43210"
-                      value={mobile}
-                      onChange={(e) => setMobile(e.target.value)}
-                      className="w-full bg-bg-dark/60 border border-gold/20 px-4 py-3.5 text-sm text-text-main outline-none focus:border-gold transition-all duration-300 rounded-sm font-sans"
-                    />
+                    
+                    <div className="relative">
+                      {/* Flex country selector + number field matching the requested theme & style */}
+                      <div className="w-full bg-bg-dark/60 border border-gold/20 rounded-sm flex items-stretch focus-within:border-gold transition-all duration-300 min-h-[58px]">
+                        {/* Selector Switch Trigger */}
+                        <button
+                          type="button"
+                          onClick={() => setIsCountryDropdownOpen(!isCountryDropdownOpen)}
+                          className="flex items-center gap-1.5 px-4 bg-gold-[5%] border-r border-gold/15 hover:bg-gold/5 transition-all outline-none rounded-l-sm shrink-0 cursor-pointer text-left"
+                        >
+                          <span className="text-xl select-none leading-none">{selectedCountry.flag}</span>
+                          <ChevronDown className={`w-3.5 h-3.5 text-muted transition-transform duration-300 ${isCountryDropdownOpen ? 'rotate-180' : ''}`} />
+                        </button>
+                        
+                        {/* Interactive Phone Number input matching requested label design */}
+                        <div className="flex-1 px-4 py-2 flex flex-col justify-center text-left">
+                          <label className="text-[9px] uppercase tracking-[0.2em] text-gold/60 font-medium block leading-none mb-1">Phone number *</label>
+                          <div className="flex items-center leading-none">
+                            <span className="text-sm font-mono text-gold mr-1.5 select-none font-medium leading-none">{selectedCountry.dial}</span>
+                            <input
+                              type="tel"
+                              required
+                              placeholder="Phone number"
+                              value={phoneBody}
+                              onChange={(e) => {
+                                // Strip any non-numeric character save spaces / hyphens
+                                const val = e.target.value.replace(/[^0-9\- ]/g, '');
+                                setPhoneBody(val);
+                              }}
+                              className="w-full bg-transparent border-none outline-none p-0 text-sm text-text-main font-semibold tracking-wider font-sans placeholder:text-muted/35 h-5 leading-5 focus:ring-0 focus:outline-none"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Dropdown containing live flag select, search tool, tick-alignment and scroll box */}
+                      {isCountryDropdownOpen && (
+                        <>
+                          {/* Top-level click dismiss backdrop */}
+                          <div 
+                            className="fixed inset-0 z-40 bg-transparent" 
+                            onClick={() => setIsCountryDropdownOpen(false)} 
+                          />
+                          
+                          <div className="absolute left-0 right-0 mt-2 bg-bg-card border border-gold/25 rounded-sm shadow-[0_15px_30px_rgba(0,0,0,0.85)] z-50 p-3.5 animate-in fade-in slide-in-from-top-2 duration-200 backdrop-blur-md">
+                            {/* Search box with search icon */}
+                            <div className="relative mb-3">
+                              <Search className="w-3.5 h-3.5 text-gold/65 absolute left-3 top-1/2 -translate-y-1/2" />
+                              <input
+                                type="text"
+                                placeholder="Search for countries..."
+                                value={countrySearch}
+                                onChange={(e) => setCountrySearch(e.target.value)}
+                                className="w-full bg-bg-dark/75 border border-gold/15 pl-9 pr-3 py-2 text-xs text-text-main placeholder:text-muted/40 outline-none focus:border-gold/50 rounded-xs transition-all font-sans"
+                              />
+                            </div>
+                            
+                            {/* Scrollable list content */}
+                            <div className="max-h-[220px] overflow-y-auto space-y-1.5 custom-scrollbar text-left">
+                              {filteredCountries.map((c) => {
+                                const isSelected = c.code === selectedCountry.code;
+                                return (
+                                  <button
+                                    key={c.code}
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedCountry(c);
+                                      setIsCountryDropdownOpen(false);
+                                      setCountrySearch('');
+                                    }}
+                                    className={`w-full flex items-center justify-between text-left px-3 py-2 rounded-xs transition-all cursor-pointer border ${
+                                      isSelected ? 'bg-gold/10 border-gold/30' : 'hover:bg-gold/5 border-transparent'
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-2.5">
+                                      <span className="text-lg select-none leading-none">{c.flag}</span>
+                                      <span className="text-xs text-text-main font-medium leading-none">{c.name}</span>
+                                      <span className="text-xs text-gold/70 font-mono font-light leading-none">({c.dial})</span>
+                                    </div>
+                                    {isSelected && <Check className="w-3.5 h-3.5 text-gold shrink-0" />}
+                                  </button>
+                                );
+                              })}
+                              {filteredCountries.length === 0 && (
+                                <div className="text-center py-4 text-xs text-muted font-light">
+                                  No countries match search
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
 

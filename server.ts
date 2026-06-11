@@ -1084,7 +1084,7 @@ async function startServer() {
       
       const db = await getDbPool();
       const [settingsRows]: any = await db.query('SELECT * FROM settings WHERE id = 1');
-      const adminEmail = settingsRows.length > 0 ? settingsRows[0].email : "yadavtejas89@gmail.com";
+      const adminEmail = settingsRows.length > 0 ? settingsRows[0].email : "info@sevenastro.com";
       
       try {
         if (pool) {
@@ -1158,23 +1158,23 @@ async function startServer() {
             }
           });
 
-          // Elegant, parchment-styled HTML email that fits the premium sanctuary aesthetic
-          const emailHtml = `
+          // 1. User/Inquirer Email HTML
+          const userEmailHtml = `
             <div style="background-color: #0b0c10; color: #c5a880; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px 20px; text-align: center; max-width: 600px; margin: 0 auto; border: 1px solid #c5a880; border-radius: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
               <div style="font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; color: #c5a880; margin-bottom: 10px;">Divine Sanctuary Registry</div>
               <div style="width: 50px; height: 1px; background-color: #c5a880; margin: 15px auto;"></div>
               
-              <h1 style="font-size: 26px; font-weight: 300; margin: 20px 0; color: #f5f5f5; font-family: 'Georgia', serif;">Celestial Inquiry registered</h1>
+              <h1 style="font-size: 24px; font-weight: 300; margin: 20px 0; color: #f5f5f5; font-family: 'Georgia', serif;">Inquiry Received</h1>
               
               <p style="color: #a5a5a5; font-size: 14px; line-height: 1.8; margin-bottom: 30px; text-align: left; padding: 0 10px;">
                 Dear <strong>${fullName}</strong>,<br/><br/>
-                Your birth details and life coordinates have been successfully synchronized with the Seven Astro Sanctuary celestial servers. The Master Numerologist has been notified and will start computing your alignment templates.
+                Thank you for providing details, We have received your inquiry. Please allow us 24 to 72 hours to give accurate guidance. Thank you for your patience.
               </p>
               
               <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 13px; text-align: left; border: 1px solid rgba(197, 168, 128, 0.2);">
                 <thead>
                   <tr style="background-color: rgba(197, 168, 128, 0.1);">
-                    <th colspan="2" style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.2); color: #c5a880; text-transform: uppercase; font-size: 11px; letter-spacing: 0.1em; font-family: 'Georgia', serif;">Your Birth Coordinates</th>
+                    <th colspan="2" style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.2); color: #c5a880; text-transform: uppercase; font-size: 11px; letter-spacing: 0.1em; font-family: 'Georgia', serif;">Your Submitted Details</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1216,33 +1216,96 @@ async function startServer() {
               </div>
               
               <div style="color: #a5a5a5; font-size: 12px; margin-top: 40px;">
-                <p style="margin-bottom: 5px;">If you have any questions, feel free to reply directly to this mail or reach out via our divine hotline.</p>
-                <p style="font-size: 10px; color: #777777;">&copy; ${new Date().getFullYear()} Seven Astro Sanctuary. All spiritual alignments reserved.</p>
+                <p style="margin-bottom: 5px;">This is an automated sanctuary delivery alert. Thank you for choosing Seven Astro.</p>
+                <p style="font-size: 10px; color: #777777;">&copy; ${new Date().getFullYear()} Seven Astro. All spiritual alignments reserved.</p>
               </div>
             </div>
           `;
 
-      // Form public transporter packet
-          const adminRecipientsSet = new Set<string>();
-          if (adminEmail) adminRecipientsSet.add(adminEmail.trim().toLowerCase());
-          if (smtpUser) adminRecipientsSet.add(smtpUser.trim().toLowerCase());
-          adminRecipientsSet.add("yadavtejas89@gmail.com");
+          // 2. Admin/Master Numerologist Email HTML
+          const adminEmailHtml = `
+            <div style="background-color: #0b0c10; color: #c5a880; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px 20px; text-align: center; max-width: 600px; margin: 0 auto; border: 1px solid #c5a880; border-radius: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+              <div style="font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; color: #c5a880; margin-bottom: 10px;">Divine Sanctuary Registry</div>
+              <div style="width: 50px; height: 1px; background-color: #c5a880; margin: 15px auto;"></div>
+              
+              <h1 style="font-size: 26px; font-weight: 300; margin: 20px 0; color: #f5f5f5; font-family: 'Georgia', serif;">Celestial Inquiry Registered</h1>
+              
+              <p style="color: #a5a5a5; font-size: 14px; line-height: 1.8; margin-bottom: 30px; text-align: left; padding: 0 10px;">
+                Greetings Master Numerologist,<br/><br/>
+                A traveler's details and celestial coordinates have been successfully synchronized with the Seven Astro. Below are the inquiry's registration details:
+              </p>
+              
+              <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 13px; text-align: left; border: 1px solid rgba(197, 168, 128, 0.2);">
+                <thead>
+                  <tr style="background-color: rgba(197, 168, 128, 0.1);">
+                    <th colspan="2" style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.2); color: #c5a880; text-transform: uppercase; font-size: 11px; letter-spacing: 0.1em; font-family: 'Georgia', serif;">Visitor Coordinates</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5; width: 33%;">Full Name:</td>
+                    <td style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5; font-weight: bold;">${fullName}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;">Date of Birth:</td>
+                    <td style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5;">${dob}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;">Time of Birth:</td>
+                    <td style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5;">${tob}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;">Place of Birth:</td>
+                    <td style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5;">${pob}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;">Mobile Number:</td>
+                    <td style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5;">${mobile}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;">Inquirer Email:</td>
+                    <td style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5;">${email}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px; color: #a5a5a5; vertical-align: top;">Special Comments:</td>
+                    <td style="padding: 12px; color: #f5f5f5; line-height: 1.6;">"${comments || 'None provided'}"</td>
+                  </tr>
+                </tbody>
+              </table>
+              
+              <div style="width: 50px; height: 1px; background-color: rgba(197, 168, 128, 0.2); margin: 20px auto;"></div>
+              
+              <p style="color: #888888; font-size: 11px; line-height: 1.6; max-width: 450px; margin: 0 auto;">
+                Seven Astro Sanctuary Premium Registry Alerts
+              </p>
+            </div>
+          `;
 
-          const adminRecipients = Array.from(adminRecipientsSet).join(", ");
+          // Form public transporter packet
+          const adminRecipient = adminEmail && adminEmail.trim() ? adminEmail.trim().toLowerCase() : "info@sevenastro.com";
+          const visitorEmailClean = email ? email.trim().toLowerCase() : "";
 
-          const mailOptions = {
+          // Send to Admin
+          await transporter.sendMail({
             from: smtpFrom,
-            to: adminRecipients, // Send inquiry TO settings admin, SMTP username, and specific support contacts
-            replyTo: email, // Allows direct reply to the visitor's email ID
-            cc: email && !adminRecipientsSet.has(email.trim().toLowerCase()) ? email : undefined, // CC the inquirer receipt securely
-            subject: `[Seven Astro] Celestial Consultation Request – ${fullName}`,
-            text: `Dear ${fullName},\n\nYour birth coordinates have been successfully registered!\n\nName: ${fullName}\nDate: ${dob}\nTime: ${tob}\nPlace: ${pob}\n\nOur Master Numerologist is evaluating your coordinates.\n\nWarm regards,\nSeven Astro Sanctuary`,
-            html: emailHtml,
-          };
+            to: adminRecipient,
+            replyTo: visitorEmailClean || undefined,
+            subject: `✨ [Seven Astro] Celestial Consultation Request – ${fullName}`,
+            html: adminEmailHtml,
+          });
 
-          await transporter.sendMail(mailOptions);
+          // Send separate automated receipt to Inquirer if email is set
+          if (visitorEmailClean) {
+            await transporter.sendMail({
+              from: smtpFrom,
+              to: visitorEmailClean,
+              subject: `✨ [Seven Astro] Inquiry Received – ${fullName}`,
+              html: userEmailHtml,
+            });
+          }
+
           mailSent = true;
-          console.log(`[SMTP Mailer Success] Live email dispatched successfully to admin (${adminEmail}) and sender (${email})`);
+          console.log(`[SMTP Mailer Success] Separate live emails dispatched to admin metrics and traveler.`);
         } catch (mailErr: any) {
           console.error("[SMTP Mailer Error] Send failed:", mailErr.message);
           emailError = mailErr.message;
@@ -1259,6 +1322,186 @@ async function startServer() {
         message: mailSent 
           ? "Your query has been registered and a confirmation email has been dispatched to your mailbox!" 
           : "Your query has been recorded. (Note: SMTP outbound credentials are empty, so real email dispatch was bypassed temporarily. Admin has been logged.)"
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Celestial Service Booking Form Submission
+  app.post("/api/bookings", async (req, res) => {
+    try {
+      const { fullName, dob, tob, pob, mobile, email, serviceTitle, servicePrice } = req.body;
+      
+      const db = await getDbPool();
+      const [settingsRows]: any = await db.query('SELECT * FROM settings WHERE id = 1');
+      const adminEmail = settingsRows.length > 0 ? settingsRows[0].email : "info@sevenastro.com";
+      
+      try {
+        if (pool) {
+          await pool.query(`
+            CREATE TABLE IF NOT EXISTS booking_submissions (
+              id INT AUTO_INCREMENT PRIMARY KEY,
+              full_name VARCHAR(255),
+              dob VARCHAR(255),
+              tob VARCHAR(255),
+              pob VARCHAR(255),
+              mobile VARCHAR(255),
+              email VARCHAR(255),
+              service_title VARCHAR(255),
+              service_price VARCHAR(255),
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+          `);
+          await pool.query(
+            "INSERT INTO booking_submissions (full_name, dob, tob, pob, mobile, email, service_title, service_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            [fullName, dob, tob, pob, mobile, email, serviceTitle, servicePrice]
+          );
+        } else {
+          // JsonDbEngine fallback save
+          const data = readJsonDb();
+          if (!data.booking_submissions) {
+            data.booking_submissions = [];
+          }
+          const nextId = (data.booking_submissions.reduce((m: number, x: any) => Math.max(m, x.id || 0), 0)) + 1;
+          data.booking_submissions.push({
+            id: nextId,
+            full_name: fullName,
+            dob,
+            tob,
+            pob,
+            mobile,
+            email,
+            service_title: serviceTitle,
+            service_price: servicePrice,
+            created_at: new Date().toISOString()
+          });
+          writeJsonDb(data);
+        }
+      } catch (dbErr: any) {
+        console.error("[Database Error] Saving booking submission:", dbErr.message);
+      }
+
+      // Live mail dispatch via transport layer to admin ONLY
+      let mailSent = false;
+      let emailError = "";
+
+      const settingsObj = (settingsRows && settingsRows.length > 0) ? settingsRows[0] : {};
+      const smtpHost = settingsObj.smtp_host || process.env.SMTP_HOST;
+      const smtpPort = parseInt((settingsObj.smtp_port || process.env.SMTP_PORT || "587").toString(), 10);
+      const smtpUser = settingsObj.smtp_user || process.env.SMTP_USER;
+      const smtpPass = settingsObj.smtp_pass || process.env.SMTP_PASS;
+      let smtpFrom = process.env.SMTP_FROM || `"Seven Astro" <${smtpUser || "7s.evolve@gmail.com"}>`;
+      if (smtpFrom && smtpUser && !smtpFrom.includes("@")) {
+        smtpFrom = `"${smtpFrom.replace(/"/g, '')}" <${smtpUser}>`;
+      }
+
+      if (smtpHost && smtpUser && smtpPass) {
+        try {
+          const transporter = nodemailer.createTransport({
+            host: smtpHost,
+            port: smtpPort,
+            secure: smtpPort === 465,
+            auth: {
+              user: smtpUser,
+              pass: smtpPass,
+            },
+            tls: {
+              rejectUnauthorized: false
+            }
+          });
+
+          // Single Admin Email HTML with selected plan details
+          const adminBookingEmailHtml = `
+            <div style="background-color: #0b0c10; color: #c5a880; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px 20px; text-align: center; max-width: 600px; margin: 0 auto; border: 1px solid #c5a880; border-radius: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+              <div style="font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; color: #c5a880; margin-bottom: 10px;">Divine Sanctuary Booking Registry</div>
+              <div style="width: 50px; height: 1px; background-color: #c5a880; margin: 15px auto;"></div>
+              
+              <h1 style="font-size: 26px; font-weight: 300; margin: 15px 0; color: #f5f5f5; font-family: 'Georgia', serif;">New Service Booking Request</h1>
+              
+              <p style="color: #a5a5a5; font-size: 14px; line-height: 1.8; margin-bottom: 25px; text-align: left; padding: 0 10px;">
+                Greetings Master Numerologist,<br/><br/>
+                An alignment booking request has been initiated at Seven Astro. The seeker has requested the following divine service path and provided their celestial birth coordinates below:
+              </p>
+
+              <div style="background-color: rgba(197, 168, 128, 0.08); border: 1px solid #c5a880; padding: 18px; margin-bottom: 25px; text-align: left; border-radius: 2px;">
+                <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #888888; margin-bottom: 4px;">Requested Blueprint Service</div>
+                <div style="font-size: 18px; font-family: 'Georgia', serif; color: #f5f5f5; font-weight: bold; margin-bottom: 6px;">${serviceTitle}</div>
+                <div style="font-size: 15px; font-family: 'Georgia', serif; color: #c5a880; font-weight: bold;">Energy Exchange: ${servicePrice}</div>
+              </div>
+              
+              <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 13px; text-align: left; border: 1px solid rgba(197, 168, 128, 0.2);">
+                <thead>
+                  <tr style="background-color: rgba(197, 168, 128, 0.15);">
+                    <th colspan="2" style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.2); color: #c5a880; text-transform: uppercase; font-size: 11px; letter-spacing: 0.1em; font-family: 'Georgia', serif;">Seeker Birth Coordinates</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5; width: 33%;">Birth Name:</td>
+                    <td style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5; font-weight: bold;">${fullName}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;">Date of Birth:</td>
+                    <td style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5;">${dob}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;">Time of Birth:</td>
+                    <td style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5;">${tob}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;">Place of Birth:</td>
+                    <td style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5;">${pob}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;">Mobile Number:</td>
+                    <td style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5;">${mobile}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;">Seeker Email:</td>
+                    <td style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5;">${email}</td>
+                  </tr>
+                </tbody>
+              </table>
+              
+              <div style="width: 50px; height: 1px; background-color: rgba(197, 168, 128, 0.2); margin: 20px auto;"></div>
+              
+              <p style="color: #888888; font-size: 11px; line-height: 1.6; max-width: 450px; margin: 0 auto;">
+                Seven Astro Sanctuary Premium Booking Alerts
+              </p>
+            </div>
+          `;
+
+          const adminRecipient = adminEmail && adminEmail.trim() ? adminEmail.trim().toLowerCase() : "info@sevenastro.com";
+          const visitorEmailClean = email ? email.trim().toLowerCase() : "";
+
+          // Send to Admin only
+          await transporter.sendMail({
+            from: smtpFrom,
+            to: adminRecipient,
+            replyTo: visitorEmailClean || undefined,
+            subject: `✨ [Booking Request] ${serviceTitle} – ${fullName}`,
+            html: adminBookingEmailHtml,
+          });
+
+          mailSent = true;
+          console.log(`[SMTP Booking Success] Email dispatched to admin regarding ${serviceTitle}.`);
+        } catch (mailErr: any) {
+          console.error("[SMTP Booking Error] Send failed:", mailErr.message);
+          emailError = mailErr.message;
+        }
+      } else {
+        console.warn("[SMTP Booking Warning] Missing SMTP credentials. Skipped dispatch.");
+        emailError = "SMTP configurations are not configured yet in the Settings secrets panel.";
+      }
+
+      res.json({ 
+        success: true, 
+        emailSent: mailSent, 
+        emailError: emailError || null,
+        message: mailSent 
+          ? "Your booking request has been successfully processed and dispatched!" 
+          : "Your booking request has been registered offline. (SMTP connection bypassed.)"
       });
     } catch (err: any) {
       res.status(500).json({ error: err.message });

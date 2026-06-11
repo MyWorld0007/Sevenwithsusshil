@@ -87,7 +87,7 @@ const BriefStoryCard = ({ tst, onSelect }: BriefStoryCardProps) => {
               {tst.initial}
             </div>
             <div>
-              <h4 className="text-[13px] font-medium text-white tracking-wide">{tst.name}</h4>
+              <h4 className="text-[13px] font-medium text-text-main tracking-wide">{tst.name}</h4>
               <p className="text-[10px] text-dim">{tst.loc}</p>
             </div>
           </div>
@@ -100,29 +100,53 @@ const BriefStoryCard = ({ tst, onSelect }: BriefStoryCardProps) => {
   );
 };
 
-// Component 2: TestimonialCard (defined outside)
-const TestimonialCard = ({ tst }: { tst: Testimonial; key?: React.Key }) => (
-  <div className="bg-bg-card border border-gold/20 p-8 rounded-sm shadow-[0_0_20px_rgba(201,160,80,0.03)] h-full flex flex-col justify-between">
-    <div>
-      <div className="text-gold text-[10px] tracking-[0.12em] mb-4">
-        {'★'.repeat(tst.rating || 5)}{'☆'.repeat(5 - (tst.rating || 5))}
-      </div>
-      <p className="font-serif text-lg font-light italic leading-[1.85] text-muted mb-6">{tst.text}</p>
-    </div>
-    <div className="flex items-center justify-between mt-auto">
-      <div className="flex items-center gap-4">
-        <div className="w-10 h-10 rounded-full bg-gold/10 border border-gold/20 flex items-center justify-center font-serif text-lg text-gold flex-shrink-0">{tst.initial}</div>
-        <div>
-          <div className="text-[14px] font-medium">{tst.name}</div>
-          <div className="text-[11px] text-dim mt-1">{tst.loc}</div>
+// Component 2: TestimonialCard (defined outside with self-contained Read More / Less toggle)
+const TestimonialCard = ({ tst }: { tst: Testimonial; key?: React.Key }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  let cleanText = tst.text;
+  if (cleanText.startsWith('"') && cleanText.endsWith('"')) {
+    cleanText = cleanText.substring(1, cleanText.length - 1);
+  }
+
+  const isLong = cleanText.length > 150;
+  const displayText = isLong && !isExpanded ? cleanText.slice(0, 150).trim() + '...' : cleanText;
+
+  return (
+    <div className="bg-bg-card border border-gold/20 p-8 rounded-sm shadow-[0_0_20px_rgba(201,160,80,0.03)] h-full flex flex-col justify-between transition-all duration-300 min-h-[290px]">
+      <div>
+        <div className="text-gold text-[10px] tracking-[0.12em] mb-4">
+          {'★'.repeat(tst.rating || 5)}{'☆'.repeat(5 - (tst.rating || 5))}
         </div>
+        <p className="font-serif text-[15px] font-light italic leading-[1.8] text-muted mb-6 text-left">
+          "{displayText}"
+          {isLong && (
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="text-gold hover:text-gold-lt text-[11px] tracking-wider font-semibold ml-2 inline-block focus:outline-none transition-colors border-b border-gold/25 cursor-pointer pb-0.5"
+            >
+              {isExpanded ? 'Read Less' : 'Read More'}
+            </button>
+          )}
+        </p>
       </div>
-      {tst.date && (
-         <div className="text-[10px] text-dim uppercase tracking-widest text-right max-w-[80px]">{tst.date}</div>
-      )}
+      <div className="flex items-center justify-between mt-auto border-t border-gold/10 pt-4">
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 rounded-full bg-gold/10 border border-gold/20 flex items-center justify-center font-serif text-lg text-gold flex-shrink-0">
+            {tst.initial}
+          </div>
+          <div className="text-left">
+            <div className="text-[14px] font-medium text-text-main">{tst.name}</div>
+            <div className="text-[11px] text-dim mt-1">{tst.loc}</div>
+          </div>
+        </div>
+        {tst.date && (
+          <div className="text-[10px] text-dim uppercase tracking-widest text-right max-w-[80px]">{tst.date}</div>
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 interface GoogleReviewItemProps {
   tst: Testimonial;
