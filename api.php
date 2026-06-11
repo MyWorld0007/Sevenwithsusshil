@@ -10,9 +10,6 @@ header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 header("Content-Type: application/json; charset=UTF-8");
-header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
-header("Cache-Control: post-check=0, pre-check=0", false);
-header("Pragma: no-cache");
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -20,64 +17,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // 1. Connection Configurations
-$env = [];
-$envPath = __DIR__ . '/.env';
-if (!file_exists($envPath)) {
-    $envPath = __DIR__ . '/.env.example';
-}
-if (file_exists($envPath)) {
-    $content = file_get_contents($envPath);
-    $lines = explode("\n", $content);
-    foreach ($lines as $line) {
-        $line = trim($line);
-        if (empty($line) || strpos($line, '#') === 0) continue;
-        if (strpos($line, '=') !== false) {
-            list($key, $val) = explode('=', $line, 2);
-            $key = trim($key);
-            $val = trim($val);
-            $val = preg_replace('/^[\'"]|[\'"]$/', '', $val);
-            $env[$key] = $val;
-        }
-    }
-}
-
-// Merge with getenv system environment variables
-foreach (['DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME', 'DB_PORT'] as $key) {
-    $sysVal = getenv($key);
-    if ($sysVal !== false && $sysVal !== '') {
-        $env[$key] = $sysVal;
-    }
-}
-
-$envHost = isset($env['DB_HOST']) ? trim($env['DB_HOST']) : '';
-if (strpos($envHost, 'sevenastro') !== false || $envHost === 'MY_APP_URL') {
-    $envHost = '193.203.184.86';
-}
-
-$envUser = isset($env['DB_USER']) ? trim($env['DB_USER']) : '';
-if ($envUser === 'masteradmin') {
-    $envUser = 'u709894810_masteradmin';
-}
-
-$envPass = isset($env['DB_PASSWORD']) ? trim($env['DB_PASSWORD']) : '';
-$envName = isset($env['DB_NAME']) ? trim($env['DB_NAME']) : '';
-if ($envName === 'sevenastro') {
-    $envName = 'u709894810_sevenastro';
-}
-
-$envPort = isset($env['DB_PORT']) ? intval($env['DB_PORT']) : 3306;
-
-$finalHostLocal = 'localhost';
-$finalHostRemote = !empty($envHost) ? $envHost : '193.203.184.86';
-$finalUser = !empty($envUser) ? $envUser : 'u709894810_masteradmin';
-$finalPass = !empty($envPass) ? $envPass : '@Masteradmin_2026';
-$finalName = !empty($envName) ? $envName : 'u709894810_sevenastro';
-
-define('DB_HOST_LOCAL', $finalHostLocal);
-define('DB_HOST_REMOTE', $finalHostRemote);
-define('DB_USER', $finalUser);
-define('DB_PASS', $finalPass);
-define('DB_NAME', $finalName);
+define('DB_HOST_LOCAL', 'localhost');
+define('DB_HOST_REMOTE', '193.203.184.86');
+define('DB_USER', 'u709894810_masteradmin');
+define('DB_PASS', '@Masteradmin_2026');
+define('DB_NAME', 'u709894810_sevenastro');
 define('JSON_DB_PATH', __DIR__ . '/database.json');
 
 // Helper to standardise options / inputs
@@ -87,41 +31,26 @@ $inputData = json_decode(file_get_contents('php://input'), true) ?? [];
 $pdo = null;
 $useFallback = false;
 
-$options = [
-    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    PDO::ATTR_EMULATE_PREPARES   => false,
-    PDO::ATTR_TIMEOUT            => 2
-];
-
 try {
-    // Attempt 1: Connect using the configured DB_HOST from system/environmental variables
-    // Omit explicit port parameter for 'localhost' / '127.0.0.1' to allow native Unix Socket fallback (much more robust on shared hostings)
-    if (!empty($envHost) && $envHost !== 'localhost' && $envHost !== '127.0.0.1') {
-        $dsn = "mysql:host=" . $envHost . ";port=" . $envPort . ";dbname=" . $finalName . ";charset=utf8mb4";
-        $options[PDO::ATTR_TIMEOUT] = 3;
-        $pdo = new PDO($dsn, $finalUser, $finalPass, $options);
-        $pdo->exec("SET NAMES utf8mb4");
-    } else {
-        throw new Exception("Localhost or default host is fallback");
-    }
-} catch (Exception $eExternal) {
+    // Attempt local database connection (localhost) - typical for Hostinger hosting environments
+    $dsn = "mysql:host=" . DB_HOST_LOCAL . ";dbname=" . DB_NAME . ";charset=utf8mb4";
+    $options = [
+        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES   => false,
+        PDO::ATTR_TIMEOUT            => 2 // Fail fast to try remote next
+    ];
+    $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
+    $pdo->exec("SET NAMES utf8mb4");
+} catch (Exception $e) {
     try {
-        // Attempt 2: Connect using local socket 'localhost' directly (standard database protocol on Hostinger live site)
-        $dsn = "mysql:host=" . DB_HOST_LOCAL . ";dbname=" . DB_NAME . ";charset=utf8mb4";
-        $options[PDO::ATTR_TIMEOUT] = 2;
+        // Fallback to remote IP connection if requested
+        $dsn = "mysql:host=" . DB_HOST_REMOTE . ";dbname=" . DB_NAME . ";charset=utf8mb4";
+        $options[PDO::ATTR_TIMEOUT] = 4;
         $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
         $pdo->exec("SET NAMES utf8mb4");
-    } catch (Exception $e) {
-        try {
-            // Attempt 3: Connect using the remote fallback IP
-            $dsn = "mysql:host=" . DB_HOST_REMOTE . ";dbname=" . DB_NAME . ";charset=utf8mb4";
-            $options[PDO::ATTR_TIMEOUT] = 4;
-            $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
-            $pdo->exec("SET NAMES utf8mb4");
-        } catch (Exception $e2) {
-            $useFallback = true;
-        }
+    } catch (Exception $e2) {
+        $useFallback = true;
     }
 }
 
@@ -220,33 +149,10 @@ function updateEnvFile($smtpHost, $smtpPort, $smtpUser, $smtpPass, $geminiKey = 
 }
 
 function sendSmartSmtpEmail($to, $subject, $htmlContent, $settings) {
-    if (!is_array($settings)) {
-        $settings = [];
-    }
-
-    // Load local .env values if settings doesn't have them
-    $envVars = [];
-    $envPath = __DIR__ . '/.env';
-    if (!file_exists($envPath)) {
-        $envPath = __DIR__ . '/.env.example';
-    }
-    if (file_exists($envPath)) {
-        $content = file_get_contents($envPath);
-        $lines = explode("\n", $content);
-        foreach ($lines as $line) {
-            if (preg_match('/^([^#\s][^=]*)=(.*)$/', $line, $matches)) {
-                $k = trim($matches[1]);
-                $v = trim($matches[2]);
-                $v = preg_replace('/^[\'"]|[\'"]$/', '', $v);
-                $envVars[$k] = trim($v);
-            }
-        }
-    }
-
-    $smtp_host = trim($settings['smtp_host'] ?? $envVars['SMTP_HOST'] ?? '');
-    $smtp_port = intval($settings['smtp_port'] ?? $envVars['SMTP_PORT'] ?? 465);
-    $smtp_user = trim($settings['smtp_user'] ?? $envVars['SMTP_USER'] ?? '');
-    $smtp_pass = trim($settings['smtp_pass'] ?? $envVars['SMTP_PASS'] ?? '');
+    $smtp_host = trim($settings['smtp_host'] ?? '');
+    $smtp_port = intval($settings['smtp_port'] ?? 465);
+    $smtp_user = trim($settings['smtp_user'] ?? '');
+    $smtp_pass = trim($settings['smtp_pass'] ?? '');
 
     if (empty($smtp_host) || empty($smtp_user) || empty($smtp_pass)) {
         // Fallback to PHP mail()
@@ -353,26 +259,13 @@ if ($resource === 'upload') {
         echo json_encode(['error' => 'Upload failed on server']);
         exit();
     }
-    
-    $filename = 'profile-' . time() . '-' . rand(1000, 9999) . '.' . pathinfo($file['name'], PATHINFO_EXTENSION);
-    
-    // Save to target production uploads directory (relative to api.php)
-    $prodUploadDir = __DIR__ . '/uploads/';
-    if (!is_dir($prodUploadDir)) {
-        mkdir($prodUploadDir, 0755, true);
+    $uploadDir = __DIR__ . '/public/uploads/';
+    if (!is_dir($uploadDir)) {
+        mkdir($uploadDir, 0755, true);
     }
-    $targetPathProd = $prodUploadDir . $filename;
-    
-    if (move_uploaded_file($file['tmp_name'], $targetPathProd)) {
-        // Synchronize with local /public/uploads/ directory if it exists
-        $devUploadDir = __DIR__ . '/public/uploads/';
-        if (is_dir(__DIR__ . '/public/')) {
-            if (!is_dir($devUploadDir)) {
-                mkdir($devUploadDir, 0755, true);
-            }
-            copy($targetPathProd, $devUploadDir . $filename);
-        }
-        
+    $filename = 'profile-' . time() . '-' . rand(1000, 9999) . '.' . pathinfo($file['name'], PATHINFO_EXTENSION);
+    $targetPath = $uploadDir . $filename;
+    if (move_uploaded_file($file['tmp_name'], $targetPath)) {
         echo json_encode(['url' => '/uploads/' . $filename]);
     } else {
         http_response_code(500);
@@ -469,27 +362,6 @@ try {
                 $check = $pdo->query("SELECT COUNT(*) FROM settings WHERE id = 1")->fetchColumn();
                 if ($check == 0) {
                     $pdo->prepare("INSERT INTO settings (id) VALUES (1)")->execute();
-                }
-
-                // Make sure all required columns exist dynamically
-                $columnsToAdd = [
-                    'gemini_api_key' => 'VARCHAR(255)',
-                    'profile_photo' => 'VARCHAR(255)',
-                    'about_title' => 'VARCHAR(255)',
-                    'about_para1' => 'TEXT',
-                    'about_para2' => 'TEXT',
-                    'smtp_host' => 'VARCHAR(255)',
-                    'smtp_port' => 'VARCHAR(10)',
-                    'smtp_user' => 'VARCHAR(255)',
-                    'smtp_pass' => 'VARCHAR(255)'
-                ];
-                
-                foreach ($columnsToAdd as $col => $type) {
-                    try {
-                        $pdo->exec("ALTER TABLE settings ADD COLUMN $col $type");
-                    } catch (\Exception $e) {
-                        // Ignore if column already exists
-                    }
                 }
                 
                 $sql = "UPDATE settings SET 
@@ -1039,65 +911,7 @@ try {
                 writeJsonDb($db);
             }
 
-            // Load settings for email delivery
-            if (!$useFallback) {
-                $stmt = $pdo->query("SELECT * FROM settings LIMIT 1");
-                $settings = $stmt->fetch();
-            } else {
-                $db = readJsonDb();
-                $settings = $db['settings'][0] ?? null;
-            }
-
-            if (!$settings || !is_array($settings)) {
-                $settings = [];
-            }
-
-            $adminEmail = !empty($settings['email']) ? trim($settings['email']) : "info@sevenastro.com";
-            $adminRecipient = strtolower(trim($adminEmail));
-
-            // Generate customized gold-layered approval email structure
-            $adminSubject = "✨ [Story Approval Required] New Story submitted by " . $name;
-            $stars = str_repeat('★', $rating) . str_repeat('☆', 5 - $rating);
-            $adminEmailHtml = "
-            <div style=\"background-color: #0b0c10; color: #c5a880; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px 20px; text-align: center; max-width: 600px; margin: 0 auto; border: 1px solid #c5a880; border-radius: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);\">
-              <div style=\"font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; color: #c5a880; margin-bottom: 10px;\">Divine Sanctuary Stories Journal</div>
-              <div style=\"width: 50px; height: 1px; background-color: #c5a880; margin: 15px auto;\"></div>
-              
-              <h1 style=\"font-size: 26px; font-weight: 300; margin: 15px 0; color: #f5f5f5; font-family: 'Georgia', serif;\">Story Approval Request</h1>
-              
-              <p style=\"color: #a5a5a5; font-size: 14px; line-height: 1.8; margin-bottom: 25px; text-align: left; padding: 0 10px;\">
-                Greetings Master Numerologist,<br/><br/>
-                A traveler has shared their journey. Please review this story and approve it in the admin dashboard so it may shine on the sanctuary walls for other seekers:
-              </p>
-
-              <div style=\"background-color: rgba(197, 168, 128, 0.08); border: 1px solid #c5a880; padding: 18px; margin-bottom: 25px; text-align: left; border-radius: 2px;\">
-                <div style=\"font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #888888; margin-bottom: 4px;\">Submitted Content</div>
-                <div style=\"font-size: 15px; font-family: 'Georgia', serif; color: #f5f5f5; font-style: italic; font-weight: 300; margin-bottom: 15px; line-height: 1.6;\">
-                  \"" . htmlspecialchars($text) . "\"
-                </div>
-                <div style=\"border-t: 1px solid rgba(197, 168, 128, 0.2); pt-2; font-size: 12px; color: #c5a880;\">
-                  <strong>Seeker Name:</strong> " . htmlspecialchars($name) . " &bull; (" . htmlspecialchars($initial) . ")<br/>
-                  <strong>Location:</strong> " . htmlspecialchars($loc) . "<br/>
-                  <strong>Rating:</strong> " . $stars . "<br/>
-                  <strong>Submitted On:</strong> " . htmlspecialchars($date) . "
-                </div>
-              </div>
-
-              <div style=\"margin: 30px auto;\">
-                <a href=\"https://sevenastro.com/admin\" style=\"background-color: #c5a880; color: #0b0c10; padding: 12px 30px; text-decoration: none; font-size: 12px; font-weight: bold; letter-spacing: 0.15em; text-transform: uppercase; border-radius: 2px; box-shadow: 0 4px 10px rgba(197, 168, 128, 0.35); display: inline-block;\">Go to Admin Dashboard</a>
-              </div>
-              
-              <div style=\"width: 50px; height: 1px; background-color: rgba(197, 168, 128, 0.2); margin: 20px auto;\"></div>
-              
-              <p style=\"color: #888888; font-size: 11px; line-height: 1.6; max-width: 450px; margin: 0 auto;\">
-                Seven Astro © " . date('Y') . " • Stories Approval Dispatch Layer
-              </p>
-            </div>
-            ";
-
-            $emailSent = sendSmartSmtpEmail($adminRecipient, $adminSubject, $adminEmailHtml, $settings);
-
-            echo json_encode(['id' => $newId, 'success' => true, 'emailSent' => $emailSent]);
+            echo json_encode(['id' => $newId, 'success' => true]);
             exit();
         }
     }
