@@ -30,7 +30,14 @@ export default function About() {
       <div className="max-w-[1280px] mx-auto grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-16 items-center">
         <div className="md:col-span-5 relative reveal vis max-w-[320px] md:max-w-none mx-auto w-full">
           <div className="w-full aspect-[3/4] bg-bg-input border border-gold/20 rounded-sm flex items-center justify-center relative shadow-[0_0_40px_rgba(201,160,80,0.1)] overflow-hidden">
-            <img src={profilePhoto} alt="Profile" className="w-full h-full object-cover relative z-10" />
+            <img 
+              src={profilePhoto} 
+              alt="Profile" 
+              className="w-full h-full object-cover relative z-10" 
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = '/profile.jpeg';
+              }}
+            />
           </div>
           <div className="absolute -bottom-6 -right-5 md:-right-6 w-24 h-24 md:w-28 md:h-28 rounded-full bg-gold text-bg-dark flex flex-col items-center justify-center font-serif shadow-xl z-20">
             <span className="text-3xl md:text-4xl font-medium leading-none">15+</span>

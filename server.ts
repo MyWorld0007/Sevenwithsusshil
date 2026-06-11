@@ -1,22 +1,95 @@
 import express from "express";
 import fs from "fs";
 import path from "path";
+import nodemailer from "nodemailer";
 
-// Read variables from .env.example if available
-try {
-  const envFile = fs.readFileSync(path.resolve(process.cwd(), '.env.example'), 'utf8');
-  envFile.split('\n').forEach(line => {
-    const match = line.match(/^([^#\s][^=]*)=(.*)$/);
-    if (match) {
-      const key = match[1].trim();
-      const value = match[2].trim().replace(/^['"]|['"]$/g, '');
-      if (process.env[key] === undefined) {
-         process.env[key] = value;
-      }
+// Read environment variables from .env.example first, then from .env if present
+const envPathsToLoad = [
+  path.resolve(process.cwd(), '.env.example'),
+  path.resolve(process.cwd(), '.env')
+];
+
+envPathsToLoad.forEach(envPath => {
+  try {
+    if (fs.existsSync(envPath)) {
+      const envFile = fs.readFileSync(envPath, 'utf8');
+      envFile.split('\n').forEach(line => {
+        const match = line.match(/^([^#\s][^=]*)=(.*)$/);
+        if (match) {
+          const key = match[1].trim();
+          const value = match[2].trim().replace(/^['"]|['"]$/g, '');
+          process.env[key] = value;
+        }
+      });
     }
-  });
-} catch (e) {
-  console.warn("Could not read .env.example");
+  } catch (e) {
+    console.warn("Could not read env file at:", envPath);
+  }
+});
+
+// Helper to write/update `.env` and `.env.example` files with SMTP fields from the admin settings
+function updateEnvFile(smtpHost: string, smtpPort: string, smtpUser: string, smtpPass: string, geminiKey?: string) {
+  try {
+    const envPath = path.resolve(process.cwd(), '.env');
+    const examplePath = path.resolve(process.cwd(), '.env.example');
+    let content = "";
+    
+    // Read from existing file to avoid losing other keys
+    if (fs.existsSync(envPath)) {
+      content = fs.readFileSync(envPath, 'utf8');
+    } else if (fs.existsSync(examplePath)) {
+      content = fs.readFileSync(examplePath, 'utf8');
+    }
+
+    const lines = content.split('\n');
+    const variables: Record<string, string> = {};
+    lines.forEach(line => {
+      const match = line.match(/^([^#\s][^=]*)=(.*)$/);
+      if (match) {
+        const key = match[1].trim();
+        const val = match[2].trim().replace(/^['"]|['"]$/g, '').trim().replace(/^['"]|['"]$/g, '').trim();
+        variables[key] = val;
+      }
+    });
+
+    if (smtpHost) variables['SMTP_HOST'] = smtpHost.trim();
+    if (smtpPort) variables['SMTP_PORT'] = smtpPort.trim();
+    if (smtpUser) {
+      variables['SMTP_USER'] = smtpUser.trim();
+      variables['SMTP_FROM'] = `Seven Astro Sanctuary <${smtpUser.trim()}>`;
+    }
+    if (smtpPass) variables['SMTP_PASS'] = smtpPass.trim();
+    if (geminiKey) variables['GEMINI_API_KEY'] = geminiKey.trim();
+
+    let newContent = "";
+    Object.keys(variables).forEach(key => {
+      const origVal = variables[key];
+      const cleanVal = origVal.replace(/^['"]|['"]$/g, '').trim().replace(/^['"]|['"]$/g, '').trim();
+      if (cleanVal.includes(' ') || cleanVal.includes('<') || cleanVal.includes('>')) {
+        newContent += `${key}="${cleanVal}"\n`;
+      } else {
+        newContent += `${key}=${cleanVal}\n`;
+      }
+    });
+
+    // Write to BOTH standard .env and visible .env.example
+    fs.writeFileSync(envPath, newContent, 'utf8');
+    fs.writeFileSync(examplePath, newContent, 'utf8');
+
+    // Instantly sync the running Node process environment
+    if (smtpHost) process.env.SMTP_HOST = smtpHost.trim();
+    if (smtpPort) process.env.SMTP_PORT = smtpPort.trim();
+    if (smtpUser) {
+      process.env.SMTP_USER = smtpUser.trim();
+      process.env.SMTP_FROM = `Seven Astro Sanctuary <${smtpUser.trim()}>`;
+    }
+    if (smtpPass) process.env.SMTP_PASS = smtpPass.trim();
+    if (geminiKey) process.env.GEMINI_API_KEY = geminiKey.trim();
+
+    console.log("[ENV UPDATE] Registered settings correctly. Live process, .env, and .env.example synchronized!");
+  } catch (err: any) {
+    console.error("[ENV UPDATE] Error syncing parameters in env files:", err.message);
+  }
 }
 
 import { createServer as createViteServer } from "vite";
@@ -70,6 +143,10 @@ class JsonDbEngine {
       data.settings[0].about_title = params[7];
       data.settings[0].about_para1 = params[8];
       data.settings[0].about_para2 = params[9];
+      data.settings[0].smtp_host = params[10];
+      data.settings[0].smtp_port = params[11];
+      data.settings[0].smtp_user = params[12];
+      data.settings[0].smtp_pass = params[13];
       writeJsonDb(data);
       affectedRowsCount = 1;
     } else if (cleanSql.includes("SELECT * FROM life_paths ORDER")) {
@@ -324,6 +401,22 @@ async function getDbPool() {
 
     try {
       await pool.query(`ALTER TABLE settings ADD COLUMN profile_photo VARCHAR(500)`);
+    } catch (err) {}
+
+    try {
+      await pool.query(`ALTER TABLE settings ADD COLUMN smtp_host VARCHAR(255)`);
+    } catch (err) {}
+
+    try {
+      await pool.query(`ALTER TABLE settings ADD COLUMN smtp_port VARCHAR(50)`);
+    } catch (err) {}
+
+    try {
+      await pool.query(`ALTER TABLE settings ADD COLUMN smtp_user VARCHAR(255)`);
+    } catch (err) {}
+
+    try {
+      await pool.query(`ALTER TABLE settings ADD COLUMN smtp_pass VARCHAR(255)`);
     } catch (err) {}
 
     try {
@@ -655,6 +748,23 @@ async function getDbPool() {
     activeEngine = new JsonDbEngine();
   }
 
+  // Pre-populate/Sync the virtual `.env` file directly on boot using the database settings records
+  try {
+    const [settingsRows]: any = await activeEngine.query('SELECT * FROM settings WHERE id = 1');
+    if (settingsRows && settingsRows.length > 0) {
+      const s = settingsRows[0];
+      updateEnvFile(
+        s.smtp_host || '',
+        (s.smtp_port || '').toString(),
+        s.smtp_user || '',
+        s.smtp_pass || '',
+        s.gemini_api_key
+      );
+    }
+  } catch (err: any) {
+    console.warn("[ENV AUTO-SYNC] Startup database settings sync failed:", err.message);
+  }
+
   return activeEngine;
 }
 
@@ -795,7 +905,11 @@ async function startServer() {
         profile_photo,
         about_title,
         about_para1,
-        about_para2
+        about_para2,
+        smtp_host,
+        smtp_port,
+        smtp_user,
+        smtp_pass
       } = req.body;
       
       await db.query(`
@@ -809,7 +923,11 @@ async function startServer() {
           profile_photo=?,
           about_title=?,
           about_para1=?,
-          about_para2=?
+          about_para2=?,
+          smtp_host=?,
+          smtp_port=?,
+          smtp_user=?,
+          smtp_pass=?
         WHERE id=1
       `, [
         whatsapp, 
@@ -821,8 +939,22 @@ async function startServer() {
         profile_photo || null,
         about_title || null,
         about_para1 || null,
-        about_para2 || null
+        about_para2 || null,
+        smtp_host || null,
+        smtp_port || null,
+        smtp_user || null,
+        smtp_pass || null
       ]);
+      
+      // Keep .env file and active process environment variables in sync
+      updateEnvFile(
+        smtp_host || '',
+        (smtp_port || '').toString(),
+        smtp_user || '',
+        smtp_pass || '',
+        gemini_api_key || undefined
+      );
+
       res.json({ success: true });
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
@@ -943,6 +1075,194 @@ async function startServer() {
       await db.query('UPDATE content_pages SET title=?, content=? WHERE slug=?', [title, content, slug]);
       res.json({ success: true });
     } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  // Contact Inquiry Form Submission
+  app.post("/api/contact", async (req, res) => {
+    try {
+      const { fullName, dob, tob, pob, mobile, email, comments } = req.body;
+      
+      const db = await getDbPool();
+      const [settingsRows]: any = await db.query('SELECT * FROM settings WHERE id = 1');
+      const adminEmail = settingsRows.length > 0 ? settingsRows[0].email : "yadavtejas89@gmail.com";
+      
+      try {
+        if (pool) {
+          await pool.query(`
+            CREATE TABLE IF NOT EXISTS contact_submissions (
+              id INT AUTO_INCREMENT PRIMARY KEY,
+              full_name VARCHAR(255),
+              dob VARCHAR(255),
+              tob VARCHAR(255),
+              pob VARCHAR(255),
+              mobile VARCHAR(255),
+              email VARCHAR(255),
+              comments TEXT,
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+          `);
+          await pool.query(
+            "INSERT INTO contact_submissions (full_name, dob, tob, pob, mobile, email, comments) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            [fullName, dob, tob, pob, mobile, email, comments]
+          );
+        } else {
+          // JsonDbEngine fallback save
+          const data = readJsonDb();
+          if (!data.contact_submissions) {
+            data.contact_submissions = [];
+          }
+          const nextId = (data.contact_submissions.reduce((m: number, x: any) => Math.max(m, x.id || 0), 0)) + 1;
+          data.contact_submissions.push({
+            id: nextId,
+            full_name: fullName,
+            dob,
+            tob,
+            pob,
+            mobile,
+            email,
+            comments,
+            created_at: new Date().toISOString()
+          });
+          writeJsonDb(data);
+        }
+      } catch (dbErr: any) {
+        console.error("[Database Error] Saving contact submission:", dbErr.message);
+      }
+
+      // Live mail dispatch via transport layer
+      let mailSent = false;
+      let emailError = "";
+
+      const settingsObj = (settingsRows && settingsRows.length > 0) ? settingsRows[0] : {};
+      const smtpHost = settingsObj.smtp_host || process.env.SMTP_HOST;
+      const smtpPort = parseInt((settingsObj.smtp_port || process.env.SMTP_PORT || "587").toString(), 10);
+      const smtpUser = settingsObj.smtp_user || process.env.SMTP_USER;
+      const smtpPass = settingsObj.smtp_pass || process.env.SMTP_PASS;
+      let smtpFrom = process.env.SMTP_FROM || `"Seven Astro" <${smtpUser || "7s.evolve@gmail.com"}>`;
+      if (smtpFrom && smtpUser && !smtpFrom.includes("@")) {
+        smtpFrom = `"${smtpFrom.replace(/"/g, '')}" <${smtpUser}>`;
+      }
+
+      if (smtpHost && smtpUser && smtpPass) {
+        try {
+          const transporter = nodemailer.createTransport({
+            host: smtpHost,
+            port: smtpPort,
+            secure: smtpPort === 465, // true for 465, false for 587 or other TLS ports
+            auth: {
+              user: smtpUser,
+              pass: smtpPass,
+            },
+            tls: {
+              rejectUnauthorized: false // avoids SSL handshake failures on hosters
+            }
+          });
+
+          // Elegant, parchment-styled HTML email that fits the premium sanctuary aesthetic
+          const emailHtml = `
+            <div style="background-color: #0b0c10; color: #c5a880; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px 20px; text-align: center; max-width: 600px; margin: 0 auto; border: 1px solid #c5a880; border-radius: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+              <div style="font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; color: #c5a880; margin-bottom: 10px;">Divine Sanctuary Registry</div>
+              <div style="width: 50px; height: 1px; background-color: #c5a880; margin: 15px auto;"></div>
+              
+              <h1 style="font-size: 26px; font-weight: 300; margin: 20px 0; color: #f5f5f5; font-family: 'Georgia', serif;">Celestial Inquiry registered</h1>
+              
+              <p style="color: #a5a5a5; font-size: 14px; line-height: 1.8; margin-bottom: 30px; text-align: left; padding: 0 10px;">
+                Dear <strong>${fullName}</strong>,<br/><br/>
+                Your birth details and life coordinates have been successfully synchronized with the Seven Astro Sanctuary celestial servers. The Master Numerologist has been notified and will start computing your alignment templates.
+              </p>
+              
+              <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 13px; text-align: left; border: 1px solid rgba(197, 168, 128, 0.2);">
+                <thead>
+                  <tr style="background-color: rgba(197, 168, 128, 0.1);">
+                    <th colspan="2" style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.2); color: #c5a880; text-transform: uppercase; font-size: 11px; letter-spacing: 0.1em; font-family: 'Georgia', serif;">Your Birth Coordinates</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5; width: 35%;">Birth Name:</td>
+                    <td style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5; font-weight: bold;">${fullName}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;">Date of Birth:</td>
+                    <td style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5;">${dob}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;">Time of Birth:</td>
+                    <td style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #c5a880; font-weight: bold;">${tob}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;">Place of Birth:</td>
+                    <td style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5;">${pob}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;">Mobile Number:</td>
+                    <td style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5;">${mobile}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;">Inquirer Email:</td>
+                    <td style="padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5;">${email}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px; color: #a5a5a5; vertical-align: top;">Your Question:</td>
+                    <td style="padding: 12px; color: #f5f5f5; font-style: italic; line-height: 1.5;">"${comments || 'None provided'}"</td>
+                  </tr>
+                </tbody>
+              </table>
+              
+              <div style="background-color: rgba(197, 168, 128, 0.05); border-left: 2px solid #c5a880; padding: 15px; text-align: left; margin-bottom: 30px;">
+                <p style="margin: 0; font-size: 11px; color: #a5a5a5; line-height: 1.6; font-style: italic;">
+                  "Numbers represent the language of light. By mapping your correct natal vibrations, we activate and align the blueprints of your divine calling."
+                </p>
+              </div>
+              
+              <div style="color: #a5a5a5; font-size: 12px; margin-top: 40px;">
+                <p style="margin-bottom: 5px;">If you have any questions, feel free to reply directly to this mail or reach out via our divine hotline.</p>
+                <p style="font-size: 10px; color: #777777;">&copy; ${new Date().getFullYear()} Seven Astro Sanctuary. All spiritual alignments reserved.</p>
+              </div>
+            </div>
+          `;
+
+      // Form public transporter packet
+          const adminRecipientsSet = new Set<string>();
+          if (adminEmail) adminRecipientsSet.add(adminEmail.trim().toLowerCase());
+          if (smtpUser) adminRecipientsSet.add(smtpUser.trim().toLowerCase());
+          adminRecipientsSet.add("yadavtejas89@gmail.com");
+
+          const adminRecipients = Array.from(adminRecipientsSet).join(", ");
+
+          const mailOptions = {
+            from: smtpFrom,
+            to: adminRecipients, // Send inquiry TO settings admin, SMTP username, and specific support contacts
+            replyTo: email, // Allows direct reply to the visitor's email ID
+            cc: email && !adminRecipientsSet.has(email.trim().toLowerCase()) ? email : undefined, // CC the inquirer receipt securely
+            subject: `[Seven Astro] Celestial Consultation Request – ${fullName}`,
+            text: `Dear ${fullName},\n\nYour birth coordinates have been successfully registered!\n\nName: ${fullName}\nDate: ${dob}\nTime: ${tob}\nPlace: ${pob}\n\nOur Master Numerologist is evaluating your coordinates.\n\nWarm regards,\nSeven Astro Sanctuary`,
+            html: emailHtml,
+          };
+
+          await transporter.sendMail(mailOptions);
+          mailSent = true;
+          console.log(`[SMTP Mailer Success] Live email dispatched successfully to admin (${adminEmail}) and sender (${email})`);
+        } catch (mailErr: any) {
+          console.error("[SMTP Mailer Error] Send failed:", mailErr.message);
+          emailError = mailErr.message;
+        }
+      } else {
+        console.warn("[SMTP Mailer Warning] Missing SMTP environment credentials (SMTP_HOST, SMTP_USER, SMTP_PASS). Skipped dispatch.");
+        emailError = "SMTP configurations are not configured yet in the Settings secrets panel.";
+      }
+
+      res.json({ 
+        success: true, 
+        emailSent: mailSent, 
+        emailError: emailError || null,
+        message: mailSent 
+          ? "Your query has been registered and a confirmation email has been dispatched to your mailbox!" 
+          : "Your query has been recorded. (Note: SMTP outbound credentials are empty, so real email dispatch was bypassed temporarily. Admin has been logged.)"
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
   });
 
   // FAQs

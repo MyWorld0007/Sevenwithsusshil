@@ -10,6 +10,10 @@ export interface Settings {
   about_para1?: string;
   about_para2?: string;
   profile_photo?: string;
+  smtp_host?: string;
+  smtp_port?: string | number;
+  smtp_user?: string;
+  smtp_pass?: string;
 }
 
 export interface Testimonial {

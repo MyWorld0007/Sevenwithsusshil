@@ -12,6 +12,7 @@ import Admin from './pages/Admin';
 import NotFound from './pages/NotFound';
 import ContentPage from './pages/ContentPage';
 import Pricing from './pages/Pricing';
+import Contact from './pages/Contact';
 
 export default function App() {
   const [navScrolled, setNavScrolled] = useState(false);
@@ -150,7 +151,7 @@ export default function App() {
           <ul className="hidden md:flex gap-10 text-[11px] uppercase tracking-[0.2em] text-muted items-center">
             <li><a href="/#about" className="hover:text-gold transition-colors">About</a></li>
             <li><a href="/#calculator" className="hover:text-gold transition-colors">Calculator</a></li>
-            <li><Link to="/pricing" className="hover:text-gold transition-colors">Pricing</Link></li>
+            <li><Link to="/pricing" className="hover:text-gold transition-colors">Energy Exchange</Link></li>
             <li><a href="/#services" className="hover:text-gold transition-colors">Services</a></li>
             <li><Link to="/stories" className="hover:text-gold transition-colors">Stories</Link></li>
           </ul>
@@ -179,7 +180,7 @@ export default function App() {
           <ul className="flex flex-col text-[11px] uppercase tracking-[0.2em] text-muted p-6 gap-2">
             <li><a href="/#about" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block py-3 px-2">About</a></li>
             <li><a href="/#calculator" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block py-3 px-2">Calculator</a></li>
-            <li><Link to="/pricing" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block py-3 px-2">Pricing</Link></li>
+            <li><Link to="/pricing" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block py-3 px-2">Energy Exchange</Link></li>
             <li><a href="/#services" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block py-3 px-2">Services</a></li>
             <li><Link to="/stories" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block py-3 px-2">Stories</Link></li>
             <li className="pt-4 mt-2 border-t border-gold/10">
@@ -202,6 +203,7 @@ export default function App() {
             <Route path="/stories" element={<Stories isFullPage={true} />} />
             <Route path="/booking" element={<Booking />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/contact" element={<Contact />} />
             <Route path="/pages/:slug" element={<ContentPage />} />
            <Route path="*" element={<NotFound />} />
          </Routes>
@@ -213,6 +215,7 @@ export default function App() {
           <li><Link to="/pages/terms" className="text-dim hover:text-gold transition-colors">Terms & Conditions</Link></li>
           <li><Link to="/pages/privacy" className="text-dim hover:text-gold transition-colors">Privacy Policy</Link></li>
           <li><Link to="/pages/faq" className="text-dim hover:text-gold transition-colors">FAQs</Link></li>
+          <li><Link to="/contact" className="text-dim hover:text-gold transition-colors">Contact Us</Link></li>
         </ul>
       </div>
 

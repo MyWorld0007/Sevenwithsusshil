@@ -3,10 +3,19 @@
     {
       "id": 1,
       "whatsapp": "917039516551",
-      "email": "7s.evolve@gmail.com",
+      "email": "info@sevenastro.com",
       "whatsapp_message": "Hello! I would like to book a session.",
       "email_subject": "Book a Session",
-      "email_body": "Hi Team Seven,\n\nI want to book a session."
+      "email_body": "Hi Team Seven,\n\nI want to book a session.",
+      "gemini_api_key": null,
+      "profile_photo": null,
+      "about_title": null,
+      "about_para1": null,
+      "about_para2": null,
+      "smtp_host": "smtp.zoho.in",
+      "smtp_port": "465",
+      "smtp_user": "info@sevenastro.com",
+      "smtp_pass": "atZP6hCZeY3G"
     }
   ],
   "life_paths": [

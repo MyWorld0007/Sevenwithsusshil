@@ -97,6 +97,57 @@ function requireAuth() {
     exit();
 }
 
+function updateEnvFile($smtpHost, $smtpPort, $smtpUser, $smtpPass, $geminiKey = null) {
+    try {
+        $envPath = __DIR__ . '/.env';
+        $examplePath = __DIR__ . '/.env.example';
+        $content = "";
+        
+        if (file_exists($envPath)) {
+            $content = file_get_contents($envPath);
+        } elseif (file_exists($examplePath)) {
+            $content = file_get_contents($examplePath);
+        }
+        
+        $lines = explode("\n", $content);
+        $variables = [];
+        foreach ($lines as $line) {
+            if (preg_match('/^([^#\s][^=]*)=(.*)$/', $line, $matches)) {
+                $key = trim($matches[1]);
+                $val = trim($matches[2]);
+                $val = preg_replace('/^[\'"]|[\'"]$/', '', $val);
+                $val = preg_replace('/^[\'"]|[\'"]$/', '', trim($val));
+                $variables[$key] = trim($val);
+            }
+        }
+        
+        if ($smtpHost) $variables['SMTP_HOST'] = trim($smtpHost);
+        if ($smtpPort) $variables['SMTP_PORT'] = trim($smtpPort);
+        if ($smtpUser) {
+            $variables['SMTP_USER'] = trim($smtpUser);
+            $variables['SMTP_FROM'] = 'Seven Astro Sanctuary <' . trim($smtpUser) . '>';
+        }
+        if ($smtpPass) $variables['SMTP_PASS'] = trim($smtpPass);
+        if ($geminiKey) $variables['GEMINI_API_KEY'] = trim($geminiKey);
+        
+        $newContent = "";
+        foreach ($variables as $key => $val) {
+            $cleanVal = preg_replace('/^[\'"]|[\'"]$/', '', trim($val));
+            $cleanVal = preg_replace('/^[\'"]|[\'"]$/', '', trim($cleanVal));
+            if (strpos($cleanVal, ' ') !== false || strpos($cleanVal, '<') !== false || strpos($cleanVal, '>') !== false) {
+                $newContent .= $key . '="' . $cleanVal . "\"\n";
+            } else {
+                $newContent .= $key . '=' . $cleanVal . "\n";
+            }
+        }
+        
+        file_put_contents($envPath, $newContent);
+        file_put_contents($examplePath, $newContent);
+    } catch (Exception $e) {
+        // Suppress writing errors
+    }
+}
+
 // 5. Parse route mapping
 $route = $_GET['route'] ?? '';
 $parts = explode('/', trim($route, '/'));
@@ -213,6 +264,10 @@ try {
             $about_title = $inputData['about_title'] ?? '';
             $about_para1 = $inputData['about_para1'] ?? '';
             $about_para2 = $inputData['about_para2'] ?? '';
+            $smtp_host = $inputData['smtp_host'] ?? '';
+            $smtp_port = $inputData['smtp_port'] ?? '';
+            $smtp_user = $inputData['smtp_user'] ?? '';
+            $smtp_pass = $inputData['smtp_pass'] ?? '';
             
             if (!$useFallback) {
                 // Ensure row 1 exists
@@ -223,11 +278,13 @@ try {
                 
                 $sql = "UPDATE settings SET 
                         whatsapp = ?, email = ?, whatsapp_message = ?, email_subject = ?, email_body = ?, 
-                        gemini_api_key = ?, profile_photo = ?, about_title = ?, about_para1 = ?, about_para2 = ?
+                        gemini_api_key = ?, profile_photo = ?, about_title = ?, about_para1 = ?, about_para2 = ?,
+                        smtp_host = ?, smtp_port = ?, smtp_user = ?, smtp_pass = ?
                         WHERE id = 1";
                 $pdo->prepare($sql)->execute([
                     $whatsapp, $email, $whatsapp_message, $email_subject, $email_body, 
-                    $gemini_api_key, $profile_photo, $about_title, $about_para1, $about_para2
+                    $gemini_api_key, $profile_photo, $about_title, $about_para1, $about_para2,
+                    $smtp_host, $smtp_port, $smtp_user, $smtp_pass
                 ]);
             } else {
                 $db = readJsonDb();
@@ -244,8 +301,15 @@ try {
                 $db['settings'][0]['about_title'] = $about_title;
                 $db['settings'][0]['about_para1'] = $about_para1;
                 $db['settings'][0]['about_para2'] = $about_para2;
+                $db['settings'][0]['smtp_host'] = $smtp_host;
+                $db['settings'][0]['smtp_port'] = $smtp_port;
+                $db['settings'][0]['smtp_user'] = $smtp_user;
+                $db['settings'][0]['smtp_pass'] = $smtp_pass;
                 writeJsonDb($db);
             }
+            
+            updateEnvFile($smtp_host, $smtp_port, $smtp_user, $smtp_pass, $gemini_api_key);
+            
             echo json_encode(['success' => true]);
             exit();
         }

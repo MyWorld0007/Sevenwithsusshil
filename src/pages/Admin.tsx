@@ -661,7 +661,7 @@ export default function Admin() {
              onClick={() => setActiveTab('pricing')} 
              className={`w-full text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] transition-colors rounded ${activeTab === 'pricing' ? 'bg-gold text-bg-dark font-bold' : 'text-gold hover:bg-gold/10'}`}
            >
-             Pricing Control
+             Energy Exchange
            </button>
            <button 
              onClick={() => setActiveTab('settings')} 
@@ -752,6 +752,67 @@ export default function Admin() {
                    />
                 </div>
               </div>
+
+              {/* ═══ SMTP OUTBOUND CONFIGURATION ═══ */}
+              <div className="border-t border-gold/10 pt-6 mt-8 mb-6">
+                <h3 className="text-lg font-serif mb-2 text-gold">Outbound SMTP Mailer Setup</h3>
+                <p className="text-[11px] text-muted mb-4 leading-relaxed max-w-xl">
+                  Configure SMTP server details to permit the celestial engine to send live consultation inquiries directly to <strong className="text-gold">yadavtejas89@gmail.com</strong>.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2 font-semibold">SMTP Host</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. smtp.gmail.com" 
+                      value={settings.smtp_host || ''} 
+                      onChange={e=>setSettings({...settings, smtp_host: e.target.value})} 
+                      className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold text-sm rounded-sm" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2 font-semibold">SMTP Port</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. 587 or 465" 
+                      value={settings.smtp_port || ''} 
+                      onChange={e=>setSettings({...settings, smtp_port: e.target.value})} 
+                      className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold text-sm rounded-sm" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2 font-semibold">SMTP Username</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. 7s.evolve@gmail.com" 
+                      value={settings.smtp_user || ''} 
+                      onChange={e=>setSettings({...settings, smtp_user: e.target.value})} 
+                      className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold text-sm rounded-sm" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2 font-semibold">SMTP Password</label>
+                    <input 
+                      type="password" 
+                      placeholder="••••••••••••" 
+                      value={settings.smtp_pass || ''} 
+                      onChange={e=>setSettings({...settings, smtp_pass: e.target.value})} 
+                      className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold font-mono text-sm rounded-sm" 
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {saveError && (
+                <div className="bg-red-500/10 text-red-500 border border-red-500/20 px-4 py-3 rounded text-sm mb-4">
+                  {saveError}
+                </div>
+              )}
+              {saveSuccess && (
+                <div className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-4 py-3 rounded text-sm mb-4 font-semibold">
+                  Settings and SMTP configurations saved successfully!
+                </div>
+              )}
 
               <button onClick={saveSettings} className="bg-gold text-bg-dark px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-gold-lt transition-colors rounded">Save Settings</button>
             </div>
@@ -1149,7 +1210,7 @@ export default function Admin() {
             <section className="max-w-5xl animate-in fade-in slide-in-from-bottom-4 duration-500 font-sans p-2">
               <div className="flex justify-between items-center mb-8">
                 <div>
-                  <h2 className="text-3xl font-serif text-gold mb-2">Service Modalities &amp; Pricing</h2>
+                  <h2 className="text-3xl font-serif text-gold mb-2">Service Modalities &amp; Energy Exchange</h2>
                   <p className="text-sm text-muted leading-relaxed max-w-xl">
                     Adjust active price plans, titles, descriptions, and highlights for divine booking exchange alignment.
                   </p>
