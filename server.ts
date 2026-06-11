@@ -1011,10 +1011,93 @@ async function startServer() {
       const { text, initial, name, loc, date, rating } = req.body;
       const [idRows]: any = await db.query('SELECT MAX(id) as maxId FROM testimonials');
       const nextId = (idRows[0].maxId || 0) + 1;
+      const formattedDate = date || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      const ratNum = rating ? parseInt(rating, 10) : 5;
       
       await db.query('INSERT INTO testimonials (id, text, initial, name, loc, date, rating, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', 
-        [nextId, text, initial, name, loc, date || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), rating ? parseInt(rating) : 5, 'pending']);
-      res.json({ success: true, id: nextId });
+        [nextId, text, initial, name, loc, formattedDate, ratNum, 'pending']);
+
+      // Live mail dispatch to administrator for approval verification
+      let mailSent = false;
+      try {
+        const [settingsRows]: any = await db.query('SELECT * FROM settings LIMIT 1');
+        const settingsObj = (settingsRows && settingsRows.length > 0) ? settingsRows[0] : {};
+        const adminEmail = settingsObj.email || "info@sevenastro.com";
+        const smtpHost = settingsObj.smtp_host || process.env.SMTP_HOST;
+        const smtpPort = parseInt((settingsObj.smtp_port || process.env.SMTP_PORT || "587").toString(), 10);
+        const smtpUser = settingsObj.smtp_user || process.env.SMTP_USER;
+        const smtpPass = settingsObj.smtp_pass || process.env.SMTP_PASS;
+        let smtpFrom = process.env.SMTP_FROM || `"Seven Astro" <${smtpUser || "7s.evolve@gmail.com"}>`;
+        if (smtpFrom && smtpUser && !smtpFrom.includes("@")) {
+          smtpFrom = `"${smtpFrom.replace(/"/g, '')}" <${smtpUser}>`;
+        }
+
+        if (smtpHost && smtpUser && smtpPass) {
+          const transporter = nodemailer.createTransport({
+            host: smtpHost,
+            port: smtpPort,
+            secure: smtpPort === 465, // true for 465, false for other TLS ports
+            auth: {
+              user: smtpUser,
+              pass: smtpPass,
+            },
+            tls: {
+              rejectUnauthorized: false
+            }
+          });
+
+          const stars = "★".repeat(ratNum) + "☆".repeat(5 - ratNum);
+          const adminEmailHtml = `
+            <div style="background-color: #0b0c10; color: #c5a880; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px 20px; text-align: center; max-width: 600px; margin: 0 auto; border: 1px solid #c5a880; border-radius: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+              <div style="font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; color: #c5a880; margin-bottom: 10px;">Divine Sanctuary Stories Journal</div>
+              <div style="width: 50px; height: 1px; background-color: #c5a880; margin: 15px auto;"></div>
+              
+              <h1 style="font-size: 26px; font-weight: 300; margin: 15px 0; color: #f5f5f5; font-family: 'Georgia', serif;">Story Approval Request</h1>
+              
+              <p style="color: #a5a5a5; font-size: 14px; line-height: 1.8; margin-bottom: 25px; text-align: left; padding: 0 10px;">
+                Greetings Master Numerologist,<br/><br/>
+                A traveler has shared their journey. Please review this story and approve it in the admin dashboard so it may shine on the sanctuary walls for other seekers:
+              </p>
+
+              <div style="background-color: rgba(197, 168, 128, 0.08); border: 1px solid #c5a880; padding: 18px; margin-bottom: 25px; text-align: left; border-radius: 2px;">
+                <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #888888; margin-bottom: 4px;">Submitted Content</div>
+                <div style="font-size: 15px; font-family: 'Georgia', serif; color: #f5f5f5; font-style: italic; font-weight: 300; margin-bottom: 15px; line-height: 1.6;">
+                  "${text}"
+                </div>
+                <div style="border-top: 1px solid rgba(197, 168, 128, 0.2); padding-top: 10px; font-size: 12px; color: #c5a880;">
+                  <strong>Seeker Name:</strong> ${name} &bull; (${initial})<br/>
+                  <strong>Location:</strong> ${loc}<br/>
+                  <strong>Rating:</strong> ${stars}<br/>
+                  <strong>Submitted On:</strong> ${formattedDate}
+                </div>
+              </div>
+
+              <div style="margin: 30px auto;">
+                <a href="https://sevenastro.com/admin" style="background-color: #c5a880; color: #0b0c10; padding: 12px 30px; text-decoration: none; font-size: 12px; font-weight: bold; letter-spacing: 0.15em; text-transform: uppercase; border-radius: 2px; box-shadow: 0 4px 10px rgba(197, 168, 128, 0.35); display: inline-block;">Go to Admin Dashboard</a>
+              </div>
+              
+              <div style="width: 50px; height: 1px; background-color: rgba(197, 168, 128, 0.2); margin: 20px auto;"></div>
+              
+              <p style="color: #888888; font-size: 11px; line-height: 1.6; max-width: 450px; margin: 0 auto;">
+                Seven Astro © ${new Date().getFullYear()} • Stories Approval Dispatch Layer
+              </p>
+            </div>
+          `;
+
+          const adminRecipient = adminEmail && adminEmail.trim() ? adminEmail.trim().toLowerCase() : "info@sevenastro.com";
+          await transporter.sendMail({
+            from: smtpFrom,
+            to: adminRecipient,
+            subject: `✨ [Story Approval Required] New Story submitted by ${name}`,
+            html: adminEmailHtml,
+          });
+          mailSent = true;
+        }
+      } catch (mailErr: any) {
+        console.error("[SMTP Stories Mailer] Approval notification dispatch failed:", mailErr.message);
+      }
+
+      res.json({ success: true, id: nextId, emailSent: mailSent });
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
 
