@@ -416,6 +416,10 @@ async function getDbPool() {
     } catch (err) {}
 
     try {
+      await pool.query(`UPDATE services SET title = 'Gemstone, Crystal, Rudraksha & Yantra Recommendation' WHERE title LIKE '%Gemstone, Crystal%'`);
+    } catch (err) { console.error("Update fail:", err); }
+
+    try {
       await pool.query(`ALTER TABLE settings ADD COLUMN smtp_pass VARCHAR(255)`);
     } catch (err) {}
 
@@ -714,7 +718,7 @@ async function getDbPool() {
             display_order: 6
           },
           {
-            title: "Gemstone, Crystal & Rudraksha Recommendation",
+            title: "Gemstone, Crystal, Rudraksha & Yantra Recommendation",
             price: "₹5,001",
             rawPrice: "₹5001",
             description: "Receive personalized astronomical cosmic prescription of specific crystals, powerful Rudrakshas, and precious gemstones to amplify protective fields and lucky energy bands.",
