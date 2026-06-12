@@ -15,7 +15,7 @@ const reasons = [
 
 export default function WhyChooseUs() {
   return (
-    <section className="py-24 bg-bg-dark border-t border-gold/10 relative overflow-hidden">
+    <section className="py-16 md:py-24 bg-bg-dark border-t border-gold/10 relative overflow-hidden">
       {/* Background Ornaments */}
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gold/5 rounded-full blur-[100px] mix-blend-screen pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-gold/5 rounded-full blur-[100px] mix-blend-screen pointer-events-none" />

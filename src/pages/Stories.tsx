@@ -589,7 +589,7 @@ export default function Stories({ isFullPage = false }: StoriesProps) {
 
   // Fallback Inline Homepage Component
   return (
-    <section id="testimonials" className="w-full relative z-10 py-32 px-6 md:px-12 max-w-[1280px] mx-auto min-h-screen flex flex-col justify-center">
+    <section id="testimonials" className="w-full relative z-10 py-16 md:py-24 px-6 md:px-12 max-w-[1280px] mx-auto flex flex-col justify-center">
       <p className="text-[10px] font-medium tracking-[0.38em] uppercase text-gold text-center mb-4">Client Stories</p>
       <div className="w-[48px] h-[1px] bg-gold mx-auto mb-6"></div>
       <h2 className="text-4xl md:text-5xl font-light font-serif text-center mb-4">Voices of Transformation</h2>

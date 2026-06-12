@@ -258,6 +258,62 @@ if (!$useFallback && $pdo) {
             features TEXT,
             display_order INT DEFAULT 0
         )");
+        
+        $pdo->exec("CREATE TABLE IF NOT EXISTS testimonials (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            text TEXT,
+            initial VARCHAR(10),
+            name VARCHAR(255),
+            loc VARCHAR(255),
+            date VARCHAR(255),
+            rating INT DEFAULT 5,
+            status VARCHAR(20) DEFAULT 'approved',
+            helpful_count INT DEFAULT 0
+        )");
+
+        // Seed services if empty
+        $stmtServices = $pdo->query("SELECT COUNT(*) FROM services");
+        if ($stmtServices->fetchColumn() == 0) {
+            $dbJson = file_exists(JSON_DB_PATH) ? json_decode(file_get_contents(JSON_DB_PATH), true) : [];
+            if (!empty($dbJson['services'])) {
+                $insertStmt = $pdo->prepare("INSERT INTO services (id, title, price, rawPrice, description, iconText, features, display_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                foreach ($dbJson['services'] as $s) {
+                    $insertStmt->execute([
+                        $s['id'] ?? null,
+                        $s['title'] ?? '',
+                        $s['price'] ?? '',
+                        $s['rawPrice'] ?? '',
+                        $s['description'] ?? '',
+                        $s['iconText'] ?? '',
+                        isset($s['features']) && is_array($s['features']) ? json_encode($s['features']) : ($s['features'] ?? '[]'),
+                        $s['display_order'] ?? 0
+                    ]);
+                }
+            }
+        }
+
+        // Seed testimonials if empty
+        $stmtTestimonials = $pdo->query("SELECT COUNT(*) FROM testimonials");
+        if ($stmtTestimonials->fetchColumn() == 0) {
+            $dbJson = file_exists(JSON_DB_PATH) ? json_decode(file_get_contents(JSON_DB_PATH), true) : [];
+            if (!empty($dbJson['testimonials'])) {
+                $insertStmt = $pdo->prepare("INSERT INTO testimonials (id, text, initial, name, loc, date, rating, status, helpful_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                foreach ($dbJson['testimonials'] as $t) {
+                    $insertStmt->execute([
+                        $t['id'] ?? null,
+                        $t['text'] ?? '',
+                        $t['initial'] ?? '',
+                        $t['name'] ?? '',
+                        $t['loc'] ?? '',
+                        $t['date'] ?? '',
+                        $t['rating'] ?? 5,
+                        $t['status'] ?? 'approved',
+                        $t['helpful_count'] ?? 0
+                    ]);
+                }
+            }
+        }
+
     } catch(Exception $e) {}
 }
 

@@ -133,7 +133,7 @@ export default function Calculator() {
   };
 
   return (
-    <section id="calculator" className="w-full relative z-10 py-32 px-8 md:px-16 mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center min-h-[90vh]">
+    <section id="calculator" className="w-full relative z-10 py-16 md:py-24 px-6 md:px-12 mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-12 items-center">
       <div className="lg:col-span-7 flex flex-col reveal vis max-w-[1280px] w-full mx-auto">
         <p className="text-[10px] font-medium tracking-[0.38em] uppercase text-gold mb-4">Free Tool</p>
         <h2 className="text-4xl md:text-5xl font-light font-serif leading-[1.2] mb-6">

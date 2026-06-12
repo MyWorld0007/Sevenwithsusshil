@@ -26,7 +26,7 @@ export default function Services({ isFullPage = false }: { isFullPage?: boolean 
   };
 
   return (
-    <section id="services" className={`w-full relative z-10 py-32 px-6 md:px-12 max-w-[1280px] mx-auto ${!isFullPage ? 'min-h-screen flex flex-col justify-center' : ''}`}>
+    <section id="services" className={`w-full relative z-10 py-16 md:py-24 px-6 md:px-12 max-w-[1280px] mx-auto ${!isFullPage ? 'flex flex-col justify-center' : ''}`}>
       <p className="text-[10px] font-medium tracking-[0.38em] uppercase text-gold text-center mb-4">What I Offer</p>
       <div className="w-[48px] h-[1px] bg-gold mx-auto mb-6"></div>
       <h2 className="text-4xl md:text-5xl font-light font-serif text-center leading-[1.2] mb-4">Pathways to Clarity</h2>

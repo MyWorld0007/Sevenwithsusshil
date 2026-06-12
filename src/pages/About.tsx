@@ -26,7 +26,7 @@ export default function About() {
   }, []);
 
   return (
-    <section id="about" className="w-full relative z-10 py-32 px-6 md:px-12 bg-bg-card/30 min-h-screen flex items-center">
+    <section id="about" className="w-full relative z-10 py-16 md:py-24 px-6 md:px-12 bg-bg-card/30 flex items-center">
       <div className="max-w-[1280px] mx-auto grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-16 items-center">
         <div className="md:col-span-5 relative reveal vis max-w-[320px] md:max-w-none mx-auto w-full">
           <div className="w-full aspect-[3/4] bg-bg-input border border-gold/20 rounded-sm flex items-center justify-center relative shadow-[0_0_40px_rgba(201,160,80,0.1)] overflow-hidden">
