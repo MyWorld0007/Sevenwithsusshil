@@ -87,7 +87,7 @@ const BriefStoryCard = ({ tst, onSelect }: BriefStoryCardProps) => {
               {tst.initial}
             </div>
             <div>
-              <h4 className="text-[13px] font-medium text-white tracking-wide">{tst.name}</h4>
+              <h4 className="text-[13px] font-medium text-text-main tracking-wide">{tst.name}</h4>
               <p className="text-[10px] text-dim">{tst.loc}</p>
             </div>
           </div>
@@ -136,7 +136,7 @@ const TestimonialCard = ({ tst }: { tst: Testimonial; key?: React.Key }) => {
             {tst.initial}
           </div>
           <div className="text-left">
-            <div className="text-[14px] font-medium text-white">{tst.name}</div>
+            <div className="text-[14px] font-medium text-text-main">{tst.name}</div>
             <div className="text-[11px] text-dim mt-1">{tst.loc}</div>
           </div>
         </div>
@@ -551,7 +551,7 @@ export default function Stories({ isFullPage = false }: StoriesProps) {
           {searchQuery && (
             <button 
               onClick={() => setSearchQuery('')}
-              className="absolute inset-y-0 right-4 flex items-center text-muted/60 hover:text-white"
+              className="absolute inset-y-0 right-4 flex items-center text-muted/60 hover:text-text-main"
             >
               <X className="w-4 h-4" />
             </button>

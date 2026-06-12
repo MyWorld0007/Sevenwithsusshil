@@ -254,7 +254,7 @@ const DEFAULT_SERVICES: PricingService[] = [
   },
   {
     id: 8,
-    title: "Gemstone, Crystal & Rudraksha Recommendation",
+    title: "Gemstone, Crystal, Rudraksha & Yantra Recommendation",
     price: "₹5,001",
     rawPrice: "₹5001",
     description: "Receive personalized astronomical cosmic prescription of specific crystals, powerful Rudrakshas, and precious gemstones to amplify protective fields and lucky energy bands.",

@@ -114,7 +114,7 @@ const serviceData = {
     ),
   },
   'gemstone-crystal-rudraksha-recommendation': {
-    title: 'Gemstone, Crystal & Rudraksha Recommendation',
+    title: 'Gemstone, Crystal, Rudraksha & Yantra Recommendation',
     subtitle: 'Energetic Harmonization & Balance',
     content: (
       <div className="space-y-6 text-muted font-light leading-relaxed text-base md:text-lg">

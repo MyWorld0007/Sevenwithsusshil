@@ -22,7 +22,7 @@ export default function WhyChooseUs() {
 
       <div className="max-w-7xl mx-auto px-6 relative z-10">
         <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-display text-gold mb-6">Why Clients Choose SEVEN</h2>
+          <h2 className="text-4xl md:text-5xl font-display mb-6"><span className="text-muted">Why Clients Choose</span> <span className="text-gold">SEVEN</span></h2>
           <p className="text-text-muted max-w-2xl mx-auto text-lg">
             Experience profound transformation through authentic metaphysical sciences. We blend ancient wisdom with practical alignment to elevate your journey.
           </p>
