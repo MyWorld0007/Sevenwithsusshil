@@ -1,5 +1,6 @@
 import { apiFetch } from '../lib/api';
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { LifePath } from '../Types';
 
 function reduce(n: number): number {
@@ -205,7 +206,9 @@ export default function Calculator() {
                 </>
             )}
             <div className="text-dim text-[10px] tracking-[0.2em] uppercase mb-2 italic">Seeking Deeper Wisdom?</div>
-            <div className="mb-2"><a href="/#booking" className="text-gold text-[10px] sm:text-xs font-bold uppercase tracking-[0.1em] hover:text-gold-lt transition-colors underline decoration-gold/30 underline-offset-4">Book a Session</a></div>
+            <div className="mb-2">
+              <Link to="/pricing" className="text-gold text-[10px] sm:text-xs font-bold uppercase tracking-[0.1em] hover:text-gold-lt transition-colors underline decoration-gold/30 underline-offset-4">Book a Session</Link>
+            </div>
           </div>
         </div>
       </div>

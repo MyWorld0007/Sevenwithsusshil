@@ -162,9 +162,9 @@ export default function ServiceDetail() {
           <Link to="/" className="text-xs uppercase tracking-widest text-muted hover:text-gold transition-colors border border-transparent hover:border-gold/30 px-6 py-3 rounded">
             ← Explore Other Offerings
           </Link>
-          <a href="/#booking" className="bg-gold text-bg-dark px-8 py-3 text-xs font-bold uppercase tracking-[0.2em] hover:bg-gold-lt transition-colors rounded shadow-lg shadow-gold/10">
+          <Link to="/pricing" className="bg-gold text-bg-dark px-8 py-3 text-xs font-bold uppercase tracking-[0.2em] hover:bg-gold-lt transition-colors rounded shadow-lg shadow-gold/10">
             Book This Reading
-          </a>
+          </Link>
         </div>
       </div>
     </div>

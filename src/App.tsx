@@ -156,9 +156,9 @@ export default function App() {
             <li><Link to="/stories" className="hover:text-gold transition-colors">Stories</Link></li>
           </ul>
           <div className="flex items-center gap-4">
-            <a href="/#booking" className="hidden md:inline-block px-6 py-2 border border-gold/30 text-[11px] uppercase tracking-[0.2em] hover:bg-gold/10 transition-colors text-gold">
+            <Link to="/pricing" className="hidden md:inline-block px-6 py-2 border border-gold/30 text-[11px] uppercase tracking-[0.2em] hover:bg-gold/10 transition-colors text-gold">
               Book a Session
-            </a>
+            </Link>
             <button 
               className="md:hidden text-gold p-3 cursor-pointer focus:outline-none"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -184,9 +184,9 @@ export default function App() {
             <li><a href="/#services" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block py-3 px-2">Services</a></li>
             <li><Link to="/stories" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block py-3 px-2">Stories</Link></li>
             <li className="pt-4 mt-2 border-t border-gold/10">
-              <a href="/#booking" onClick={() => setIsMobileMenuOpen(false)} className="inline-block px-6 py-3.5 border border-gold/30 text-gold w-full text-center uppercase tracking-[0.2em]">
+              <Link to="/pricing" onClick={() => setIsMobileMenuOpen(false)} className="inline-block px-6 py-3.5 border border-gold/30 text-gold w-full text-center uppercase tracking-[0.2em]">
                 Book a Session
-              </a>
+              </Link>
             </li>
           </ul>
         </div>
