@@ -2,26 +2,6 @@ import React, { useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 
 const serviceData = {
-  'life-path-reading': {
-    title: 'Life Path Reading',
-    subtitle: 'The Blueprint of Your Soul\'s Journey',
-    content: (
-      <div className="space-y-6 text-muted font-light leading-relaxed text-base md:text-lg">
-        <p>Your Life Path number is the single most important number in numerology. Calculated from your full date of birth, it acts as a blueprint — a cosmic map that outlines the major themes, lessons, opportunities, and challenges you are destined to encounter throughout your lifetime.</p>
-        <p>Think of it as the "script" your soul chose before you arrived in this world. It doesn't predict a fixed fate, but rather illuminates the terrain you are most likely to travel. Some people feel an immediate and deep recognition when they hear their Life Path reading — a sense of "yes, this is exactly what my life has been about."</p>
-        
-        <h3 className="text-2xl font-serif text-gold mt-10 mb-6">What a Life Path Reading reveals:</h3>
-        <ul className="list-disc pl-6 space-y-3 mb-8">
-          <li><strong>Your core strengths</strong> and natural talents</li>
-          <li><strong>The recurring life lessons</strong> you are here to master</li>
-          <li><strong>The types of experiences</strong> and environments that will help you grow</li>
-          <li><strong>The shadow side</strong> of your personality — patterns that may hold you back</li>
-          <li><strong>The broader spiritual purpose</strong> behind your earthly journey</li>
-        </ul>
-        <p className="mt-8">Whether you are in your twenties just starting out, in your forties navigating a major transition, or in your sixties reflecting on a life well-lived, a Life Path Reading offers timeless wisdom that remains relevant at every stage.</p>
-      </div>
-    ),
-  },
   'birth-name-analysis': {
     title: 'Birth Date, Name Analysis & Name Correction',
     subtitle: 'Shaping Your Destiny',
@@ -124,6 +104,123 @@ const serviceData = {
         <p>The recommendation may also include guidance on suitable metals, wearing methods, activation practices, and supportive combinations to maximize alignment and comfort. The goal is not superstition or dependency, but creating a positive and supportive influence in daily life.</p>
         <p>When selected thoughtfully and worn correctly, gemstones, crystals, and Rudraksha can act as meaningful tools for confidence, emotional balance, clarity, and personal growth while supporting an individual’s journey toward harmony and success.</p>
       </div>
+    ),
+  },
+  'mobile-number-numerology': {
+    title: 'Mobile Number Numerology',
+    subtitle: 'Unlock the Vibrational Power of Your Phone Number',
+    content: (
+       <div className="space-y-6 text-muted font-light leading-relaxed text-base md:text-lg">
+         <p>Have you ever wondered whether your mobile number influences your life? According to numerology, every number carries a unique vibration that can impact communication, relationships, career growth, finances, and overall energy. Mobile Number Numerology is a fascinating practice that analyzes the numerical value of your phone number to reveal its hidden influence on your life.</p>
+         <p>In numerology, numbers are considered powerful energy carriers. Since your mobile number is something you use every day, its vibration constantly interacts with your personal energy field. A favorable mobile number can attract opportunities, improve communication, and support success, while an incompatible number may create obstacles or misunderstandings.</p>
+         <p>A professional Mobile Number Numerology consultation involves reducing your phone number to a single-digit number and comparing it with your birth date and life path number. This helps determine whether your current number aligns with your goals, personality, and destiny. If the vibrations are not compatible, a numerologist may suggest modifications or recommend a more suitable number.</p>
+         <p>Many people seek Mobile Number Numerology for various reasons, including business growth, relationship harmony, career advancement, financial stability, and personal development. Entrepreneurs often choose numerologically aligned mobile numbers to enhance business communication and attract prosperity.</p>
+         <h3 className="text-2xl font-serif text-gold mt-10 mb-6">The benefits of Mobile Number Numerology include:</h3>
+         <ul className="list-disc pl-6 space-y-3 mb-8">
+           <li>Improved communication and networking opportunities</li>
+           <li>Enhanced confidence and personal influence</li>
+           <li>Better alignment with career and business goals</li>
+           <li>Increased positivity and energetic balance</li>
+           <li>Stronger attraction of opportunities and success</li>
+         </ul>
+         <p>Numerology is not about superstition; it is about understanding energy patterns and aligning yourself with supportive vibrations. When combined with personalized guidance, Mobile Number Numerology can become a valuable tool for self-awareness and growth.</p>
+         <p>Whether you are considering a new phone number or simply curious about the energy of your existing one, a Mobile Number Numerology reading can provide meaningful insights. Discover how the numbers you use every day may be shaping your future and unlock the potential hidden within your mobile number.</p>
+       </div>
+    ),
+  },
+  'reiki-healings': {
+    title: 'Partnered Expert Reiki Healings',
+    subtitle: 'Energy Balance and Emotional Wellness',
+    content: (
+       <div className="space-y-6 text-muted font-light leading-relaxed text-base md:text-lg">
+         <p>Reiki healing is a gentle yet powerful energy therapy that promotes relaxation, emotional healing, and overall well-being. Through our Partnered Expert Reiki Healings, you can connect with experienced Reiki practitioners who help restore balance to your mind, body, and spirit.</p>
+         <p>Reiki is based on the concept of universal life force energy flowing through all living beings. When this energy becomes blocked or imbalanced, it may contribute to stress, fatigue, emotional challenges, and physical discomfort. Reiki practitioners use light touch or distance healing techniques to channel positive energy and support the body's natural healing process.</p>
+         <p>Our partnered Reiki experts provide personalized sessions designed to address your unique needs. Whether you are dealing with anxiety, emotional stress, low energy, relationship issues, or spiritual growth challenges, Reiki healing can offer deep relaxation and energetic alignment.</p>
+         <h3 className="text-2xl font-serif text-gold mt-10 mb-6">Benefits of Expert Reiki Healing include:</h3>
+         <ul className="list-disc pl-6 space-y-3 mb-8">
+           <li>Reduced stress and anxiety</li>
+           <li>Enhanced emotional clarity and balance</li>
+           <li>Improved energy flow throughout the body</li>
+           <li>Better sleep and relaxation</li>
+           <li>Support for spiritual growth and self-awareness</li>
+           <li>Increased sense of peace and well-being</li>
+         </ul>
+         <p>Many individuals experience warmth, tingling sensations, or profound relaxation during Reiki sessions. The healing energy helps release energetic blockages and encourages harmony within the body's energy systems.</p>
+         <p>Distance Reiki healing has also become increasingly popular, allowing clients to receive healing energy regardless of location. Our partnered experts are trained to provide effective Reiki sessions both in-person and remotely.</p>
+         <p>Choosing Partnered Expert Reiki Healings ensures you receive guidance from experienced practitioners committed to your wellness journey. Whether you seek emotional healing, energetic cleansing, or spiritual alignment, Reiki offers a holistic approach to restoring balance and vitality.</p>
+         <p>Experience the transformative power of Reiki and discover how energy healing can help you live a healthier, more balanced, and more fulfilling life.</p>
+       </div>
+    ),
+  },
+  'tarot-readings': {
+    title: 'Partnered Expert Tarot Card Readings',
+    subtitle: 'Insight, Guidance, and Clarity',
+    content: (
+       <div className="space-y-6 text-muted font-light leading-relaxed text-base md:text-lg">
+         <p>Tarot card reading is a powerful spiritual tool that provides guidance, self-reflection, and deeper understanding of life's challenges and opportunities. Through our Partnered Expert Tarot Card Readings, you can gain valuable insights into relationships, career decisions, finances, personal growth, and future possibilities.</p>
+         <p>Tarot cards do not predict a fixed future. Instead, they reveal current energies, patterns, and potential outcomes based on your present circumstances. A skilled tarot reader interprets the symbolism and messages within the cards to help you make informed decisions and gain clarity.</p>
+         <p>Our partnered tarot experts use intuitive guidance combined with years of experience to provide accurate and meaningful readings. Whether you are facing uncertainty in your career, seeking answers about love and relationships, or exploring your spiritual path, tarot can offer practical and empowering guidance.</p>
+         <h3 className="text-2xl font-serif text-gold mt-10 mb-6">Benefits of Professional Tarot Card Readings include:</h3>
+         <ul className="list-disc pl-6 space-y-3 mb-8">
+           <li>Greater clarity during important decisions</li>
+           <li>Insights into love and relationship dynamics</li>
+           <li>Guidance for career and financial opportunities</li>
+           <li>Enhanced self-awareness and personal growth</li>
+           <li>Understanding of current challenges and future possibilities</li>
+           <li>Spiritual direction and emotional reassurance</li>
+         </ul>
+         <p>Tarot readings can help uncover hidden influences, identify opportunities, and provide a fresh perspective on situations that may feel confusing or overwhelming. Many people find tarot to be a valuable tool for personal empowerment and reflection.</p>
+         <p>Our Partnered Expert Tarot Card Readings are conducted with compassion, professionalism, and confidentiality. Every reading is tailored to your questions and concerns, ensuring a personalized and meaningful experience.</p>
+         <p>If you are seeking answers, guidance, or a deeper understanding of your life's journey, a professional tarot card reading can provide the insight you need to move forward with confidence and clarity.</p>
+       </div>
+    ),
+  },
+  'guided-meditation': {
+    title: 'Partnered Expert Guided Meditation',
+    subtitle: 'Relaxation, Mindfulness, and Inner Peace',
+    content: (
+       <div className="space-y-6 text-muted font-light leading-relaxed text-base md:text-lg">
+         <p>In today's fast-paced world, stress, anxiety, and mental fatigue have become increasingly common. Guided meditation offers a powerful way to calm the mind, improve focus, and create a deeper connection with yourself. Through our Partnered Expert Guided Meditation sessions, you can experience professional support designed to help you achieve greater emotional balance, mindfulness, and inner peace.</p>
+         <p>Guided meditation is a practice where an experienced meditation expert leads you through visualization techniques, breathing exercises, and mindfulness practices. These sessions are designed to help quiet mental chatter, reduce stress, and promote relaxation. Whether you are new to meditation or have an established practice, guided meditation can provide structure and support for achieving your wellness goals.</p>
+         <p>Our partnered meditation experts offer personalized sessions that address a variety of needs, including stress management, emotional healing, better sleep, increased focus, self-confidence, and spiritual growth. Each session is tailored to your individual objectives, creating a unique and transformative experience.</p>
+         <h3 className="text-2xl font-serif text-gold mt-10 mb-6">Benefits of Expert Guided Meditation include:</h3>
+         <ul className="list-disc pl-6 space-y-3 mb-8">
+           <li>Reduced stress and anxiety</li>
+           <li>Improved concentration and mental clarity</li>
+           <li>Better sleep quality and relaxation</li>
+           <li>Enhanced emotional resilience</li>
+           <li>Increased mindfulness and self-awareness</li>
+           <li>Greater sense of inner calm and balance</li>
+         </ul>
+         <p>Regular meditation has been shown to support overall well-being by helping individuals manage daily challenges more effectively. It encourages present-moment awareness, allowing you to respond thoughtfully rather than react impulsively to life's situations.</p>
+         <p>Guided meditation can also support personal development by helping you release limiting beliefs, cultivate positive thinking, and strengthen your connection to your inner wisdom. Many participants report feeling more centered, focused, and emotionally balanced after consistent meditation practice.</p>
+         <p>Our Partnered Expert Guided Meditation sessions are available in convenient formats, including online and remote sessions, allowing you to access professional guidance from the comfort of your home. Whether your goal is relaxation, self-discovery, emotional healing, or spiritual growth, guided meditation can provide a powerful path toward lasting well-being.</p>
+         <p>Begin your journey toward greater mindfulness and inner peace today with expert-guided meditation designed to support your mind, body, and spirit.</p>
+       </div>
+    ),
+  },
+  'chakra-healings': {
+    title: 'Partnered Expert Chakra Healings',
+    subtitle: 'Energy Alignment and Holistic Wellness',
+    content: (
+       <div className="space-y-6 text-muted font-light leading-relaxed text-base md:text-lg">
+         <p>Chakra healing is a holistic wellness practice that focuses on balancing the body's energy centers to promote physical, emotional, mental, and spiritual well-being. Through our Partnered Expert Chakra Healings, you can work with experienced energy practitioners who help restore harmony and alignment throughout your energetic system.</p>
+         <p>According to ancient spiritual traditions, the body contains seven primary chakras, or energy centers, each associated with different aspects of health and consciousness. When these chakras become blocked, overactive, or imbalanced, individuals may experience emotional stress, low energy, lack of focus, relationship challenges, or feelings of disconnection.</p>
+         <p>Professional chakra healing sessions are designed to identify and address energetic imbalances. Our partnered experts use a variety of healing techniques, including energy work, meditation, visualization, Reiki-inspired practices, and spiritual guidance to help restore the natural flow of energy.</p>
+         <h3 className="text-2xl font-serif text-gold mt-10 mb-6">Benefits of Expert Chakra Healing include:</h3>
+         <ul className="list-disc pl-6 space-y-3 mb-8">
+           <li>Improved emotional balance and stability</li>
+           <li>Enhanced energy levels and vitality</li>
+           <li>Reduced stress and mental tension</li>
+           <li>Greater spiritual awareness and self-discovery</li>
+           <li>Better focus, creativity, and confidence</li>
+           <li>Increased sense of harmony and inner peace</li>
+         </ul>
+         <p>Each chakra plays a unique role in overall well-being. For example, the Root Chakra is associated with stability and security, while the Heart Chakra influences love, compassion, and relationships. Balancing these energy centers can support positive transformation across multiple areas of life.</p>
+         <p>Many people seek chakra healing to overcome emotional blockages, release negative energy, improve self-confidence, and strengthen their spiritual connection. Regular chakra balancing sessions may help create a greater sense of alignment between your thoughts, emotions, and actions.</p>
+         <p>Our Partnered Expert Chakra Healings provide personalized guidance based on your individual energy profile and wellness goals. Sessions are conducted with professionalism, compassion, and a commitment to helping you achieve energetic harmony.</p>
+         <p>Whether you are beginning your spiritual journey or seeking deeper energetic healing, chakra balancing can be a valuable tool for personal growth and holistic wellness. Experience the benefits of aligned energy and discover a greater sense of balance, clarity, and well-being through expert chakra healing sessions.</p>
+       </div>
     ),
   }
 };
