@@ -45,7 +45,7 @@ export default function About() {
           </div>
         </div>
         <div className="md:col-span-7 reveal vis">
-          <p className="text-[10px] font-medium tracking-[0.38em] uppercase text-gold mb-4">About</p>
+          <p className="text-[10px] font-medium tracking-[0.38em] uppercase text-gold mb-4">About SEVEN</p>
           <h2 className="text-3xl md:text-5xl font-light font-serif leading-[1.18] mb-6">{aboutTitle}</h2>
           <p className="text-[15px] font-light leading-[1.95] text-muted mb-6 whitespace-pre-wrap">{aboutPara1}</p>
           <p className="text-[15px] font-light leading-[1.95] text-muted mb-8 whitespace-pre-wrap">{aboutPara2}</p>

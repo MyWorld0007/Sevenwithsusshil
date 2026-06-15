@@ -3,15 +3,19 @@ import { Link, useLocation } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const ALL_SERVICES = [
-  { n: '01', title: 'Life Path Reading', slug: 'life-path-reading', desc: 'A comprehensive exploration of your core numbers — life path, destiny, soul urge, and personality — revealing who you are at your deepest level.' },
-  { n: '02', title: 'Birth Date, Name Analysis & Name Correction', slug: 'birth-name-analysis', desc: 'Your name is not a coincidence. Uncover hidden frequencies in your name and birth date, with guidance on name correction to shape your destiny.' },
-  { n: '03', title: 'Relationship Compatibility Analysis', slug: 'relationship-compatibility', desc: 'Explore the numerological dynamics between you and a partner, friend, or colleague for deeper understanding and harmonious connection.' },
-  { n: '04', title: 'Career Path & Success Guidance', slug: 'career-success-guidance', desc: 'Align your professional path with your soul\'s calling. Use numerology as a compass when facing pivotal decisions and transitions.' },
-  { n: '05', title: 'Child Birth Date & Name Alignment Analysis', slug: 'child-name-alignment', desc: 'Ensure your child\'s name aligns perfectly with their birth date frequencies, giving them a harmonious start to their life journey.' },
-  { n: '06', title: 'Business Numerology & Prosperity Blueprint', slug: 'business-numerology', desc: 'Optimize your business name, launch dates, and brand frequencies to attract abundance, success, and long-term prosperity.' },
-  { n: '07', title: 'Lucky Numbers, Alphabets & Colour Alignment Guidance', slug: 'lucky-alignment', desc: 'Discover your most auspicious numbers, letters, and colors. Learn how to integrate them into your daily life for enhanced luck and flow.' },
-  { n: '08', title: 'Focused Insight Session (Single Question Guidance)', slug: 'focused-insight', desc: 'Have a specific, burning question? Receive targeted, clear numerological guidance on a single pressing issue or decision.' },
-  { n: '09', title: 'Gemstone, Crystal, Rudraksha & Yantra Recommendation', slug: 'gemstone-crystal-rudraksha-recommendation', desc: 'Identify which gemstone, crystal, or Rudraksha is naturally aligned with your energy to create greater balance, inner stability, and support your journey toward success.' }
+  { n: '01', title: 'Child Birth Date & Name Alignment Analysis', slug: 'child-name-alignment', desc: 'Discover the optimal name vibration and cosmic alignment for your child\'s birth energy.' },
+  { n: '02', title: 'Career Path & Success Guidance', slug: 'career-success-guidance', desc: 'Explore your professional potential, ideal sectors, and key timing for career breakthroughs or transitions.' },
+  { n: '03', title: 'Relationship Compatibility Analysis', slug: 'relationship-compatibility', desc: 'Decipher the numerical resonance between partners to nourish harmony and conscious relationship growth.' },
+  { n: '04', title: 'Birth Date, Name Analysis & Name Correction', slug: 'birth-name-analysis', desc: 'A comprehensive analysis of your birth energy and full name correction for lifetime cosmic harmony.' },
+  { n: '05', title: 'Business Numerology & Prosperity Blueprint', slug: 'business-numerology', desc: 'Optimize corporate/brand alignment, choose lucky launch dates, and blueprint your business success.' },
+  { n: '06', title: 'Lucky Numbers, Alphabets & Colour Alignment', slug: 'lucky-alignment', desc: 'Elevate your daily frequency by aligning with your supportive numbers, letters, and visual energies.' },
+  { n: '07', title: 'Focused Insight Session', slug: 'focused-insight', desc: 'Directly target a single query or burning question for swift, clear metaphysical clarity (Single Question).' },
+  { n: '08', title: 'Gemstone, Crystal, Rudraksha & Yantra Recommendation', slug: 'gemstone-crystal-rudraksha-recommendation', desc: 'Receive personalized astronomical cosmic prescription of specific crystals, powerful Rudrakshas, and precious gemstones to amplify protective fields and lucky energy bands.' },
+  { n: '09', title: 'Mobile Number Numerology', slug: 'mobile-number-numerology', desc: 'Analyze and optimize your mobile number vibrations to enhance communication, opportunities, prosperity, and overall life harmony.' },
+  { n: '10', title: 'Partnered Expert Reiki Healings', slug: 'reiki-healings', desc: 'Experience energy healing through our Expert Reiki Healers to promote emotional balance, stress relief, inner peace, and overall well-being.' },
+  { n: '11', title: 'Partnered Expert Tarot Card Readings', slug: 'tarot-readings', desc: 'Gain intuitive guidance and deeper insights into life\'s questions, challenges, opportunities, and future possibilities through Tarot.' },
+  { n: '12', title: 'Partnered Expert Guided Meditation', slug: 'guided-meditation', desc: 'Experience guided meditation sessions designed to reduce stress, improve focus, enhance self-awareness, and foster inner harmony.' },
+  { n: '13', title: 'Partnered Expert Chakra Healings', slug: 'chakra-healings', desc: 'Restore balance and harmony to your energy centers through chakra healing for improved emotional, mental, physical, and spiritual well-being.' }
 ];
 
 export default function Services({ isFullPage = false }: { isFullPage?: boolean }) {

@@ -673,7 +673,7 @@ export default function Admin() {
              onClick={() => setActiveTab('testimonials')} 
              className={`w-full text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] transition-colors rounded ${activeTab === 'testimonials' ? 'bg-gold text-bg-dark font-bold' : 'text-gold hover:bg-gold/10'}`}
            >
-             Stories
+             Success Stories
            </button>
            <button 
              onClick={() => setActiveTab('lifepaths')} 
@@ -697,7 +697,7 @@ export default function Admin() {
              onClick={() => setActiveTab('profile')} 
              className={`w-full text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] transition-colors rounded ${activeTab === 'profile' ? 'bg-gold text-bg-dark font-bold' : 'text-gold hover:bg-gold/10'}`}
            >
-             About Profile
+             About SEVEN Profile
            </button>
         </nav>
 
@@ -822,7 +822,7 @@ export default function Admin() {
         {activeTab === 'testimonials' && (
           <section className="max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500">
              <div className="flex justify-between items-center mb-8">
-               <h2 className="text-3xl font-serif text-gold">Stories</h2>
+               <h2 className="text-3xl font-serif text-gold">Success Stories</h2>
              </div>
              
              {!testimonials ? (
@@ -1054,7 +1054,7 @@ export default function Admin() {
          {activeTab === 'profile' && settings && (
            <section className="max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500">
              <div className="flex justify-between items-center mb-6">
-               <h2 className="text-3xl font-serif text-gold">About Profile Settings</h2>
+               <h2 className="text-3xl font-serif text-gold">About SEVEN Profile Settings</h2>
                <div className="flex items-center gap-4">
                  {saveSuccess && <span className="text-emerald-400 font-mono text-xs animate-pulse">✓ Saved Successfully</span>}
                  {saveError && <span className="text-rose-400 font-mono text-xs">Error: {saveError}</span>}
@@ -1069,7 +1069,7 @@ export default function Admin() {
              </div>
              
              <p className="text-sm text-muted mb-8 tracking-wide max-w-2xl leading-relaxed">
-               Update your homepage "About" section's display details, profile picture path, and descriptions for perfect paragraph alignment.
+               Update your homepage "About SEVEN" section's display details, profile picture path, and descriptions for perfect paragraph alignment.
               </p>
                {/* Profile Editor Grid */}
              <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
@@ -1144,7 +1144,7 @@ export default function Admin() {
                    </div>
 
                    <div>
-                     <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2 font-semibold font-serif text-gold">About Section Title</label>
+                     <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2 font-semibold font-serif text-gold">About SEVEN Section Title</label>
                      <input 
                        type="text" 
                        value={settings.about_title || ''} 
@@ -1156,7 +1156,7 @@ export default function Admin() {
 
                    <div>
                      <div className="flex justify-between items-center mb-2">
-                       <label className="block text-xs uppercase tracking-[0.1em] text-muted font-semibold font-mono">About Description: Paragraph 1</label>
+                       <label className="block text-xs uppercase tracking-[0.1em] text-muted font-semibold font-mono">About SEVEN Description: Paragraph 1</label>
                        <span className="text-[10px] text-gold font-mono font-semibold">Better alignment view</span>
                      </div>
                      <textarea 
@@ -1169,7 +1169,7 @@ export default function Admin() {
 
                    <div>
                      <div className="flex justify-between items-center mb-2">
-                       <label className="block text-xs uppercase tracking-[0.1em] text-muted font-semibold font-mono">About Description: Paragraph 2</label>
+                       <label className="block text-xs uppercase tracking-[0.1em] text-muted font-semibold font-mono">About SEVEN Description: Paragraph 2</label>
                        <span className="text-[10px] text-gold font-mono font-semibold font-serif">Better alignment view</span>
                      </div>
                      <textarea 

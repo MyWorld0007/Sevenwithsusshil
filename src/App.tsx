@@ -144,23 +144,23 @@ export default function App() {
 
       {/* ═══ NAV ═══ */}
       <nav id="nav" className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${navScrolled ? 'bg-bg-dark/95 border-b border-gold-bd backdrop-blur-xl' : 'border-b border-transparent'}`}>
-        <div className="flex items-center justify-between px-6 md:px-12 py-4 md:py-6">
+        <div className="flex items-center justify-between px-6 lg:px-8 xl:px-12 py-4 md:py-6">
           <Link to="/" className="flex items-center">
             <img src="/logo.png" alt="SEVEN 7" className="h-14 md:h-20 w-auto object-contain" />
           </Link>
-          <ul className="hidden md:flex gap-10 text-[11px] uppercase tracking-[0.2em] text-muted items-center">
-            <li><a href="/#about" className="hover:text-gold transition-colors">About</a></li>
+          <ul className="hidden lg:flex gap-4 lg:gap-6 xl:gap-10 text-[10px] xl:text-[11px] uppercase tracking-[0.2em] text-muted items-center whitespace-nowrap">
+            <li><a href="/#about" className="hover:text-gold transition-colors">About SEVEN</a></li>
             <li><a href="/#calculator" className="hover:text-gold transition-colors">Calculator</a></li>
             <li><Link to="/pricing" className="hover:text-gold transition-colors">Energy Exchange</Link></li>
             <li><a href="/#services" className="hover:text-gold transition-colors">Services</a></li>
-            <li><Link to="/stories" className="hover:text-gold transition-colors">Stories</Link></li>
+            <li><Link to="/stories" className="hover:text-gold transition-colors">Success Stories</Link></li>
           </ul>
-          <div className="flex items-center gap-4">
-            <Link to="/pricing" className="hidden md:inline-block px-6 py-2 border border-gold/30 text-[11px] uppercase tracking-[0.2em] hover:bg-gold/10 transition-colors text-gold">
+          <div className="flex items-center gap-4 whitespace-nowrap">
+            <Link to="/pricing" className="hidden lg:inline-block px-4 xl:px-6 py-2 border border-gold/30 text-[10px] xl:text-[11px] uppercase tracking-[0.2em] hover:bg-gold/10 transition-colors text-gold">
               Book a Session
             </Link>
             <button 
-              className="md:hidden text-gold p-3 cursor-pointer focus:outline-none"
+              className="lg:hidden text-gold p-3 cursor-pointer focus:outline-none"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               aria-label="Toggle menu"
             >
@@ -176,13 +176,13 @@ export default function App() {
         </div>
 
         {/* Mobile menu */}
-        <div className={`md:hidden absolute top-full left-0 right-0 bg-bg-dark border-b border-gold-bd transition-all duration-300 overflow-hidden ${isMobileMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
+        <div className={`lg:hidden absolute top-full left-0 right-0 bg-bg-dark border-b border-gold-bd transition-all duration-300 overflow-hidden ${isMobileMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
           <ul className="flex flex-col text-[11px] uppercase tracking-[0.2em] text-muted p-6 gap-2">
-            <li><a href="/#about" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block py-3 px-2">About</a></li>
+            <li><a href="/#about" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block py-3 px-2">About SEVEN</a></li>
             <li><a href="/#calculator" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block py-3 px-2">Calculator</a></li>
             <li><Link to="/pricing" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block py-3 px-2">Energy Exchange</Link></li>
             <li><a href="/#services" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block py-3 px-2">Services</a></li>
-            <li><Link to="/stories" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block py-3 px-2">Stories</Link></li>
+            <li><Link to="/stories" onClick={() => setIsMobileMenuOpen(false)} className="hover:text-gold transition-colors block py-3 px-2">Success Stories</Link></li>
             <li className="pt-4 mt-2 border-t border-gold/10">
               <Link to="/pricing" onClick={() => setIsMobileMenuOpen(false)} className="inline-block px-6 py-3.5 border border-gold/30 text-gold w-full text-center uppercase tracking-[0.2em]">
                 Book a Session
