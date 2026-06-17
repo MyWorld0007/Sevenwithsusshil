@@ -790,7 +790,7 @@ export default function Admin() {
     const fileInput = form.profile_photo;
     if (fileInput && fileInput.files && fileInput.files.length > 0) {
       const formData = new FormData();
-      formData.append('image', fileInput.files[0]);
+      formData.append('photo', fileInput.files[0]);
       try {
         const uploadRes = await apiFetch('/api/upload', {
           method: 'POST',
@@ -826,7 +826,7 @@ export default function Admin() {
   const handlePartnerPhotoUpload = async (file: File, id: number, partner: Partner) => {
     if(!file) return;
     const formData = new FormData();
-    formData.append('image', file);
+    formData.append('photo', file);
 
     const res = await apiFetch('/api/upload', {
       method: 'POST',

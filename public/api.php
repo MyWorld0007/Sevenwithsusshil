@@ -470,6 +470,7 @@ try {
             'create_partners' => 'CREATE TABLE `partners` (
                 `id` INT AUTO_INCREMENT PRIMARY KEY,
                 `name` VARCHAR(255),
+                `gratitude` VARCHAR(255) DEFAULT '''',
                 `title` VARCHAR(255),
                 `description` TEXT,
                 `profile_photo` VARCHAR(500),
