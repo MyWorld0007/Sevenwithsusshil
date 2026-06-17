@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../lib/api';
+import { Link } from 'react-router-dom';
 
 export default function About() {
   const [aboutTitle, setAboutTitle] = useState('Bridging ancient wisdom with modern life guidance');
@@ -49,6 +50,12 @@ export default function About() {
           <h2 className="text-3xl md:text-5xl font-light font-serif leading-[1.18] mb-6">{aboutTitle}</h2>
           <p className="text-[15px] font-light leading-[1.95] text-muted mb-6 whitespace-pre-wrap">{aboutPara1}</p>
           <p className="text-[15px] font-light leading-[1.95] text-muted mb-8 whitespace-pre-wrap">{aboutPara2}</p>
+          <Link 
+            to="/my-guiding-lights" 
+            className="inline-block bg-gold text-bg-dark px-8 py-4 text-[11px] font-semibold tracking-[0.2em] uppercase hover:bg-gold-lt transition-colors"
+          >
+            My Guiding lights
+          </Link>
         </div>
       </div>
     </section>

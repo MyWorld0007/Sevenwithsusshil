@@ -482,6 +482,21 @@ async function getDbPool() {
 
     try {
       await pool.query(`
+        CREATE TABLE IF NOT EXISTS partners (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          name VARCHAR(255),
+          gratitude VARCHAR(255) DEFAULT '',
+          title VARCHAR(255),
+          description TEXT,
+          profile_photo VARCHAR(500),
+          display_order INT DEFAULT 0
+        )
+      `);
+      try { await pool.query('ALTER TABLE partners ADD COLUMN gratitude VARCHAR(255) DEFAULT ""'); } catch (e: any) { }
+    } catch (e: any) { console.error("[MYSQL Setup] partners table:", e.message); }
+
+    try {
+      await pool.query(`
         CREATE TABLE IF NOT EXISTS life_paths (
           id INT PRIMARY KEY,
           name VARCHAR(255),
@@ -1730,6 +1745,59 @@ async function startServer() {
     try {
       const db = await getDbPool();
       await db.query('DELETE FROM pathway_cards WHERE id=?', [req.params.id]);
+      res.json({ success: true });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.get("/api/partners", async (req, res) => {
+    try {
+      const db = await getDbPool();
+      const [rows]: any = await db.query('SELECT * FROM partners ORDER BY display_order ASC, id ASC');
+      res.json(rows);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.post("/api/partners", requireAuth, async (req, res) => {
+    try {
+      const db = await getDbPool();
+      const { name, gratitude, title, description, profile_photo } = req.body;
+      const [rows]: any = await db.query('SELECT COUNT(*) as cnt FROM partners');
+      const order = rows[0].cnt;
+      const [result]: any = await db.query(
+        'INSERT INTO partners (name, gratitude, title, description, profile_photo, display_order) VALUES (?, ?, ?, ?, ?, ?)',
+        [name, gratitude || '', title, description, profile_photo, order]
+      );
+      res.json({ id: result.insertId });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.post("/api/partners/reorder", requireAuth, async (req, res) => {
+    try {
+      const db = await getDbPool();
+      const { orderIds } = req.body;
+      for (let i = 0; i < orderIds.length; i++) {
+        await db.query('UPDATE partners SET display_order=? WHERE id=?', [i, orderIds[i]]);
+      }
+      res.json({ success: true });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.put("/api/partners/:id", requireAuth, async (req, res) => {
+    try {
+      const db = await getDbPool();
+      const { name, gratitude, title, description, profile_photo } = req.body;
+      await db.query(
+        'UPDATE partners SET name=?, gratitude=?, title=?, description=?, profile_photo=? WHERE id=?',
+        [name, gratitude || '', title, description, profile_photo, req.params.id]
+      );
+      res.json({ success: true });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.delete("/api/partners/:id", requireAuth, async (req, res) => {
+    try {
+      const db = await getDbPool();
+      await db.query('DELETE FROM partners WHERE id=?', [req.params.id]);
       res.json({ success: true });
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });

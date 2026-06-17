@@ -66,3 +66,13 @@ export interface PathwayCard {
   short_desc: string;
   display_order?: number;
 }
+
+export interface Partner {
+  id?: number;
+  name: string;
+  gratitude: string;
+  title: string;
+  description: string;
+  profile_photo: string;
+  display_order?: number;
+}

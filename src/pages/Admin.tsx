@@ -2,7 +2,7 @@ import { apiFetch } from '../lib/api';
 import React, { useState, useEffect } from 'react';
 import ReactQuill, { Quill } from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
-import { Settings, LifePath, Testimonial, Faq, PricingService } from '../Types';
+import { Settings, LifePath, Testimonial, Faq, PricingService, PathwayCard, Partner } from '../Types';
 import { GripVertical } from 'lucide-react';
 import { Reorder, useDragControls } from 'motion/react';
 
@@ -295,6 +295,7 @@ export default function Admin() {
   const [newFaqAnswer, setNewFaqAnswer] = useState<string>('');
   const [services, setServices] = useState<PricingService[]>([]);
   const [pathways, setPathways] = useState<PathwayCard[]>([]);
+  const [partners, setPartners] = useState<Partner[]>([]);
 
   const [activeTab, setActiveTab] = useState<string>('settings');
 
@@ -313,7 +314,8 @@ export default function Admin() {
            apiFetch('/api/pages'),
            apiFetch('/api/faqs'),
            apiFetch('/api/services'),
-           apiFetch('/api/pathway_cards')
+           apiFetch('/api/pathway_cards'),
+           apiFetch('/api/partners')
        ];
        const results = await Promise.allSettled(calls);
        
@@ -356,6 +358,7 @@ export default function Admin() {
        const faqsResText = await resolveRes(results[4]);
        const servicesResText = await resolveRes(results[5]);
        const pathwaysResText = await resolveRes(results[6]);
+       const partnersResText = await resolveRes(results[7]);
 
        // Fallback for settings to null, rest to array. Provide default empty values if error
        setSettings(setResText?.error ? null : setResText);
@@ -368,6 +371,7 @@ export default function Admin() {
        setFaqs(Array.isArray(faqsResText) ? faqsResText : []);
        setServices(Array.isArray(servicesResText) ? servicesResText : []);
        setPathways(Array.isArray(pathwaysResText) ? pathwaysResText : []);
+       setPartners(Array.isArray(partnersResText) ? partnersResText : []);
      } catch (err) {
          console.error("fetchData error:", err);
      }
@@ -752,6 +756,99 @@ export default function Admin() {
   };
 
 
+  const savePartner = async (partner: Partner) => {
+    const res = await apiFetch(`/api/partners/${partner.id}`, {
+      method: "PUT",
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify(partner)
+    });
+    const data = await res.json();
+    if (data.error) alert(data.error);
+    else fetchData();
+  };
+
+  const deletePartner = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this partner?")) return;
+    const res = await apiFetch(`/api/partners/${id}`, {
+      method: "DELETE",
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await res.json();
+    if (data.error) alert(data.error);
+    else fetchData();
+  };
+
+  const addPartner = async (e: any) => {
+    e.preventDefault();
+    const form = e.target;
+    const name = form.name.value;
+    const gratitude = form.gratitude?.value || '';
+    const title = form.title.value;
+    const description = form.description.value;
+    
+    let profile_photo = '';
+    const fileInput = form.profile_photo;
+    if (fileInput && fileInput.files && fileInput.files.length > 0) {
+      const formData = new FormData();
+      formData.append('image', fileInput.files[0]);
+      try {
+        const uploadRes = await apiFetch('/api/upload', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData,
+        });
+        const uploadData = await uploadRes.json();
+        if (uploadData.url) {
+          profile_photo = uploadData.url;
+        } else if (uploadData.error) {
+          alert('Error uploading photo: ' + uploadData.error);
+          return;
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    const res = await apiFetch('/api/partners', {
+      method: "POST",
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ name, gratitude, title, description, profile_photo })
+    });
+    const data = await res.json();
+    if (data.error) {
+      alert(data.error);
+    } else {
+      form.reset();
+      fetchData();
+    }
+  };
+
+  const handlePartnerPhotoUpload = async (file: File, id: number, partner: Partner) => {
+    if(!file) return;
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const res = await apiFetch('/api/upload', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: formData,
+    });
+    const data = await res.json();
+    if (data.error) {
+       alert(data.error);
+       return;
+    }
+    const updated = { ...partner, profile_photo: data.url };
+    const copy = [...partners];
+    const index = copy.findIndex(p => p.id === id);
+    if(index > -1) {
+      copy[index] = updated;
+      setPartners(copy);
+      savePartner(updated);
+    }
+  };
+
+
   if (!token) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-bg-dark text-text-main">
@@ -826,6 +923,12 @@ export default function Admin() {
              className={`w-full text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] transition-colors rounded ${activeTab === 'profile' ? 'bg-gold text-bg-dark font-bold' : 'text-gold hover:bg-gold/10'}`}
            >
              About SEVEN Profile
+           </button>
+           <button 
+             onClick={() => setActiveTab('partners')} 
+             className={`w-full text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] transition-colors rounded ${activeTab === 'partners' ? 'bg-gold text-bg-dark font-bold' : 'text-gold hover:bg-gold/10'}`}
+           >
+             Partners
            </button>
         </nav>
 
@@ -1618,6 +1721,188 @@ export default function Admin() {
                     <button type="submit" className="bg-gold text-bg-dark px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-gold-lt transition-colors rounded-sm w-full font-semibold">
                       Add Pathway Card
                     </button>
+                  </div>
+                </form>
+              </div>
+            </section>
+          )}
+          {activeTab === 'partners' && (
+            <section className="space-y-12">
+              <div className="flex items-center justify-between border-b border-gold/15 pb-4">
+                <h2 className="text-2xl font-serif text-gold">My Guiding lights (Partners)</h2>
+              </div>
+              <div className="bg-bg-card border border-gold/20 p-8 rounded shadow-sm max-w-4xl">
+                <h3 className="text-lg font-serif text-gold mb-6 border-b border-gold/15 pb-2">Existing Partners</h3>
+                {partners.length === 0 ? (
+                  <p className="text-sm text-muted italic">No partners configured yet.</p>
+                ) : (
+                  <Reorder.Group axis="y" values={partners} onReorder={async (newOrder) => {
+                    setPartners(newOrder);
+                    await apiFetch('/api/partners/reorder', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                      body: JSON.stringify({ orderIds: newOrder.map(c => c.id) })
+                    });
+                  }} className="space-y-4">
+                    {partners.map((partner, index) => (
+                      <Reorder.Item key={partner.id} value={partner} className="bg-bg-input border border-gold/10 p-6 flex flex-col md:flex-row gap-6 items-start rounded shadow-sm relative group cursor-grab active:cursor-grabbing">
+                        <div className="absolute top-4 right-4 text-gold/30 group-hover:text-gold/80 transition-colors">
+                          <GripVertical size={20} />
+                        </div>
+                        
+                        <div className="w-full md:w-32 flex-shrink-0 space-y-3">
+                          <p className="text-[10px] uppercase tracking-widest text-muted font-semibold">Photo</p>
+                          <div className="w-full aspect-[3/4] bg-bg-dark border border-gold/20 rounded relative overflow-hidden flex items-center justify-center">
+                            {partner.profile_photo ? (
+                              <img src={partner.profile_photo} alt={partner.name} className="w-full h-full object-cover relative z-10" />
+                            ) : (
+                              <span className="text-gold/30 text-xs">No Photo</span>
+                            )}
+                            <input 
+                              type="file" 
+                              className="absolute inset-0 opacity-0 cursor-pointer z-20"
+                              accept="image/*"
+                              onChange={(e) => {
+                                if (e.target.files && e.target.files.length > 0) {
+                                  handlePartnerPhotoUpload(e.target.files[0], partner.id!, partner);
+                                }
+                              }}
+                            />
+                            <div className="absolute bottom-0 left-0 w-full bg-black/60 p-1 text-[8px] text-center pointer-events-none z-20 text-white/80 uppercase tracking-wider">
+                              Click to Replace
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex-grow space-y-4 pr-8 w-full">
+                           <div className="flex flex-col gap-1 w-full">
+                              <label className="text-[10px] uppercase tracking-widest text-muted font-semibold">Gratitude</label>
+                              <input 
+                                type="text"
+                                className="bg-transparent border-b border-gold/10 pb-1 text-gold font-serif text-xl outline-none focus:border-gold w-full"
+                                value={partner.gratitude || ''}
+                                placeholder="e.g. With Gratitude"
+                                onChange={e => {
+                                  const updated = { ...partner, gratitude: e.target.value };
+                                  const copy = [...partners];
+                                  copy[index] = updated;
+                                  setPartners(copy);
+                                }}
+                                onBlur={() => savePartner(partner)}
+                              />
+                           </div>
+                           <div className="flex flex-col gap-1 w-full mt-2">
+                              <label className="text-[10px] uppercase tracking-widest text-muted font-semibold">Name</label>
+                              <input 
+                                type="text"
+                                className="bg-transparent border-b border-gold/10 pb-1 text-gold font-serif text-xl outline-none focus:border-gold w-full"
+                                value={partner.name}
+                                onChange={e => {
+                                  const updated = { ...partner, name: e.target.value };
+                                  const copy = [...partners];
+                                  copy[index] = updated;
+                                  setPartners(copy);
+                                }}
+                                onBlur={() => savePartner(partner)}
+                              />
+                           </div>
+                           <div className="flex flex-col gap-1 w-full">
+                              <label className="text-[10px] uppercase tracking-widest text-muted font-semibold">Title</label>
+                              <input 
+                                type="text"
+                                className="bg-transparent border-b border-gold/10 pb-1 text-sm outline-none focus:border-gold w-full text-text-main"
+                                value={partner.title}
+                                onChange={e => {
+                                  const updated = { ...partner, title: e.target.value };
+                                  const copy = [...partners];
+                                  copy[index] = updated;
+                                  setPartners(copy);
+                                }}
+                                onBlur={() => savePartner(partner)}
+                              />
+                           </div>
+                           <div className="flex flex-col gap-1 w-full mt-4">
+                              <label className="text-[10px] uppercase tracking-widest text-muted font-semibold">Description (One Para)</label>
+                              <textarea 
+                                className="w-full bg-bg-dark border border-gold/10 p-3 h-28 outline-none focus:border-gold rounded text-sm text-text-main resize-y leading-relaxed"
+                                value={partner.description}
+                                onChange={e => {
+                                  const updated = { ...partner, description: e.target.value };
+                                  const copy = [...partners];
+                                  copy[index] = updated;
+                                  setPartners(copy);
+                                }}
+                                onBlur={() => savePartner(partner)}
+                              />
+                           </div>
+                           
+                           <button onClick={() => deletePartner(partner.id!)} className="text-[10px] font-bold tracking-[0.1em] text-red-400 hover:text-red-300 transition-colors uppercase pt-2">
+                             Delete Partner
+                           </button>
+                        </div>
+                      </Reorder.Item>
+                    ))}
+                  </Reorder.Group>
+                )}
+              </div>
+
+              <div className="bg-bg-card border border-gold/20 p-8 rounded shadow-sm max-w-3xl">
+                <h3 className="text-lg font-serif text-gold mb-6 border-b border-gold/15 pb-2">Add New Partner</h3>
+                <form onSubmit={addPartner} className="grid grid-cols-1 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2 font-semibold">Gratitude</label>
+                      <input
+                        type="text"
+                        name="gratitude"
+                        placeholder="e.g. With Gratitude"
+                        className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold rounded font-serif text-sm text-text-main"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2 font-semibold">Name</label>
+                      <input
+                        type="text"
+                        name="name"
+                        required
+                        placeholder="e.g. John Doe"
+                        className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold rounded font-serif text-sm text-text-main"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2 font-semibold">Title</label>
+                    <input
+                      type="text"
+                      name="title"
+                      required
+                      placeholder="e.g. Senior Healer & Guide"
+                      className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold rounded text-sm text-text-main"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2 font-semibold">Profile Photo</label>
+                    <input
+                      type="file"
+                      name="profile_photo"
+                      accept="image/*"
+                      className="w-full bg-bg-input border border-gold/20 p-2 outline-none focus:border-gold rounded text-sm text-muted file:bg-gold file:text-bg-dark file:border-none file:px-4 file:py-1 file:mr-4 file:rounded-sm file:text-xs file:uppercase file:tracking-wider file:font-bold hover:file:bg-gold-lt cursor-pointer"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2 font-semibold font-serif">Description</label>
+                    <textarea
+                      name="description"
+                      required
+                      placeholder="Brief bio or description here..."
+                      className="w-full bg-bg-input border border-gold/20 p-3 h-24 outline-none focus:border-gold rounded text-sm text-text-main resize-y"
+                    />
+                  </div>
+                  <div className="pt-2">
+                    <button type="submit" className="bg-gold text-bg-dark px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-gold-lt transition-colors rounded-sm w-full font-semibold">
+                      Add Partner
+                    </button>
+                    <p className="text-[10px] uppercase text-gold/60 tracking-wider text-center pt-3">You can upload the profile photo from the list above after creation.</p>
                   </div>
                 </form>
               </div>

@@ -13,6 +13,7 @@ import NotFound from './pages/NotFound';
 import ContentPage from './pages/ContentPage';
 import Pricing from './pages/Pricing';
 import Contact from './pages/Contact';
+import GuidingLights from './pages/GuidingLights';
 
 export default function App() {
   const [navScrolled, setNavScrolled] = useState(false);
@@ -193,7 +194,7 @@ export default function App() {
       </nav>
 
       <main className="relative z-10 flex-grow flex flex-col items-center pt-24 min-h-screen">
-         <Routes>
+          <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/about" element={<About />} />
             <Route path="/pricing" element={<Pricing />} />
@@ -202,6 +203,7 @@ export default function App() {
             <Route path="/calculator" element={<Calculator />} />
             <Route path="/stories" element={<Stories isFullPage={true} />} />
             <Route path="/booking" element={<Booking />} />
+            <Route path="/my-guiding-lights" element={<GuidingLights />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/pages/:slug" element={<ContentPage />} />

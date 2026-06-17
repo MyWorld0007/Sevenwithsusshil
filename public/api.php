@@ -135,6 +135,21 @@ try {
     )');
 } catch (Exception $e) {}
 
+// 9. Create partners table
+try {
+    $pdo->exec('CREATE TABLE IF NOT EXISTS `partners` (
+        `id` INT AUTO_INCREMENT PRIMARY KEY,
+        `name` VARCHAR(255),
+        `gratitude` VARCHAR(255) DEFAULT \'\',
+        `title` VARCHAR(255),
+        `description` TEXT,
+        `profile_photo` VARCHAR(500),
+        `display_order` INT DEFAULT 0
+    )');
+} catch (Exception $e) {}
+
+try { $pdo->exec("ALTER TABLE `partners` ADD COLUMN `gratitude` VARCHAR(255) DEFAULT ''"); } catch (Exception $e) {}
+
 try { $pdo->exec("ALTER TABLE `pathway_cards` ADD COLUMN `display_order` INT DEFAULT 0"); } catch (Exception $e) {}
 try { $pdo->exec("ALTER TABLE `pathway_cards` ADD COLUMN `slug` VARCHAR(255)"); } catch (Exception $e) {}
 try { $pdo->exec("ALTER TABLE `pathway_cards` ADD COLUMN `short_desc` TEXT"); } catch (Exception $e) {}
@@ -448,6 +463,16 @@ try {
                 `title` VARCHAR(255),
                 `slug` VARCHAR(255),
                 `short_desc` TEXT,
+                `display_order` INT DEFAULT 0
+            )',
+            
+            'drop_partners' => 'DROP TABLE IF EXISTS `partners`',
+            'create_partners' => 'CREATE TABLE `partners` (
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+                `name` VARCHAR(255),
+                `title` VARCHAR(255),
+                `description` TEXT,
+                `profile_photo` VARCHAR(500),
                 `display_order` INT DEFAULT 0
             )'
         ];
@@ -800,6 +825,42 @@ try {
     elseif (preg_match('/^pathway_cards\/([0-9]+)$/', $route, $m) && $method === 'DELETE') {
         require_auth();
         $stmt = $pdo->prepare('DELETE FROM pathway_cards WHERE id=?');
+        $stmt->execute([$m[1]]);
+        echo json_encode(['success' => true]);
+    }
+    elseif ($route === 'partners' && $method === 'GET') {
+        $stmt = $pdo->query('SELECT * FROM partners ORDER BY display_order ASC, id ASC');
+        echo json_encode($stmt->fetchAll());
+    }
+    elseif ($route === 'partners' && $method === 'POST') {
+        require_auth();
+        $stmt = $pdo->query('SELECT COUNT(*) as cnt FROM partners');
+        $order = $stmt->fetch()['cnt'];
+        $stmt = $pdo->prepare('INSERT INTO partners (name, gratitude, title, description, profile_photo, display_order) VALUES (?, ?, ?, ?, ?, ?)');
+        $gratitude = isset($input['gratitude']) ? $input['gratitude'] : '';
+        $stmt->execute([$input['name'], $gratitude, $input['title'], $input['description'], $input['profile_photo'], $order]);
+        echo json_encode(['id' => $pdo->lastInsertId()]);
+    }
+    elseif ($route === 'partners/reorder' && $method === 'POST') {
+        require_auth();
+        $pdo->beginTransaction();
+        $stmt = $pdo->prepare('UPDATE partners SET display_order=? WHERE id=?');
+        foreach ($input['orderIds'] as $i => $id) {
+            $stmt->execute([$i, $id]);
+        }
+        $pdo->commit();
+        echo json_encode(['success' => true]);
+    }
+    elseif (preg_match('/^partners\/([0-9]+)$/', $route, $m) && $method === 'PUT') {
+        require_auth();
+        $stmt = $pdo->prepare('UPDATE partners SET name=?, gratitude=?, title=?, description=?, profile_photo=? WHERE id=?');
+        $gratitude = isset($input['gratitude']) ? $input['gratitude'] : '';
+        $stmt->execute([$input['name'], $gratitude, $input['title'], $input['description'], $input['profile_photo'], $m[1]]);
+        echo json_encode(['success' => true]);
+    }
+    elseif (preg_match('/^partners\/([0-9]+)$/', $route, $m) && $method === 'DELETE') {
+        require_auth();
+        $stmt = $pdo->prepare('DELETE FROM partners WHERE id=?');
         $stmt->execute([$m[1]]);
         echo json_encode(['success' => true]);
     }
