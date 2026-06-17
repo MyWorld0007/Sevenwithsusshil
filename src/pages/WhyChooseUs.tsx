@@ -8,7 +8,7 @@ const reasons = [
   { icon: Briefcase, text: "Business & Brand Alignment Expertise", desc: "Optimize your corporate identity for growth, leadership, and prosperity." },
   { icon: Heart, text: "Relationship & Career Insights", desc: "Navigate your professional trajectory and romantic compatibility with clarity." },
   { icon: Baby, text: "Child Naming & Life Path Guidance", desc: "Empower your child's future with harmonious name vibrations." },
-  { icon: Sparkles, text: "Reiki Grand Master", desc: "Transform your mind, body, and spirit with Reiki, Tarot Insights, Guided Meditation, and Aura & Chakra Healing." },
+  { icon: Sparkles, text: "Reiki Grand Master", desc: <>Transform your mind, body, and spirit with <strong>Reiki, Tarot Insights, Guided Meditation, and Aura & Chakra Healing.</strong></> },
   { icon: CheckCircle, text: "Practical, Ethical & Professional Approach", desc: "Actionable advice grounded in deep metaphysical study." },
   { icon: Gem, text: "Thousands of Hours of Study, Research & Experience", desc: "Expert guidance from a seasoned practitioner of divine sciences." },
 ];
