@@ -8,7 +8,7 @@ const reasons = [
   { icon: Briefcase, text: "Business & Brand Alignment Expertise", desc: "Optimize your corporate identity for growth, leadership, and prosperity." },
   { icon: Heart, text: "Relationship & Career Insights", desc: "Navigate your professional trajectory and romantic compatibility with clarity." },
   { icon: Baby, text: "Child Naming & Life Path Guidance", desc: "Empower your child's future with harmonious name vibrations." },
-  { icon: Sparkles, text: "Reiki Grand Master Support", desc: "Holistic energy healing to balance your chakras and promote well-being." },
+  { icon: Sparkles, text: "Reiki Grand Master", desc: "Transform your mind, body, and spirit with Reiki, Tarot Insights, Guided Meditation, and Aura & Chakra Healing." },
   { icon: CheckCircle, text: "Practical, Ethical & Professional Approach", desc: "Actionable advice grounded in deep metaphysical study." },
   { icon: Gem, text: "Thousands of Hours of Study, Research & Experience", desc: "Expert guidance from a seasoned practitioner of divine sciences." },
 ];
@@ -50,9 +50,9 @@ export default function WhyChooseUs() {
         {/* SEO Features & Philosophy */}
         <div className="grid md:grid-cols-2 gap-12 items-center bg-bg-input/30 p-8 md:p-12 rounded-2xl border border-gold/10">
           <div className="space-y-6">
-            <h3 className="text-2xl font-serif text-gold">Astro-Numerology & Energy Healing Center</h3>
+            <h3 className="text-2xl font-serif text-gold">Astro-Numerology & Holistic Healing Space</h3>
             <p className="text-text-main/80 text-sm leading-relaxed">
-              We provide expert <strong className="text-gold font-normal">Astro-Numerology consultations</strong>, advanced <strong className="text-gold font-normal">name vibration analysis</strong>, and professional <strong className="text-gold font-normal">business numerology</strong> services. Whether you're seeking clarity on your life path, optimized branding for business growth, or holistic balance through <strong className="text-gold font-normal">Reiki energy healing</strong>, our services are structured to align your personal vibrations with universal harmony.
+              We provide expert <strong className="text-gold font-normal">Astro-Numerology consultations</strong>, advanced <strong className="text-gold font-normal">name vibration analysis</strong>, and professional <strong className="text-gold font-normal">business numerology</strong> services. Whether you're seeking clarity on your life path, optimized branding for business growth, or balance through Holistic approaches like <strong className="text-gold font-normal">Reiki/ Tarot/ Aura & Chakra Healing</strong>, our services are structured to align your personal vibrations with universal harmony.
             </p>
             <p className="text-text-main/80 text-sm leading-relaxed">
               At SEVEN, we combine mystical traditions with highly practical applications to deliver <strong className="text-gold font-normal">spiritual guidance</strong> designed for modern challenges.

@@ -424,6 +424,63 @@ async function getDbPool() {
     } catch (err) {}
 
     try {
+      await pool.query(`ALTER TABLE settings ADD COLUMN journey_step1_title VARCHAR(500)`);
+    } catch (err) {}
+    try {
+      await pool.query(`ALTER TABLE settings ADD COLUMN journey_step1_desc TEXT`);
+    } catch (err) {}
+    try {
+      await pool.query(`ALTER TABLE settings ADD COLUMN journey_step2_title VARCHAR(500)`);
+    } catch (err) {}
+    try {
+      await pool.query(`ALTER TABLE settings ADD COLUMN journey_step2_desc TEXT`);
+    } catch (err) {}
+    try {
+      await pool.query(`ALTER TABLE settings ADD COLUMN journey_step3_title VARCHAR(500)`);
+    } catch (err) {}
+    try {
+      await pool.query(`ALTER TABLE settings ADD COLUMN journey_step3_desc TEXT`);
+    } catch (err) {}
+
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS pathway_cards (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          card_number VARCHAR(10),
+          title VARCHAR(255),
+          slug VARCHAR(255),
+          short_desc TEXT,
+          display_order INT DEFAULT 0
+        )
+      `);
+      const [rows]: any = await pool.query('SELECT COUNT(*) as cnt FROM pathway_cards');
+      if (rows[0].cnt === 0) {
+        const initialCards = [
+          { n: '01', title: 'Child Birth Date & Name Alignment Analysis', slug: 'child-name-alignment', desc: "Discover the optimal name vibration and cosmic alignment for your child's birth energy." },
+          { n: '02', title: 'Career Path & Success Guidance', slug: 'career-success-guidance', desc: "Explore your professional potential, ideal sectors, and key timing for career breakthroughs or transitions." },
+          { n: '03', title: 'Relationship Compatibility Analysis', slug: 'relationship-compatibility', desc: "Decipher the numerical resonance between partners to nourish harmony and conscious relationship growth." },
+          { n: '04', title: 'Birth Date, Name Analysis & Name Correction', slug: 'birth-name-analysis', desc: "A comprehensive analysis of your birth energy and full name correction for lifetime cosmic harmony." },
+          { n: '05', title: 'Business Numerology & Prosperity Blueprint', slug: 'business-numerology', desc: "Optimize corporate/brand alignment, choose lucky launch dates, and blueprint your business success." },
+          { n: '06', title: 'Lucky Numbers, Alphabets & Colour Alignment', slug: 'lucky-alignment', desc: "Elevate your daily frequency by aligning with your supportive numbers, letters, and visual energies." },
+          { n: '07', title: 'Focused Insight Session', slug: 'focused-insight', desc: "Directly target a single query or burning question for swift, clear metaphysical clarity (Single Question)." },
+          { n: '08', title: 'Gemstone, Crystal, Rudraksha & Yantra Recommendation', slug: 'gemstone-crystal-rudraksha-recommendation', desc: "Receive personalized astronomical cosmic prescription of specific crystals, powerful Rudrakshas, and precious gemstones to amplify protective fields and lucky energy bands." },
+          { n: '09', title: 'Mobile Number Numerology', slug: 'mobile-number-numerology', desc: "Analyze and optimize your mobile number vibrations to enhance communication, opportunities, prosperity, and overall life harmony." },
+          { n: '10', title: 'Expert-Led Reiki Healing Sessions', slug: 'reiki-healings', desc: "Experience energy healing through our Expert Reiki Healers to promote emotional balance, stress relief, inner peace, and overall well-being." },
+          { n: '11', title: 'Expert-Led Tarot Card Readings', slug: 'tarot-readings', desc: "Gain intuitive guidance and deeper insights into life's questions, challenges, opportunities, and future possibilities through Tarot." },
+          { n: '12', title: 'Expert-Led Guided Meditation', slug: 'guided-meditation', desc: "Experience guided meditation sessions designed to reduce stress, improve focus, enhance self-awareness, and foster inner harmony." },
+          { n: '13', title: 'Expert-Led Aura & Chakra Healing', slug: 'chakra-healings', desc: "Restore balance and harmony to your energy centers through chakra healing for improved emotional, mental, physical, and spiritual well-being." }
+        ];
+        
+        for (let i = 0; i < initialCards.length; i++) {
+          await pool.query(
+            'INSERT INTO pathway_cards (card_number, title, slug, short_desc, display_order) VALUES (?, ?, ?, ?, ?)',
+            [initialCards[i].n, initialCards[i].title, initialCards[i].slug, initialCards[i].desc, i]
+          );
+        }
+      }
+    } catch (e: any) { console.error("[MYSQL Setup] pathway_cards table:", e.message); }
+
+    try {
       await pool.query(`
         CREATE TABLE IF NOT EXISTS life_paths (
           id INT PRIMARY KEY,
@@ -877,6 +934,14 @@ async function startServer() {
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
 
+  app.get("/api/pathway_cards", async (req, res) => {
+    try {
+      const db = await getDbPool();
+      const [rows]: any = await db.query('SELECT * FROM pathway_cards ORDER BY display_order ASC, id ASC');
+      res.json(rows);
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
   // Admin login
   app.post("/api/admin/login", async (req, res) => {
     try {
@@ -913,7 +978,13 @@ async function startServer() {
         smtp_host,
         smtp_port,
         smtp_user,
-        smtp_pass
+        smtp_pass,
+        journey_step1_title,
+        journey_step1_desc,
+        journey_step2_title,
+        journey_step2_desc,
+        journey_step3_title,
+        journey_step3_desc
       } = req.body;
       
       await db.query(`
@@ -931,7 +1002,13 @@ async function startServer() {
           smtp_host=?,
           smtp_port=?,
           smtp_user=?,
-          smtp_pass=?
+          smtp_pass=?,
+          journey_step1_title=?,
+          journey_step1_desc=?,
+          journey_step2_title=?,
+          journey_step2_desc=?,
+          journey_step3_title=?,
+          journey_step3_desc=?
         WHERE id=1
       `, [
         whatsapp, 
@@ -947,7 +1024,13 @@ async function startServer() {
         smtp_host || null,
         smtp_port || null,
         smtp_user || null,
-        smtp_pass || null
+        smtp_pass || null,
+        journey_step1_title || null,
+        journey_step1_desc || null,
+        journey_step2_title || null,
+        journey_step2_desc || null,
+        journey_step3_title || null,
+        journey_step3_desc || null
       ]);
       
       // Keep .env file and active process environment variables in sync
@@ -1602,6 +1685,51 @@ async function startServer() {
     try {
       const db = await getDbPool();
       await db.query('DELETE FROM services WHERE id=?', [req.params.id]);
+      res.json({ success: true });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.post("/api/pathway_cards", requireAuth, async (req, res) => {
+    try {
+      const db = await getDbPool();
+      const { card_number, title, slug, short_desc } = req.body;
+      const [rows]: any = await db.query('SELECT COUNT(*) as cnt FROM pathway_cards');
+      const order = rows[0].cnt;
+      const [result]: any = await db.query(
+        'INSERT INTO pathway_cards (card_number, title, slug, short_desc, display_order) VALUES (?, ?, ?, ?, ?)',
+        [card_number, title, slug, short_desc, order]
+      );
+      res.json({ id: result.insertId });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.post("/api/pathway_cards/reorder", requireAuth, async (req, res) => {
+    try {
+      const db = await getDbPool();
+      const { orderIds } = req.body;
+      for (let i = 0; i < orderIds.length; i++) {
+        await db.query('UPDATE pathway_cards SET display_order=? WHERE id=?', [i, orderIds[i]]);
+      }
+      res.json({ success: true });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.put("/api/pathway_cards/:id", requireAuth, async (req, res) => {
+    try {
+      const db = await getDbPool();
+      const { card_number, title, slug, short_desc } = req.body;
+      await db.query(
+        'UPDATE pathway_cards SET card_number=?, title=?, slug=?, short_desc=? WHERE id=?',
+        [card_number, title, slug, short_desc, req.params.id]
+      );
+      res.json({ success: true });
+    } catch (err: any) { res.status(500).json({ error: err.message }); }
+  });
+
+  app.delete("/api/pathway_cards/:id", requireAuth, async (req, res) => {
+    try {
+      const db = await getDbPool();
+      await db.query('DELETE FROM pathway_cards WHERE id=?', [req.params.id]);
       res.json({ success: true });
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });

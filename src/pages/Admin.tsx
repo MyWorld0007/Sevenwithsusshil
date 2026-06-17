@@ -107,6 +107,67 @@ function FaqAdminItem({
   );
 }
 
+function PathwayAdminItem({
+  pathway,
+  onChange,
+  onSave,
+  onDelete
+}: {
+  pathway: PathwayCard;
+  onChange: (updated: PathwayCard) => void;
+  onSave: () => void | Promise<void>;
+  onDelete: () => void | Promise<void>;
+  key?: React.Key;
+}) {
+  return (
+    <div className="bg-bg-card border border-gold/20 p-6 rounded shadow-sm flex flex-col justify-between h-full relative group">
+      <div className="absolute top-4 right-4 flex gap-2">
+        <button onClick={onSave} className="text-[10px] uppercase tracking-widest text-emerald-400 hover:text-emerald-300 font-bold px-2 py-1 bg-emerald-400/10 rounded">Save</button>
+        <button onClick={onDelete} className="text-[10px] uppercase tracking-widest text-rose-400 hover:text-rose-300 font-bold px-2 py-1 bg-rose-400/10 rounded">Delete</button>
+      </div>
+      <div className="space-y-4 flex-grow pr-16 mt-6">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-[10px] uppercase tracking-[0.1em] text-muted mb-1 font-semibold">Number</label>
+            <input
+              type="text"
+              value={pathway.card_number || ''}
+              onChange={e => onChange({ ...pathway, card_number: e.target.value })}
+              className="w-full bg-bg-input border border-gold/20 p-2 outline-none focus:border-gold rounded font-mono text-sm text-text-main"
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] uppercase tracking-[0.1em] text-muted mb-1 font-semibold">Slug</label>
+            <input
+              type="text"
+              value={pathway.slug || ''}
+              onChange={e => onChange({ ...pathway, slug: e.target.value })}
+              className="w-full bg-bg-input border border-gold/20 p-2 outline-none focus:border-gold rounded text-sm text-text-main"
+            />
+          </div>
+        </div>
+        <div>
+          <label className="block text-[10px] uppercase tracking-[0.1em] text-muted mb-1 font-semibold">Title</label>
+          <input
+            type="text"
+            value={pathway.title || ''}
+            onChange={e => onChange({ ...pathway, title: e.target.value })}
+            className="w-full bg-bg-input border border-gold/20 p-2 outline-none focus:border-gold rounded text-sm text-text-main"
+          />
+        </div>
+        <div>
+          <label className="block text-[10px] uppercase tracking-[0.1em] text-muted mb-1 font-semibold">Short Description</label>
+          <textarea
+            value={pathway.short_desc || ''}
+            onChange={e => onChange({ ...pathway, short_desc: e.target.value })}
+            className="w-full bg-bg-input border border-gold/20 p-2 outline-none h-20 resize-none focus:border-gold rounded text-sm text-text-main"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ServiceAdminItem({
   service,
   onChange,
@@ -233,8 +294,9 @@ export default function Admin() {
   const [selectedFaqs, setSelectedFaqs] = useState<number[]>([]);
   const [newFaqAnswer, setNewFaqAnswer] = useState<string>('');
   const [services, setServices] = useState<PricingService[]>([]);
+  const [pathways, setPathways] = useState<PathwayCard[]>([]);
 
-  const [activeTab, setActiveTab] = useState<'settings' | 'testimonials' | 'lifepaths' | 'pages' | 'faqs' | 'profile' | 'pricing'>('settings');
+  const [activeTab, setActiveTab] = useState<string>('settings');
 
   useEffect(() => {
     if (token) {
@@ -250,7 +312,8 @@ export default function Admin() {
            apiFetch('/api/admin/testimonials', { headers: { 'Authorization': `Bearer ${token}` } }),
            apiFetch('/api/pages'),
            apiFetch('/api/faqs'),
-           apiFetch('/api/services')
+           apiFetch('/api/services'),
+           apiFetch('/api/pathway_cards')
        ];
        const results = await Promise.allSettled(calls);
        
@@ -292,6 +355,7 @@ export default function Admin() {
        const pagesResText = await resolveRes(results[3]);
        const faqsResText = await resolveRes(results[4]);
        const servicesResText = await resolveRes(results[5]);
+       const pathwaysResText = await resolveRes(results[6]);
 
        // Fallback for settings to null, rest to array. Provide default empty values if error
        setSettings(setResText?.error ? null : setResText);
@@ -303,6 +367,7 @@ export default function Admin() {
        setPages(Array.isArray(pagesResText) ? pagesResText : []);
        setFaqs(Array.isArray(faqsResText) ? faqsResText : []);
        setServices(Array.isArray(servicesResText) ? servicesResText : []);
+       setPathways(Array.isArray(pathwaysResText) ? pathwaysResText : []);
      } catch (err) {
          console.error("fetchData error:", err);
      }
@@ -634,6 +699,57 @@ export default function Admin() {
     }
   };
 
+  const savePathway = async (pathway: PathwayCard) => {
+    if (!pathway.id) return;
+    const res = await apiFetch(`/api/pathway_cards/${pathway.id}`, {
+      method: "PUT",
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify(pathway)
+    });
+    const data = await res.json();
+    if (data.error) {
+      alert(data.error);
+    } else {
+      alert("Pathway card saved successfully!");
+      fetchData();
+    }
+  };
+
+  const deletePathway = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this pathway card?")) return;
+    const res = await apiFetch(`/api/pathway_cards/${id}`, {
+      method: "DELETE",
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await res.json();
+    if (data.error) {
+      alert(data.error);
+    } else {
+      fetchData();
+    }
+  };
+
+  const addPathway = async (e: any) => {
+    e.preventDefault();
+    const form = e.target;
+    const card_number = form.card_number.value;
+    const title = form.title.value;
+    const slug = form.slug.value;
+    const short_desc = form.short_desc.value;
+
+    const res = await apiFetch('/api/pathway_cards', {
+      method: "POST",
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ card_number, title, slug, short_desc })
+    });
+    const data = await res.json();
+    if (data.error) {
+      alert(data.error);
+    } else {
+      form.reset();
+      fetchData();
+    }
+  };
 
 
   if (!token) {
@@ -682,10 +798,22 @@ export default function Admin() {
              Life Paths
            </button>
            <button 
+             onClick={() => setActiveTab('pathways')} 
+             className={`w-full text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] transition-colors rounded ${activeTab === 'pathways' ? 'bg-gold text-bg-dark font-bold' : 'text-gold hover:bg-gold/10'}`}
+           >
+             Pathways to Clarity
+           </button>
+           <button 
              onClick={() => setActiveTab('pages')} 
              className={`w-full text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] transition-colors rounded ${activeTab === 'pages' ? 'bg-gold text-bg-dark font-bold' : 'text-gold hover:bg-gold/10'}`}
            >
              Content Pages
+           </button>
+           <button 
+             onClick={() => setActiveTab('process')} 
+             className={`w-full text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] transition-colors rounded ${activeTab === 'process' ? 'bg-gold text-bg-dark font-bold' : 'text-gold hover:bg-gold/10'}`}
+           >
+             Process
            </button>
            <button 
              onClick={() => setActiveTab('faqs')} 
@@ -1051,6 +1179,108 @@ export default function Admin() {
              </div>
           </section>
         )}
+         {activeTab === 'process' && settings && (
+           <section className="max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+             <div className="flex justify-between items-center mb-6">
+               <h2 className="text-3xl font-serif text-gold">Your Journey in Three Steps (Process)</h2>
+               <div className="flex items-center gap-4">
+                 {saveSuccess && <span className="text-emerald-400 font-mono text-xs animate-pulse">✓ Saved Successfully</span>}
+                 {saveError && <span className="text-rose-400 font-mono text-xs">Error: {saveError}</span>}
+                 <button 
+                   onClick={saveSettings}
+                   disabled={saving}
+                   className="bg-gold hover:bg-gold-lt text-bg-dark font-bold px-6 py-3 text-xs uppercase tracking-wider rounded transition-colors disabled:opacity-50"
+                 >
+                   {saving ? "Saving..." : "Save Process"}
+                 </button>
+               </div>
+             </div>
+             
+             <p className="text-sm text-muted mb-8 tracking-wide max-w-2xl leading-relaxed">
+               Update the titles and descriptions for the three-step process shown on the homepage.
+             </p>
+             
+             <div className="space-y-8">
+               {/* Step 1 */}
+               <div className="bg-bg-card border border-gold/20 p-6 rounded">
+                 <h3 className="text-sm uppercase tracking-widest text-gold mb-4">Step 1 details</h3>
+                 <div className="space-y-4">
+                   <div>
+                     <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Title</label>
+                     <input
+                       type="text"
+                       value={settings.journey_step1_title || ''}
+                       onChange={e => setSettings({ ...settings, journey_step1_title: e.target.value })}
+                       placeholder="e.g. Book Your Session"
+                       className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold rounded font-sans"
+                     />
+                   </div>
+                   <div>
+                     <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Description</label>
+                     <textarea
+                       rows={4}
+                       value={settings.journey_step1_desc || ''}
+                       onChange={e => setSettings({ ...settings, journey_step1_desc: e.target.value })}
+                       className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold rounded font-sans resize-y"
+                     />
+                   </div>
+                 </div>
+               </div>
+
+               {/* Step 2 */}
+               <div className="bg-bg-card border border-gold/20 p-6 rounded">
+                 <h3 className="text-sm uppercase tracking-widest text-gold mb-4">Step 2 details</h3>
+                 <div className="space-y-4">
+                   <div>
+                     <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Title</label>
+                     <input
+                       type="text"
+                       value={settings.journey_step2_title || ''}
+                       onChange={e => setSettings({ ...settings, journey_step2_title: e.target.value })}
+                       placeholder="e.g. Receive Your Session"
+                       className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold rounded font-sans"
+                     />
+                   </div>
+                   <div>
+                     <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Description</label>
+                     <textarea
+                       rows={4}
+                       value={settings.journey_step2_desc || ''}
+                       onChange={e => setSettings({ ...settings, journey_step2_desc: e.target.value })}
+                       className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold rounded font-sans resize-y"
+                     />
+                   </div>
+                 </div>
+               </div>
+
+               {/* Step 3 */}
+               <div className="bg-bg-card border border-gold/20 p-6 rounded">
+                 <h3 className="text-sm uppercase tracking-widest text-gold mb-4">Step 3 details</h3>
+                 <div className="space-y-4">
+                   <div>
+                     <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Title</label>
+                     <input
+                       type="text"
+                       value={settings.journey_step3_title || ''}
+                       onChange={e => setSettings({ ...settings, journey_step3_title: e.target.value })}
+                       placeholder="e.g. Continue Your Healing Path"
+                       className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold rounded font-sans"
+                     />
+                   </div>
+                   <div>
+                     <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Description</label>
+                     <textarea
+                       rows={4}
+                       value={settings.journey_step3_desc || ''}
+                       onChange={e => setSettings({ ...settings, journey_step3_desc: e.target.value })}
+                       className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold rounded font-sans resize-y"
+                     />
+                   </div>
+                 </div>
+               </div>
+             </div>
+           </section>
+         )}
          {activeTab === 'profile' && settings && (
            <section className="max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500">
              <div className="flex justify-between items-center mb-6">
@@ -1299,6 +1529,94 @@ export default function Admin() {
                   <div className="md:col-span-2 pt-2">
                     <button type="submit" className="bg-gold text-bg-dark px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-gold-lt transition-colors rounded-sm w-full font-semibold">
                       Add Service Modality
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </section>
+          )}
+          {activeTab === 'pathways' && (
+            <section className="max-w-5xl animate-in fade-in slide-in-from-bottom-4 duration-500 font-sans p-2">
+              <div className="flex justify-between items-center mb-8">
+                <div>
+                  <h2 className="text-3xl font-serif text-gold mb-2">Pathways to Clarity</h2>
+                  <p className="text-sm text-muted leading-relaxed max-w-xl">
+                    Manage the pathway cards shown on the services page.
+                  </p>
+                </div>
+                <span className="text-xs text-muted uppercase tracking-widest">{pathways.length} Pathways Active</span>
+              </div>
+
+              {/* Existing Pathways Grid */}
+              <div className="space-y-6 mb-12">
+                <h3 className="text-lg font-serif text-gold border-b border-gold/10 pb-2 mb-4">Active Cards</h3>
+                {pathways.length === 0 ? (
+                  <p className="text-xs uppercase tracking-widest text-muted py-6">No pathway cards loaded</p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {pathways.map((pathway, index) => (
+                      <PathwayAdminItem
+                        key={pathway.id || index}
+                        pathway={pathway}
+                        onChange={(updated) => {
+                          const copy = [...pathways];
+                          copy[index] = updated;
+                          setPathways(copy);
+                        }}
+                        onSave={() => savePathway(pathway)}
+                        onDelete={() => pathway.id && deletePathway(pathway.id)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Create Pathway Section */}
+              <div className="bg-bg-card border border-gold/20 p-8 rounded shadow-sm max-w-3xl">
+                <h3 className="text-lg font-serif text-gold mb-6 border-b border-gold/15 pb-2">Add New Pathway Card</h3>
+                <form onSubmit={addPathway} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2 font-semibold">Card Number</label>
+                    <input
+                      type="text"
+                      name="card_number"
+                      required
+                      placeholder="e.g. 14"
+                      className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold rounded font-mono text-sm text-text-main"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2 font-semibold">Slug</label>
+                    <input
+                      type="text"
+                      name="slug"
+                      required
+                      placeholder="e.g. new-service"
+                      className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold rounded text-sm text-text-main"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2 font-semibold">Title</label>
+                    <input
+                      type="text"
+                      name="title"
+                      required
+                      placeholder="e.g. Past Life Regression Analysis"
+                      className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold rounded text-sm text-text-main"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2 font-semibold font-serif">Short Description</label>
+                    <textarea
+                      name="short_desc"
+                      required
+                      placeholder="Describe this pathway..."
+                      className="w-full bg-bg-input border border-gold/20 p-3 h-24 outline-none focus:border-gold rounded text-sm text-text-main resize-y"
+                    />
+                  </div>
+                  <div className="md:col-span-2 pt-2">
+                    <button type="submit" className="bg-gold text-bg-dark px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-gold-lt transition-colors rounded-sm w-full font-semibold">
+                      Add Pathway Card
                     </button>
                   </div>
                 </form>

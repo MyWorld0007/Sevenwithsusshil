@@ -14,6 +14,12 @@ export interface Settings {
   smtp_port?: string | number;
   smtp_user?: string;
   smtp_pass?: string;
+  journey_step1_title?: string;
+  journey_step1_desc?: string;
+  journey_step2_title?: string;
+  journey_step2_desc?: string;
+  journey_step3_title?: string;
+  journey_step3_desc?: string;
 }
 
 export interface Testimonial {
@@ -49,5 +55,14 @@ export interface PricingService {
   description: string;
   iconText: string;
   features: string | string[]; // holds serialized array from DB, parsed as string[] in the UI
+  display_order?: number;
+}
+
+export interface PathwayCard {
+  id?: number;
+  card_number: string;
+  title: string;
+  slug: string;
+  short_desc: string;
   display_order?: number;
 }

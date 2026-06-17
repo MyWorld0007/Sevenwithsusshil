@@ -129,11 +129,11 @@ const serviceData = {
     ),
   },
   'reiki-healings': {
-    title: 'Partnered Expert Reiki Healings',
+    title: 'Expert-Led Reiki Healing Sessions',
     subtitle: 'Energy Balance and Emotional Wellness',
     content: (
        <div className="space-y-6 text-muted font-light leading-relaxed text-base md:text-lg">
-         <p>Reiki healing is a gentle yet powerful energy therapy that promotes relaxation, emotional healing, and overall well-being. Through our Partnered Expert Reiki Healings, you can connect with experienced Reiki practitioners who help restore balance to your mind, body, and spirit.</p>
+         <p>Reiki healing is a gentle yet powerful energy therapy that promotes relaxation, emotional healing, and overall well-being. Through our Expert-Led Reiki Healing Sessions, you can connect with experienced Reiki practitioners who help restore balance to your mind, body, and spirit.</p>
          <p>Reiki is based on the concept of universal life force energy flowing through all living beings. When this energy becomes blocked or imbalanced, it may contribute to stress, fatigue, emotional challenges, and physical discomfort. Reiki practitioners use light touch or distance healing techniques to channel positive energy and support the body's natural healing process.</p>
          <p>Our partnered Reiki experts provide personalized sessions designed to address your unique needs. Whether you are dealing with anxiety, emotional stress, low energy, relationship issues, or spiritual growth challenges, Reiki healing can offer deep relaxation and energetic alignment.</p>
          <h3 className="text-2xl font-serif text-gold mt-10 mb-6">Benefits of Expert Reiki Healing include:</h3>
@@ -147,17 +147,17 @@ const serviceData = {
          </ul>
          <p>Many individuals experience warmth, tingling sensations, or profound relaxation during Reiki sessions. The healing energy helps release energetic blockages and encourages harmony within the body's energy systems.</p>
          <p>Distance Reiki healing has also become increasingly popular, allowing clients to receive healing energy regardless of location. Our partnered experts are trained to provide effective Reiki sessions both in-person and remotely.</p>
-         <p>Choosing Partnered Expert Reiki Healings ensures you receive guidance from experienced practitioners committed to your wellness journey. Whether you seek emotional healing, energetic cleansing, or spiritual alignment, Reiki offers a holistic approach to restoring balance and vitality.</p>
+         <p>Choosing Expert-Led Reiki Healing Sessions ensures you receive guidance from experienced practitioners committed to your wellness journey. Whether you seek emotional healing, energetic cleansing, or spiritual alignment, Reiki offers a holistic approach to restoring balance and vitality.</p>
          <p>Experience the transformative power of Reiki and discover how energy healing can help you live a healthier, more balanced, and more fulfilling life.</p>
        </div>
     ),
   },
   'tarot-readings': {
-    title: 'Partnered Expert Tarot Card Readings',
+    title: 'Expert-Led Tarot Card Readings',
     subtitle: 'Insight, Guidance, and Clarity',
     content: (
        <div className="space-y-6 text-muted font-light leading-relaxed text-base md:text-lg">
-         <p>Tarot card reading is a powerful spiritual tool that provides guidance, self-reflection, and deeper understanding of life's challenges and opportunities. Through our Partnered Expert Tarot Card Readings, you can gain valuable insights into relationships, career decisions, finances, personal growth, and future possibilities.</p>
+         <p>Tarot card reading is a powerful spiritual tool that provides guidance, self-reflection, and deeper understanding of life's challenges and opportunities. Through our Expert-Led Tarot Card Readings, you can gain valuable insights into relationships, career decisions, finances, personal growth, and future possibilities.</p>
          <p>Tarot cards do not predict a fixed future. Instead, they reveal current energies, patterns, and potential outcomes based on your present circumstances. A skilled tarot reader interprets the symbolism and messages within the cards to help you make informed decisions and gain clarity.</p>
          <p>Our partnered tarot experts use intuitive guidance combined with years of experience to provide accurate and meaningful readings. Whether you are facing uncertainty in your career, seeking answers about love and relationships, or exploring your spiritual path, tarot can offer practical and empowering guidance.</p>
          <h3 className="text-2xl font-serif text-gold mt-10 mb-6">Benefits of Professional Tarot Card Readings include:</h3>
@@ -170,17 +170,17 @@ const serviceData = {
            <li>Spiritual direction and emotional reassurance</li>
          </ul>
          <p>Tarot readings can help uncover hidden influences, identify opportunities, and provide a fresh perspective on situations that may feel confusing or overwhelming. Many people find tarot to be a valuable tool for personal empowerment and reflection.</p>
-         <p>Our Partnered Expert Tarot Card Readings are conducted with compassion, professionalism, and confidentiality. Every reading is tailored to your questions and concerns, ensuring a personalized and meaningful experience.</p>
+         <p>Our Expert-Led Tarot Card Readings are conducted with compassion, professionalism, and confidentiality. Every reading is tailored to your questions and concerns, ensuring a personalized and meaningful experience.</p>
          <p>If you are seeking answers, guidance, or a deeper understanding of your life's journey, a professional tarot card reading can provide the insight you need to move forward with confidence and clarity.</p>
        </div>
     ),
   },
   'guided-meditation': {
-    title: 'Partnered Expert Guided Meditation',
+    title: 'Expert-Led Guided Meditation',
     subtitle: 'Relaxation, Mindfulness, and Inner Peace',
     content: (
        <div className="space-y-6 text-muted font-light leading-relaxed text-base md:text-lg">
-         <p>In today's fast-paced world, stress, anxiety, and mental fatigue have become increasingly common. Guided meditation offers a powerful way to calm the mind, improve focus, and create a deeper connection with yourself. Through our Partnered Expert Guided Meditation sessions, you can experience professional support designed to help you achieve greater emotional balance, mindfulness, and inner peace.</p>
+         <p>In today's fast-paced world, stress, anxiety, and mental fatigue have become increasingly common. Guided meditation offers a powerful way to calm the mind, improve focus, and create a deeper connection with yourself. Through our Expert-Led Guided Meditation sessions, you can experience professional support designed to help you achieve greater emotional balance, mindfulness, and inner peace.</p>
          <p>Guided meditation is a practice where an experienced meditation expert leads you through visualization techniques, breathing exercises, and mindfulness practices. These sessions are designed to help quiet mental chatter, reduce stress, and promote relaxation. Whether you are new to meditation or have an established practice, guided meditation can provide structure and support for achieving your wellness goals.</p>
          <p>Our partnered meditation experts offer personalized sessions that address a variety of needs, including stress management, emotional healing, better sleep, increased focus, self-confidence, and spiritual growth. Each session is tailored to your individual objectives, creating a unique and transformative experience.</p>
          <h3 className="text-2xl font-serif text-gold mt-10 mb-6">Benefits of Expert Guided Meditation include:</h3>
@@ -194,17 +194,17 @@ const serviceData = {
          </ul>
          <p>Regular meditation has been shown to support overall well-being by helping individuals manage daily challenges more effectively. It encourages present-moment awareness, allowing you to respond thoughtfully rather than react impulsively to life's situations.</p>
          <p>Guided meditation can also support personal development by helping you release limiting beliefs, cultivate positive thinking, and strengthen your connection to your inner wisdom. Many participants report feeling more centered, focused, and emotionally balanced after consistent meditation practice.</p>
-         <p>Our Partnered Expert Guided Meditation sessions are available in convenient formats, including online and remote sessions, allowing you to access professional guidance from the comfort of your home. Whether your goal is relaxation, self-discovery, emotional healing, or spiritual growth, guided meditation can provide a powerful path toward lasting well-being.</p>
+         <p>Our Expert-Led Guided Meditation sessions are available in convenient formats, including online and remote sessions, allowing you to access professional guidance from the comfort of your home. Whether your goal is relaxation, self-discovery, emotional healing, or spiritual growth, guided meditation can provide a powerful path toward lasting well-being.</p>
          <p>Begin your journey toward greater mindfulness and inner peace today with expert-guided meditation designed to support your mind, body, and spirit.</p>
        </div>
     ),
   },
   'chakra-healings': {
-    title: 'Partnered Expert Chakra Healings',
+    title: 'Expert-Led Aura & Chakra Healing',
     subtitle: 'Energy Alignment and Holistic Wellness',
     content: (
        <div className="space-y-6 text-muted font-light leading-relaxed text-base md:text-lg">
-         <p>Chakra healing is a holistic wellness practice that focuses on balancing the body's energy centers to promote physical, emotional, mental, and spiritual well-being. Through our Partnered Expert Chakra Healings, you can work with experienced energy practitioners who help restore harmony and alignment throughout your energetic system.</p>
+         <p>Chakra healing is a holistic wellness practice that focuses on balancing the body's energy centers to promote physical, emotional, mental, and spiritual well-being. Through our Expert-Led Aura & Chakra Healing, you can work with experienced energy practitioners who help restore harmony and alignment throughout your energetic system.</p>
          <p>According to ancient spiritual traditions, the body contains seven primary chakras, or energy centers, each associated with different aspects of health and consciousness. When these chakras become blocked, overactive, or imbalanced, individuals may experience emotional stress, low energy, lack of focus, relationship challenges, or feelings of disconnection.</p>
          <p>Professional chakra healing sessions are designed to identify and address energetic imbalances. Our partnered experts use a variety of healing techniques, including energy work, meditation, visualization, Reiki-inspired practices, and spiritual guidance to help restore the natural flow of energy.</p>
          <h3 className="text-2xl font-serif text-gold mt-10 mb-6">Benefits of Expert Chakra Healing include:</h3>
@@ -218,7 +218,7 @@ const serviceData = {
          </ul>
          <p>Each chakra plays a unique role in overall well-being. For example, the Root Chakra is associated with stability and security, while the Heart Chakra influences love, compassion, and relationships. Balancing these energy centers can support positive transformation across multiple areas of life.</p>
          <p>Many people seek chakra healing to overcome emotional blockages, release negative energy, improve self-confidence, and strengthen their spiritual connection. Regular chakra balancing sessions may help create a greater sense of alignment between your thoughts, emotions, and actions.</p>
-         <p>Our Partnered Expert Chakra Healings provide personalized guidance based on your individual energy profile and wellness goals. Sessions are conducted with professionalism, compassion, and a commitment to helping you achieve energetic harmony.</p>
+         <p>Our Expert-Led Aura & Chakra Healing provide personalized guidance based on your individual energy profile and wellness goals. Sessions are conducted with professionalism, compassion, and a commitment to helping you achieve energetic harmony.</p>
          <p>Whether you are beginning your spiritual journey or seeking deeper energetic healing, chakra balancing can be a valuable tool for personal growth and holistic wellness. Experience the benefits of aligned energy and discover a greater sense of balance, clarity, and well-being through expert chakra healing sessions.</p>
        </div>
     ),
