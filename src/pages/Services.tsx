@@ -13,7 +13,7 @@ export default function Services({ isFullPage = false }: { isFullPage?: boolean 
     apiFetch("/api/pathway_cards")
       .then(res => res.json())
       .then(data => {
-        setServices(data || []);
+        setServices(Array.isArray(data) ? data : []);
         setLoading(false);
       })
       .catch(err => {

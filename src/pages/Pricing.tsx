@@ -335,7 +335,7 @@ export default function Pricing() {
       const res = await apiFetch('/api/services');
       if (res.ok) {
         const data = await res.json();
-        const parsed: PricingService[] = data.map((s: any) => {
+        const parsed: PricingService[] = Array.isArray(data) ? data.map((s: any) => {
           let parsedFeatures: string[] = [];
           if (typeof s.features === 'string') {
             try {
@@ -350,7 +350,7 @@ export default function Pricing() {
             ...s,
             features: parsedFeatures
           };
-        });
+        }) : [];
         if (parsed.length > 0) {
           setServices(parsed);
           setLoading(false);
