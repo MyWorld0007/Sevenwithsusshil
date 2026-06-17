@@ -1,7 +1,10 @@
 <?php
+ini_set('display_errors', 0);
+error_reporting(0);
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Authorization");
+header("Content-Type: application/json; charset=UTF-8");
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -105,6 +108,43 @@ try {
         `display_order` INT DEFAULT 0
     )');
 } catch (Exception $e) {}
+
+// 7. Create services table
+try {
+    $pdo->exec('CREATE TABLE IF NOT EXISTS `services` (
+        `id` INT AUTO_INCREMENT PRIMARY KEY,
+        `title` VARCHAR(255),
+        `price` VARCHAR(255),
+        `rawPrice` INT,
+        `description` TEXT,
+        `iconText` VARCHAR(50),
+        `features` TEXT,
+        `display_order` INT DEFAULT 0
+    )');
+} catch (Exception $e) {}
+
+// 8. Create pathway_cards table
+try {
+    $pdo->exec('CREATE TABLE IF NOT EXISTS `pathway_cards` (
+        `id` INT AUTO_INCREMENT PRIMARY KEY,
+        `card_number` VARCHAR(10),
+        `title` VARCHAR(255),
+        `slug` VARCHAR(255),
+        `short_desc` TEXT,
+        `display_order` INT DEFAULT 0
+    )');
+} catch (Exception $e) {}
+
+try { $pdo->exec("ALTER TABLE `pathway_cards` ADD COLUMN `display_order` INT DEFAULT 0"); } catch (Exception $e) {}
+try { $pdo->exec("ALTER TABLE `pathway_cards` ADD COLUMN `slug` VARCHAR(255)"); } catch (Exception $e) {}
+try { $pdo->exec("ALTER TABLE `pathway_cards` ADD COLUMN `short_desc` TEXT"); } catch (Exception $e) {}
+try { $pdo->exec("ALTER TABLE `pathway_cards` ADD COLUMN `card_number` VARCHAR(10)"); } catch (Exception $e) {}
+
+try { $pdo->exec("ALTER TABLE `services` ADD COLUMN `display_order` INT DEFAULT 0"); } catch (Exception $e) {}
+try { $pdo->exec("ALTER TABLE `services` ADD COLUMN `iconText` VARCHAR(50)"); } catch (Exception $e) {}
+try { $pdo->exec("ALTER TABLE `services` ADD COLUMN `features` TEXT"); } catch (Exception $e) {}
+try { $pdo->exec("ALTER TABLE `services` ADD COLUMN `rawPrice` INT"); } catch (Exception $e) {}
+
 
 // --- SEED SECTIONS ---
 
@@ -220,6 +260,33 @@ try {
         $stmt = $pdo->prepare('INSERT INTO faqs (question, answer) VALUES (?, ?)');
         $stmt->execute(['What is Numerology?', 'Numerology is the study of numbers and their influence on our lives.']);
         $stmt->execute(['How can I book a reading?', 'You can book a reading by visiting the Booking section on our homepage.']);
+    }
+} catch (Exception $e) {}
+
+// Seed pathway cards if empty
+try {
+    $cntCards = $pdo->query('SELECT COUNT(*) as cnt FROM pathway_cards')->fetch()['cnt'];
+    if ($cntCards == 0) {
+        $initialCards = [
+          ['01', 'Child Birth Date & Name Alignment Analysis', 'child-name-alignment', "Discover the optimal name vibration and cosmic alignment for your child's birth energy."],
+          ['02', 'Career Path & Success Guidance', 'career-success-guidance', "Explore your professional potential, ideal sectors, and key timing for career breakthroughs or transitions."],
+          ['03', 'Relationship Compatibility Analysis', 'relationship-compatibility', "Decipher the numerical resonance between partners to nourish harmony and conscious relationship growth."],
+          ['04', 'Birth Date, Name Analysis & Name Correction', 'birth-name-analysis', "A comprehensive analysis of your birth energy and full name correction for lifetime cosmic harmony."],
+          ['05', 'Business Numerology & Prosperity Blueprint', 'business-numerology', "Optimize corporate/brand alignment, choose lucky launch dates, and blueprint your business success."],
+          ['06', 'Lucky Numbers, Alphabets & Colour Alignment', 'lucky-alignment', "Elevate your daily frequency by aligning with your supportive numbers, letters, and visual energies."],
+          ['07', 'Focused Insight Session', 'focused-insight', "Directly target a single query or burning question for swift, clear metaphysical clarity (Single Question)."],
+          ['08', 'Gemstone, Crystal, Rudraksha & Yantra Recommendation', 'gemstone-crystal-rudraksha-recommendation', "Receive personalized astronomical cosmic prescription of specific crystals, powerful Rudrakshas, and precious gemstones to amplify protective fields and lucky energy bands."],
+          ['09', 'Mobile Number Numerology', 'mobile-number-numerology', "Analyze and optimize your mobile number vibrations to enhance communication, opportunities, prosperity, and overall life harmony."],
+          ['10', 'Expert-Led Reiki Healing Sessions', 'reiki-healings', "Experience energy healing through our Expert Reiki Healers to promote emotional balance, stress relief, inner peace, and overall well-being."],
+          ['11', 'Expert-Led Tarot Card Readings', 'tarot-readings', "Gain intuitive guidance and deeper insights into life's questions, challenges, opportunities, and future possibilities through Tarot."],
+          ['12', 'Expert-Led Guided Meditation', 'guided-meditation', "Experience guided meditation sessions designed to reduce stress, improve focus, enhance self-awareness, and foster inner harmony."],
+          ['13', 'Expert-Led Aura & Chakra Healing', 'chakra-healings', "Restore balance and harmony to your energy centers through chakra healing for improved emotional, mental, physical, and spiritual well-being."]
+        ];
+        
+        $stmt = $pdo->prepare('INSERT INTO pathway_cards (card_number, title, slug, short_desc, display_order) VALUES (?, ?, ?, ?, ?)');
+        foreach ($initialCards as $i => $card) {
+            $stmt->execute([$card[0], $card[1], $card[2], $card[3], $i]);
+        }
     }
 } catch (Exception $e) {}
 
@@ -360,6 +427,28 @@ try {
                 `question` VARCHAR(500),
                 `answer` LONGTEXT,
                 `display_order` INT DEFAULT 0
+            )',
+            
+            'drop_services' => 'DROP TABLE IF EXISTS `services`',
+            'create_services' => 'CREATE TABLE `services` (
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+                `title` VARCHAR(255),
+                `price` VARCHAR(255),
+                `rawPrice` INT,
+                `description` TEXT,
+                `iconText` VARCHAR(50),
+                `features` TEXT,
+                `display_order` INT DEFAULT 0
+            )',
+            
+            'drop_pathways' => 'DROP TABLE IF EXISTS `pathway_cards`',
+            'create_pathways' => 'CREATE TABLE `pathway_cards` (
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+                `card_number` VARCHAR(10),
+                `title` VARCHAR(255),
+                `slug` VARCHAR(255),
+                `short_desc` TEXT,
+                `display_order` INT DEFAULT 0
             )'
         ];
         
@@ -434,6 +523,32 @@ try {
             $results['seed_faqs'] = 'Success';
         } catch (Exception $e) {
             $results['seed_faqs'] = 'Error: ' . $e->getMessage();
+        }
+        
+        try {
+            $initialCards = [
+                ['01', 'Child Birth Date & Name Alignment Analysis', 'child-name-alignment', "Discover the optimal name vibration and cosmic alignment for your child's birth energy."],
+                ['02', 'Career Path & Success Guidance', 'career-success-guidance', "Explore your professional potential, ideal sectors, and key timing for career breakthroughs or transitions."],
+                ['03', 'Relationship Compatibility Analysis', 'relationship-compatibility', "Decipher the numerical resonance between partners to nourish harmony and conscious relationship growth."],
+                ['04', 'Birth Date, Name Analysis & Name Correction', 'birth-name-analysis', "A comprehensive analysis of your birth energy and full name correction for lifetime cosmic harmony."],
+                ['05', 'Business Numerology & Prosperity Blueprint', 'business-numerology', "Optimize corporate/brand alignment, choose lucky launch dates, and blueprint your business success."],
+                ['06', 'Lucky Numbers, Alphabets & Colour Alignment', 'lucky-alignment', "Elevate your daily frequency by aligning with your supportive numbers, letters, and visual energies."],
+                ['07', 'Focused Insight Session', 'focused-insight', "Directly target a single query or burning question for swift, clear metaphysical clarity (Single Question)."],
+                ['08', 'Gemstone, Crystal, Rudraksha & Yantra Recommendation', 'gemstone-crystal-rudraksha-recommendation', "Receive personalized astronomical cosmic prescription of specific crystals, powerful Rudrakshas, and precious gemstones to amplify protective fields and lucky energy bands."],
+                ['09', 'Mobile Number Numerology', 'mobile-number-numerology', "Analyze and optimize your mobile number vibrations to enhance communication, opportunities, prosperity, and overall life harmony."],
+                ['10', 'Expert-Led Reiki Healing Sessions', 'reiki-healings', "Experience energy healing through our Expert Reiki Healers to promote emotional balance, stress relief, inner peace, and overall well-being."],
+                ['11', 'Expert-Led Tarot Card Readings', 'tarot-readings', "Gain intuitive guidance and deeper insights into life's questions, challenges, opportunities, and future possibilities through Tarot."],
+                ['12', 'Expert-Led Guided Meditation', 'guided-meditation', "Experience guided meditation sessions designed to reduce stress, improve focus, enhance self-awareness, and foster inner harmony."],
+                ['13', 'Expert-Led Aura & Chakra Healing', 'chakra-healings', "Restore balance and harmony to your energy centers through chakra healing for improved emotional, mental, physical, and spiritual well-being."]
+            ];
+            
+            $stmt = $pdo->prepare('INSERT INTO pathway_cards (card_number, title, slug, short_desc, display_order) VALUES (?, ?, ?, ?, ?)');
+            foreach ($initialCards as $i => $card) {
+                $stmt->execute([$card[0], $card[1], $card[2], $card[3], $i]);
+            }
+            $results['seed_pathway_cards'] = 'Success';
+        } catch (Exception $e) {
+            $results['seed_pathway_cards'] = 'Error: ' . $e->getMessage();
         }
         
         echo json_encode($results);
@@ -615,6 +730,76 @@ try {
     elseif (preg_match('/^faqs\/([0-9]+)$/', $route, $m) && $method === 'DELETE') {
         require_auth();
         $stmt = $pdo->prepare('DELETE FROM faqs WHERE id=?');
+        $stmt->execute([$m[1]]);
+        echo json_encode(['success' => true]);
+    }
+    elseif ($route === 'services' && $method === 'GET') {
+        $stmt = $pdo->query('SELECT * FROM services ORDER BY display_order ASC, id ASC');
+        echo json_encode($stmt->fetchAll());
+    }
+    elseif ($route === 'services' && $method === 'POST') {
+        require_auth();
+        $stmt = $pdo->query('SELECT COUNT(*) as cnt FROM services');
+        $order = $stmt->fetch()['cnt'];
+        $stmt = $pdo->prepare('INSERT INTO services (title, price, rawPrice, description, iconText, features, display_order) VALUES (?, ?, ?, ?, ?, ?, ?)');
+        $features = is_array($input['features']) ? json_encode($input['features']) : $input['features'];
+        $stmt->execute([$input['title'], $input['price'], $input['rawPrice'], $input['description'], $input['iconText'], $features, $order]);
+        echo json_encode(['id' => $pdo->lastInsertId()]);
+    }
+    elseif ($route === 'services/reorder' && $method === 'POST') {
+        require_auth();
+        $pdo->beginTransaction();
+        $stmt = $pdo->prepare('UPDATE services SET display_order=? WHERE id=?');
+        foreach ($input['orderIds'] as $i => $id) {
+            $stmt->execute([$i, $id]);
+        }
+        $pdo->commit();
+        echo json_encode(['success' => true]);
+    }
+    elseif (preg_match('/^services\/([0-9]+)$/', $route, $m) && $method === 'PUT') {
+        require_auth();
+        $stmt = $pdo->prepare('UPDATE services SET title=?, price=?, rawPrice=?, description=?, iconText=?, features=? WHERE id=?');
+        $features = is_array($input['features']) ? json_encode($input['features']) : $input['features'];
+        $stmt->execute([$input['title'], $input['price'], $input['rawPrice'], $input['description'], $input['iconText'], $features, $m[1]]);
+        echo json_encode(['success' => true]);
+    }
+    elseif (preg_match('/^services\/([0-9]+)$/', $route, $m) && $method === 'DELETE') {
+        require_auth();
+        $stmt = $pdo->prepare('DELETE FROM services WHERE id=?');
+        $stmt->execute([$m[1]]);
+        echo json_encode(['success' => true]);
+    }
+    elseif ($route === 'pathway_cards' && $method === 'GET') {
+        $stmt = $pdo->query('SELECT * FROM pathway_cards ORDER BY display_order ASC, id ASC');
+        echo json_encode($stmt->fetchAll());
+    }
+    elseif ($route === 'pathway_cards' && $method === 'POST') {
+        require_auth();
+        $stmt = $pdo->query('SELECT COUNT(*) as cnt FROM pathway_cards');
+        $order = $stmt->fetch()['cnt'];
+        $stmt = $pdo->prepare('INSERT INTO pathway_cards (card_number, title, slug, short_desc, display_order) VALUES (?, ?, ?, ?, ?)');
+        $stmt->execute([$input['card_number'], $input['title'], $input['slug'], $input['short_desc'], $order]);
+        echo json_encode(['id' => $pdo->lastInsertId()]);
+    }
+    elseif ($route === 'pathway_cards/reorder' && $method === 'POST') {
+        require_auth();
+        $pdo->beginTransaction();
+        $stmt = $pdo->prepare('UPDATE pathway_cards SET display_order=? WHERE id=?');
+        foreach ($input['orderIds'] as $i => $id) {
+            $stmt->execute([$i, $id]);
+        }
+        $pdo->commit();
+        echo json_encode(['success' => true]);
+    }
+    elseif (preg_match('/^pathway_cards\/([0-9]+)$/', $route, $m) && $method === 'PUT') {
+        require_auth();
+        $stmt = $pdo->prepare('UPDATE pathway_cards SET card_number=?, title=?, slug=?, short_desc=? WHERE id=?');
+        $stmt->execute([$input['card_number'], $input['title'], $input['slug'], $input['short_desc'], $m[1]]);
+        echo json_encode(['success' => true]);
+    }
+    elseif (preg_match('/^pathway_cards\/([0-9]+)$/', $route, $m) && $method === 'DELETE') {
+        require_auth();
+        $stmt = $pdo->prepare('DELETE FROM pathway_cards WHERE id=?');
         $stmt->execute([$m[1]]);
         echo json_encode(['success' => true]);
     }
