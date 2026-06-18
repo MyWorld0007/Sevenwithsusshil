@@ -427,7 +427,12 @@ export default function Pricing() {
         });
 
         if (!res.ok) {
-          throw new Error('Celestial connection error. Please try again.');
+          let backendError = 'Celestial connection error. Please try again.';
+          try {
+            const errData = await res.json();
+            if (errData && errData.error) backendError = errData.error;
+          } catch (e) {}
+          throw new Error(backendError);
         }
 
         setFormSubmitted(true);
