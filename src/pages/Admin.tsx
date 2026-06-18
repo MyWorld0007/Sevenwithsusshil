@@ -1042,7 +1042,7 @@ export default function Admin() {
                     <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2 font-semibold">SMTP Port</label>
                     <input 
                       type="text" 
-                      placeholder="e.g. 587 or 465" 
+                      placeholder="e.g. 465" 
                       value={settings.smtp_port || ''} 
                       onChange={e=>setSettings({...settings, smtp_port: e.target.value})} 
                       className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold text-sm rounded-sm" 

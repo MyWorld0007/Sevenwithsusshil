@@ -1190,15 +1190,63 @@ async function startServer() {
       const db = await getDbPool();
       
       const [settingsRows]: any = await db.query('SELECT * FROM settings WHERE id = 1');
-      const adminEmail = settingsRows.length > 0 ? settingsRows[0].email : "info@sevenastro.com";
-      const smtpHost = process.env.SMTP_HOST || settingsRows[0]?.smtp_host;
-      const smtpPortStr = process.env.SMTP_PORT || settingsRows[0]?.smtp_port;
-      const smtpPort = smtpPortStr ? parseInt(smtpPortStr, 10) : 465;
-      const smtpUser = process.env.SMTP_USER || settingsRows[0]?.smtp_user;
-      const smtpPass = process.env.SMTP_PASS || settingsRows[0]?.smtp_pass;
+      const settingsObj = (settingsRows && settingsRows.length > 0) ? settingsRows[0] : {};
+      
+      const adminEmail = settingsObj.email || "info@sevenastro.com";
+      const adminRecipient = adminEmail && adminEmail.trim() ? adminEmail.trim().toLowerCase() : "info@sevenastro.com";
+
+      const smtpHost = settingsObj.smtp_host || process.env.SMTP_HOST;
+      const smtpPort = parseInt((settingsObj.smtp_port || process.env.SMTP_PORT || "465").toString(), 10);
+      const smtpUser = settingsObj.smtp_user || process.env.SMTP_USER;
+      const smtpPass = settingsObj.smtp_pass || process.env.SMTP_PASS;
+      
       let smtpFrom = process.env.SMTP_FROM || `"Seven Astro" <${smtpUser || "7s.evolve@gmail.com"}>`;
       if (smtpFrom && smtpUser && !smtpFrom.includes("@")) {
         smtpFrom = `"${smtpFrom.replace(/"/g, '')}" <${smtpUser}>`;
+      }
+
+      // Save to database
+      try {
+        if (pool) {
+          await pool.query(`
+            CREATE TABLE IF NOT EXISTS booking_submissions (
+              id INT AUTO_INCREMENT PRIMARY KEY,
+              full_name VARCHAR(255),
+              dob VARCHAR(255),
+              tob VARCHAR(255),
+              pob VARCHAR(255),
+              mobile VARCHAR(255),
+              email VARCHAR(255),
+              service_title VARCHAR(255),
+              service_price VARCHAR(255),
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+          `);
+          await pool.query(
+            "INSERT INTO booking_submissions (full_name, dob, tob, pob, mobile, email, service_title, service_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            [fullName || '', dob || '', tob || '', pob || '', mobile || '', email || '', `${serviceTitle} (via WhatsApp Partner ${operatorName})`, servicePrice || '']
+          );
+        } else {
+          // JsonDbEngine fallback save
+          const data = readJsonDb();
+          if (!data.booking_submissions) data.booking_submissions = [];
+          const nextId = (data.booking_submissions.reduce((m: number, x: any) => Math.max(m, x.id || 0), 0)) + 1;
+          data.booking_submissions.push({
+            id: nextId,
+            full_name: fullName || '',
+            dob: dob || '',
+            tob: tob || '',
+            pob: pob || '',
+            mobile: mobile || '',
+            email: email || '',
+            service_title: `${serviceTitle} (via WhatsApp Partner ${operatorName})`,
+            service_price: servicePrice || '',
+            created_at: new Date().toISOString()
+          });
+          writeJsonDb(data);
+        }
+      } catch (dbErr: any) {
+        console.error("[Database Error] Saving whatsapp booking:", dbErr.message);
       }
       
       if (smtpHost && smtpUser && smtpPass) {
@@ -1250,7 +1298,7 @@ async function startServer() {
 
           await transporter.sendMail({
             from: smtpFrom,
-            to: adminEmail,
+            to: adminRecipient,
             subject: `Expert Booking via WhatsApp: ${serviceTitle} with ${operatorName}`,
             html: adminBookingEmailHtml,
           });
@@ -1319,7 +1367,7 @@ async function startServer() {
 
       const settingsObj = (settingsRows && settingsRows.length > 0) ? settingsRows[0] : {};
       const smtpHost = settingsObj.smtp_host || process.env.SMTP_HOST;
-      const smtpPort = parseInt((settingsObj.smtp_port || process.env.SMTP_PORT || "587").toString(), 10);
+      const smtpPort = parseInt((settingsObj.smtp_port || process.env.SMTP_PORT || "465").toString(), 10);
       const smtpUser = settingsObj.smtp_user || process.env.SMTP_USER;
       const smtpPass = settingsObj.smtp_pass || process.env.SMTP_PASS;
       let smtpFrom = process.env.SMTP_FROM || `"Seven Astro" <${smtpUser || "7s.evolve@gmail.com"}>`;
@@ -1572,7 +1620,7 @@ async function startServer() {
 
       const settingsObj = (settingsRows && settingsRows.length > 0) ? settingsRows[0] : {};
       const smtpHost = settingsObj.smtp_host || process.env.SMTP_HOST;
-      const smtpPort = parseInt((settingsObj.smtp_port || process.env.SMTP_PORT || "587").toString(), 10);
+      const smtpPort = parseInt((settingsObj.smtp_port || process.env.SMTP_PORT || "465").toString(), 10);
       const smtpUser = settingsObj.smtp_user || process.env.SMTP_USER;
       const smtpPass = settingsObj.smtp_pass || process.env.SMTP_PASS;
       let smtpFrom = process.env.SMTP_FROM || `"Seven Astro" <${smtpUser || "7s.evolve@gmail.com"}>`;
