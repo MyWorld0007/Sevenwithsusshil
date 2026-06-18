@@ -322,9 +322,19 @@ export default function Admin() {
        const resolveRes = async (res: any) => {
           if (res.status !== 'fulfilled') return { error: 'failed' };
           const response = res.value;
+          if (response.status === 401) {
+              setToken('');
+              localStorage.removeItem('admin_token');
+              return { error: 'Unauthorized' };
+          }
           if (!response.ok) return { error: 'not ok' };
           try {
-             return await response.json();
+             const data = await response.json();
+             if (data.error === 'Invalid token' || data.error === 'Unauthorized') {
+                 setToken('');
+                 localStorage.removeItem('admin_token');
+             }
+             return data;
           } catch(e) {
              return { error: 'json parsing failed' };
           }
@@ -816,7 +826,13 @@ export default function Admin() {
     });
     const data = await res.json();
     if (data.error) {
-      alert(data.error);
+      if (data.error === 'Invalid token' || data.error === 'Unauthorized') {
+        alert('Your session has expired. Please log in again.');
+        setToken('');
+        localStorage.removeItem('admin_token');
+      } else {
+        alert(data.error);
+      }
     } else {
       form.reset();
       fetchData();
@@ -1837,7 +1853,7 @@ export default function Admin() {
                            </div>
                            
                            <button onClick={() => deletePartner(partner.id!)} className="text-[10px] font-bold tracking-[0.1em] text-red-400 hover:text-red-300 transition-colors uppercase pt-2">
-                             Delete Partner
+                             Delete Guide
                            </button>
                         </div>
                       </Reorder.Item>
@@ -1900,7 +1916,7 @@ export default function Admin() {
                   </div>
                   <div className="pt-2">
                     <button type="submit" className="bg-gold text-bg-dark px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-gold-lt transition-colors rounded-sm w-full font-semibold">
-                      Add Partner
+                      Add Guide
                     </button>
                     <p className="text-[10px] uppercase text-gold/60 tracking-wider text-center pt-3">You can upload the profile photo from the list above after creation.</p>
                   </div>

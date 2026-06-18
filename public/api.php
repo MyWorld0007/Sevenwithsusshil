@@ -594,6 +594,11 @@ try {
         $stmt = $pdo->query('SELECT * FROM testimonials ORDER BY id ASC');
         echo json_encode($stmt->fetchAll());
     }
+    elseif ($route === 'admin/testimonials' && $method === 'GET') {
+        require_auth();
+        $stmt = $pdo->query('SELECT * FROM testimonials ORDER BY id ASC');
+        echo json_encode($stmt->fetchAll());
+    }
     elseif ($route === 'admin/login' && $method === 'POST') {
         $email = $input['email'] ?? '';
         $password = $input['password'] ?? '';

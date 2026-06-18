@@ -42,7 +42,7 @@ export default function GuidingLights() {
         ) : partners.length === 0 ? (
           <div className="text-center text-muted font-light">No guides currently listed.</div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-16 md:gap-24">
+          <div className="flex flex-col gap-24">
             {partners.map((partner, i) => (
               <motion.div 
                 key={partner.id}
@@ -50,23 +50,35 @@ export default function GuidingLights() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="flex flex-col gap-8"
+                className="grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-16 items-center"
               >
-                <div className="w-full aspect-[3/4] bg-bg-card border border-gold/20 rounded-sm relative overflow-hidden group shadow-[0_0_30px_rgba(201,160,80,0.05)]">
-                  {partner.profile_photo ? (
-                     <img src={partner.profile_photo} alt={partner.name} className="w-full h-full object-cover relative z-10 transition-transform duration-700 group-hover:scale-105" />
-                  ) : (
-                     <div className="w-full h-full bg-bg-input flex items-center justify-center text-gold/30 font-serif relative z-10">
-                        {partner.name?.charAt(0) || '?'}
-                     </div>
-                  )}
-                  <div className="absolute inset-0 border border-gold/0 group-hover:border-gold/30 transition-colors z-20 pointer-events-none mix-blend-overlay"></div>
+                <div className={`md:col-span-5 relative max-w-[320px] md:max-w-none mx-auto w-full ${i % 2 === 1 ? 'md:order-2' : ''}`}>
+                  <div className="w-full aspect-[3/4] bg-bg-input border border-gold/20 rounded-sm flex items-center justify-center relative shadow-[0_0_40px_rgba(201,160,80,0.1)] overflow-hidden">
+                    {partner.profile_photo ? (
+                       <img src={partner.profile_photo} alt={partner.name} className="w-full h-full object-cover relative z-10 transition-transform duration-700 hover:scale-105" />
+                    ) : (
+                       <div className="w-full h-full flex items-center justify-center text-gold/30 font-serif relative z-10 text-4xl">
+                          {partner.name?.charAt(0) || '?'}
+                       </div>
+                    )}
+                  </div>
                 </div>
                 
-                <div className="text-center md:text-left px-4 md:px-0">
-                  <h3 className="text-3xl font-serif text-gold mb-2">{partner.gratitude ? `${partner.gratitude} ` : ''}{partner.name}</h3>
-                  <h4 className="text-[11px] uppercase tracking-[0.2em] font-semibold text-text-main mb-6">{partner.title}</h4>
-                  <p className="text-[14px] font-light leading-[1.85] text-muted whitespace-pre-wrap">{partner.description}</p>
+                <div className={`md:col-span-7 ${i % 2 === 1 ? 'md:order-1' : ''}`}>
+                  {partner.gratitude && (
+                    <p className="text-[18px] md:text-[22px] font-light font-serif leading-[1.6] text-gold/90 mb-6">
+                      {partner.gratitude}
+                    </p>
+                  )}
+                  <h2 className="text-3xl md:text-5xl font-light font-serif leading-[1.18] mb-4 text-gold">
+                    {partner.name}
+                  </h2>
+                  <p className="text-[10px] font-medium tracking-[0.38em] uppercase text-text-main mb-6">
+                    {partner.title}
+                  </p>
+                  <p className="text-[15px] font-light leading-[1.95] text-muted whitespace-pre-wrap">
+                    {partner.description}
+                  </p>
                 </div>
               </motion.div>
             ))}
