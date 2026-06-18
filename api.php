@@ -1,1380 +1,874 @@
 <?php
-/**
- * api.php - PHP Backend API Router for Seven Astro-Numerology (Hostinger Deployments)
- * 
- * Supports dynamic PDO database connection with local fallback to database.json 
- * and maps all standard endpoints required by the Seven App frontend.
- */
-
+ini_set('display_errors', 0);
+error_reporting(0);
 header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Authorization");
 header("Content-Type: application/json; charset=UTF-8");
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
-    exit();
+    exit;
 }
 
-// 1. Connection Configurations
-define('DB_HOST_LOCAL', 'localhost');
-define('DB_HOST_REMOTE', '193.203.184.86');
-define('DB_USER', 'u709894810_masteradmin');
-define('DB_PASS', '@Masteradmin_2026');
-define('DB_NAME', 'u709894810_sevenastro');
-define('JSON_DB_PATH', __DIR__ . '/database.json');
+$db_user = getenv('DB_USER') ?: 'u709894810_masteradmin';
+$db_pass = getenv('DB_PASSWORD') ?: '@Masteradmin_2026';
+$db_name = getenv('DB_NAME') ?: 'u709894810_sevenastro';
 
-// Helper to standardise options / inputs
-$inputData = json_decode(file_get_contents('php://input'), true) ?? [];
-
-// 2. Establish Database Engine (PDO MySQL with high-fidelity JSON Fallback)
 $pdo = null;
-$useFallback = false;
+$hosts = [getenv('DB_HOST') ?: 'localhost', '127.0.0.1', '193.203.184.86'];
+$lastError = '';
 
+foreach ($hosts as $host) {
+    if (!$host) continue;
+    $dsn = "mysql:host=$host;dbname=$db_name;charset=utf8mb4";
+    try {
+        $pdo = new PDO($dsn, $db_user, $db_pass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]);
+        break; // Connected successfully
+    } catch (PDOException $e) {
+        $lastError = $e->getMessage();
+    }
+}
+
+if (!$pdo) {
+    http_response_code(500);
+    echo json_encode(['error' => 'Database connection failed: ' . $lastError]);
+    exit;
+}
+
+// 1. Create admins table
 try {
-    // Attempt local database connection (localhost) - typical for Hostinger hosting environments
-    $dsn = "mysql:host=" . DB_HOST_LOCAL . ";dbname=" . DB_NAME . ";charset=utf8mb4";
-    $options = [
-        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_EMULATE_PREPARES   => false,
-        PDO::ATTR_TIMEOUT            => 2 // Fail fast to try remote next
-    ];
-    $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
-    $pdo->exec("SET NAMES utf8mb4");
-} catch (Exception $e) {
-    try {
-        // Fallback to remote IP connection if requested
-        $dsn = "mysql:host=" . DB_HOST_REMOTE . ";dbname=" . DB_NAME . ";charset=utf8mb4";
-        $options[PDO::ATTR_TIMEOUT] = 4;
-        $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
-        $pdo->exec("SET NAMES utf8mb4");
-    } catch (Exception $e2) {
-        $useFallback = true;
+    $pdo->exec('CREATE TABLE IF NOT EXISTS `admins` (
+        `id` INT PRIMARY KEY AUTO_INCREMENT,
+        `email` VARCHAR(191) UNIQUE,
+        `password` VARCHAR(255)
+    )');
+} catch (Exception $e) {}
+
+// 2. Create settings table
+try {
+    $pdo->exec('CREATE TABLE IF NOT EXISTS `settings` (
+        `id` INT PRIMARY KEY,
+        `whatsapp` VARCHAR(255),
+        `email` VARCHAR(255),
+        `whatsapp_message` TEXT,
+        `email_subject` VARCHAR(255),
+        `email_body` TEXT,
+        `gemini_api_key` VARCHAR(500) NULL,
+        `about_title` VARCHAR(500) NULL,
+        `about_para1` TEXT NULL,
+        `about_para2` TEXT NULL,
+        `profile_photo` VARCHAR(500) NULL
+    )');
+} catch (Exception $e) {}
+
+// Safe upgrades to existing settings tables
+try { $pdo->exec("ALTER TABLE `settings` ADD COLUMN `about_title` VARCHAR(500) NULL"); } catch (Exception $e) {}
+try { $pdo->exec("ALTER TABLE `settings` ADD COLUMN `about_para1` TEXT NULL"); } catch (Exception $e) {}
+try { $pdo->exec("ALTER TABLE `settings` ADD COLUMN `about_para2` TEXT NULL"); } catch (Exception $e) {}
+try { $pdo->exec("ALTER TABLE `settings` ADD COLUMN `profile_photo` VARCHAR(500) NULL"); } catch (Exception $e) {}
+
+// 3. Create life_paths table
+try {
+    $pdo->exec('CREATE TABLE IF NOT EXISTS `life_paths` (
+        `id` INT PRIMARY KEY,
+        `name` VARCHAR(255),
+        `desc` TEXT
+    )');
+} catch (Exception $e) {}
+
+// 4. Create testimonials table
+try {
+    $pdo->exec('CREATE TABLE IF NOT EXISTS `testimonials` (
+        `id` INT PRIMARY KEY,
+        `text` TEXT,
+        `initial` VARCHAR(10),
+        `name` VARCHAR(255),
+        `loc` VARCHAR(255),
+        `date` VARCHAR(255),
+        `rating` INT
+    )');
+} catch (Exception $e) {}
+
+// 5. Create content_pages table
+try {
+    $pdo->exec('CREATE TABLE IF NOT EXISTS `content_pages` (
+        `slug` VARCHAR(50) PRIMARY KEY,
+        `title` VARCHAR(255),
+        `content` LONGTEXT
+    )');
+} catch (Exception $e) {}
+
+// 6. Create faqs table
+try {
+    $pdo->exec('CREATE TABLE IF NOT EXISTS `faqs` (
+        `id` INT AUTO_INCREMENT PRIMARY KEY,
+        `question` VARCHAR(500),
+        `answer` LONGTEXT,
+        `display_order` INT DEFAULT 0
+    )');
+} catch (Exception $e) {}
+
+// 7. Create services table
+try {
+    $pdo->exec('CREATE TABLE IF NOT EXISTS `services` (
+        `id` INT AUTO_INCREMENT PRIMARY KEY,
+        `title` VARCHAR(255),
+        `price` VARCHAR(255),
+        `rawPrice` INT,
+        `description` TEXT,
+        `iconText` VARCHAR(50),
+        `features` TEXT,
+        `display_order` INT DEFAULT 0
+    )');
+} catch (Exception $e) {}
+
+// 8. Create pathway_cards table
+try {
+    $pdo->exec('CREATE TABLE IF NOT EXISTS `pathway_cards` (
+        `id` INT AUTO_INCREMENT PRIMARY KEY,
+        `card_number` VARCHAR(10),
+        `title` VARCHAR(255),
+        `slug` VARCHAR(255),
+        `short_desc` TEXT,
+        `display_order` INT DEFAULT 0
+    )');
+} catch (Exception $e) {}
+
+// 9. Create partners table
+try {
+    $pdo->exec('CREATE TABLE IF NOT EXISTS `partners` (
+        `id` INT AUTO_INCREMENT PRIMARY KEY,
+        `name` VARCHAR(255),
+        `gratitude` VARCHAR(255) DEFAULT NULL,
+        `title` VARCHAR(255),
+        `description` TEXT,
+        `profile_photo` VARCHAR(500),
+        `display_order` INT DEFAULT 0
+    )');
+} catch (Exception $e) {}
+
+try { $pdo->exec("ALTER TABLE `partners` ADD COLUMN `gratitude` VARCHAR(255) DEFAULT NULL"); } catch (Exception $e) {}
+
+try { $pdo->exec("ALTER TABLE `pathway_cards` ADD COLUMN `display_order` INT DEFAULT 0"); } catch (Exception $e) {}
+try { $pdo->exec("ALTER TABLE `pathway_cards` ADD COLUMN `slug` VARCHAR(255)"); } catch (Exception $e) {}
+try { $pdo->exec("ALTER TABLE `pathway_cards` ADD COLUMN `short_desc` TEXT"); } catch (Exception $e) {}
+try { $pdo->exec("ALTER TABLE `pathway_cards` ADD COLUMN `card_number` VARCHAR(10)"); } catch (Exception $e) {}
+
+try { $pdo->exec("ALTER TABLE `services` ADD COLUMN `display_order` INT DEFAULT 0"); } catch (Exception $e) {}
+try { $pdo->exec("ALTER TABLE `services` ADD COLUMN `iconText` VARCHAR(50)"); } catch (Exception $e) {}
+try { $pdo->exec("ALTER TABLE `services` ADD COLUMN `features` TEXT"); } catch (Exception $e) {}
+try { $pdo->exec("ALTER TABLE `services` ADD COLUMN `rawPrice` INT"); } catch (Exception $e) {}
+
+
+// --- SEED SECTIONS ---
+
+// Seed admin if empty
+try {
+    $cntAdmin = $pdo->query('SELECT COUNT(*) as cnt FROM admins')->fetch()['cnt'];
+    if ($cntAdmin == 0) {
+        $stmt = $pdo->prepare('INSERT INTO admins (email, password) VALUES (?, ?)');
+        $stmt->execute(['masteradmin@sevenastro.com', '@Masteradmin_2026']);
     }
+} catch (Exception $e) {}
+
+// Seed settings if empty
+try {
+    $cntSettings = $pdo->query('SELECT COUNT(*) as cnt FROM settings')->fetch()['cnt'];
+    if ($cntSettings == 0) {
+        $stmt = $pdo->prepare('INSERT INTO settings (id, whatsapp, email, whatsapp_message, email_subject, email_body, gemini_api_key, about_title, about_para1, about_para2, profile_photo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+        $stmt->execute([
+            1, 
+            '917039516551', 
+            '7s.evolve@gmail.com', 
+            'Hello! I would like to book a session.', 
+            'Book a Session', 
+            "Hi Team Seven,\n\nI want to book a session.", 
+            null,
+            "Bridging ancient wisdom with modern life guidance",
+            "I am a Seeker, Intuitive, Healer, and Mentor with 15 years of dedicated experience guiding individuals through life’s most complex challenges. Drawing from my personal life experiences and challenges, I have transformed lessons into wisdom — and now help others navigate their paths with clarity, confidence, and purpose.",
+            "By combining astro-numerology, spirituality, and Divine’s wisdom, I evaluate, identify, inspire, encourage, and empower individuals to overcome obstacles and discover their true potential. My approach is holistic: I help people balance emotions, embrace their uniqueness, and live authentically.",
+            "/profile.jpeg"
+        ]);
+    } else {
+        // Upgrade existing settings table rows with pristine defaults if currently null/empty
+        $stmtCheck = $pdo->query('SELECT about_para1 FROM settings WHERE id = 1');
+        $resCheck = $stmtCheck->fetch();
+        if (!$resCheck || empty($resCheck['about_para1'])) {
+            $stmtUpdate = $pdo->prepare('UPDATE settings SET 
+                about_title = COALESCE(about_title, ?),
+                about_para1 = ?,
+                about_para2 = ?,
+                profile_photo = COALESCE(profile_photo, ?)
+                WHERE id = 1');
+            $stmtUpdate->execute([
+                "Bridging ancient wisdom with modern life guidance",
+                "I am a Seeker, Intuitive, Healer, and Mentor with 15 years of dedicated experience guiding individuals through life’s most complex challenges. Drawing from my personal life experiences and challenges, I have transformed lessons into wisdom — and now help others navigate their paths with clarity, confidence, and purpose.",
+                "By combining astro-numerology, spirituality, and Divine’s wisdom, I evaluate, identify, inspire, encourage, and empower individuals to overcome obstacles and discover their true potential. My approach is holistic: I help people balance emotions, embrace their uniqueness, and live authentically.",
+                "/profile.jpeg"
+            ]);
+        }
+    }
+} catch (Exception $e) {}
+
+// Seed life_paths if empty
+try {
+    $cntLP = $pdo->query('SELECT COUNT(*) as cnt FROM life_paths')->fetch()['cnt'];
+    if ($cntLP == 0) {
+        $lps = [
+            [1, 'The Leader', 'Born to lead, Life Path 1 individuals are independent, ambitious, and determined.'],
+            [2, 'The Peacemaker', 'Gifted with sensitivity, intuition, and creativity, Life Path 2 individuals are natural harmonizers.'],
+            [3, 'The Creator', 'Life Path 3 individuals are naturally creative, expressive, and charismatic.'],
+            [4, 'The Builder', 'Life Path 4 individuals are practical, disciplined, and hardworking.'],
+            [5, 'The Explorer', 'Life Path 5 individuals are adventurous, versatile, and freedom-loving.'],
+            [6, 'The Nurturer', 'Life Path 6 individuals are compassionate, responsible, and deeply caring.'],
+            [7, 'The Seeker', 'Life Path 7 individuals are analytical, intuitive, and deeply spiritual.'],
+            [8, 'The Achiever', 'Life Path 8 individuals are ambitious, powerful, and naturally gifted in leadership.'],
+            [9, 'The Humanitarian', 'Life Path 9 individuals are compassionate, idealistic, and driven by a desire to make a positive impact on the world.'],
+            [11, 'The Visionary', 'Life Path 11 is a Master Number associated with intuition, inspiration, and spiritual insight.'],
+            [13, 'The Disciplined Builder', 'Life Path 13/4 is a Karmic Debt number that emphasizes hard work, discipline, and perseverance.'],
+            [14, 'The Freedom Seeker', 'Life Path 14/5 is a Karmic Debt number that emphasizes freedom, adaptability, and personal growth through experience.'],
+            [16, 'The Spiritual Seeker', 'Life Path 16/7 is a Karmic Debt number associated with wisdom, introspection, and spiritual growth.'],
+            [19, 'The Independent Leader', 'Life Path 19/1 is a Karmic Debt number associated with leadership, independence, and self-reliance.'],
+            [22, 'The Master Builder', 'Life Path 22 is the most powerful Master Number, combining vision, leadership, and practicality.'],
+            [33, 'The Master Teacher', 'Life Path 33 is the Master Teacher, representing unconditional love, compassion, and selfless service.']
+        ];
+        $stmt = $pdo->prepare('INSERT INTO life_paths (id, name, `desc`) VALUES (?, ?, ?)');
+        foreach ($lps as $lp) {
+            $stmt->execute($lp);
+        }
+    }
+} catch (Exception $e) {}
+
+// Seed testimonials if empty
+try {
+    $cntTest = $pdo->query('SELECT COUNT(*) as cnt FROM testimonials')->fetch()['cnt'];
+    if ($cntTest == 0) {
+        $tests = [
+            [1, '"My session was nothing short of revelatory. The accuracy with which the numbers reflected my life\'s patterns left me speechless. I finally understand why certain things kept repeating."', 'P', 'Priya Malhotra', 'Mumbai, India', 'October 2023', 5],
+            [2, '"I was at a complete crossroads in my career. The reading gave me the courage and clarity to make a decision I\'d been avoiding for two years. Genuinely life-changing."', 'R', 'Rohan Kapoor', 'Bangalore, India', 'November 2023', 5],
+            [3, '"The relationship compatibility reading transformed how my partner and I communicate. Understanding our numbers made everything feel less like conflict and more like growth."', 'A', 'Anjali Singh', 'Delhi, India', 'January 2024', 5],
+            [4, '"Simply incredible. The insights into my personal year cycle explained exactly what I was feeling."', 'S', 'Sarah T.', 'London, UK', 'March 2024', 5]
+        ];
+        $stmt = $pdo->prepare('INSERT INTO testimonials (id, text, initial, name, loc, date, rating) VALUES (?, ?, ?, ?, ?, ?, ?)');
+        foreach ($tests as $t) {
+            $stmt->execute($t);
+        }
+    }
+} catch (Exception $e) {}
+
+// Seed content pages if empty
+try {
+    $cntPages = $pdo->query('SELECT COUNT(*) as cnt FROM content_pages')->fetch()['cnt'];
+    if ($cntPages == 0) {
+        $stmt = $pdo->prepare('INSERT INTO content_pages (slug, title, content) VALUES (?, ?, ?)');
+        $stmt->execute(['terms', 'Terms & Conditions', 'Welcome to our Terms & Conditions.']);
+        $stmt->execute(['privacy', 'Privacy Policy', 'Welcome to our Privacy Policy.']);
+        $stmt->execute(['faq', 'FAQ', '']);
+    }
+} catch (Exception $e) {}
+
+// Seed FAQs if empty
+try {
+    $cntFaqs = $pdo->query('SELECT COUNT(*) as cnt FROM faqs')->fetch()['cnt'];
+    if ($cntFaqs == 0) {
+        $stmt = $pdo->prepare('INSERT INTO faqs (question, answer) VALUES (?, ?)');
+        $stmt->execute(['What is Numerology?', 'Numerology is the study of numbers and their influence on our lives.']);
+        $stmt->execute(['How can I book a reading?', 'You can book a reading by visiting the Booking section on our homepage.']);
+    }
+} catch (Exception $e) {}
+
+// Seed pathway cards if empty
+try {
+    $cntCards = $pdo->query('SELECT COUNT(*) as cnt FROM pathway_cards')->fetch()['cnt'];
+    if ($cntCards == 0) {
+        $initialCards = [
+          ['01', 'Child Birth Date & Name Alignment Analysis', 'child-name-alignment', "Discover the optimal name vibration and cosmic alignment for your child's birth energy."],
+          ['02', 'Career Path & Success Guidance', 'career-success-guidance', "Explore your professional potential, ideal sectors, and key timing for career breakthroughs or transitions."],
+          ['03', 'Relationship Compatibility Analysis', 'relationship-compatibility', "Decipher the numerical resonance between partners to nourish harmony and conscious relationship growth."],
+          ['04', 'Birth Date, Name Analysis & Name Correction', 'birth-name-analysis', "A comprehensive analysis of your birth energy and full name correction for lifetime cosmic harmony."],
+          ['05', 'Business Numerology & Prosperity Blueprint', 'business-numerology', "Optimize corporate/brand alignment, choose lucky launch dates, and blueprint your business success."],
+          ['06', 'Lucky Numbers, Alphabets & Colour Alignment', 'lucky-alignment', "Elevate your daily frequency by aligning with your supportive numbers, letters, and visual energies."],
+          ['07', 'Focused Insight Session', 'focused-insight', "Directly target a single query or burning question for swift, clear metaphysical clarity (Single Question)."],
+          ['08', 'Gemstone, Crystal, Rudraksha & Yantra Recommendation', 'gemstone-crystal-rudraksha-recommendation', "Receive personalized astronomical cosmic prescription of specific crystals, powerful Rudrakshas, and precious gemstones to amplify protective fields and lucky energy bands."],
+          ['09', 'Mobile Number Numerology', 'mobile-number-numerology', "Analyze and optimize your mobile number vibrations to enhance communication, opportunities, prosperity, and overall life harmony."],
+          ['10', 'Expert-Led Reiki Healing Sessions', 'reiki-healings', "Experience energy healing through our Expert Reiki Healers to promote emotional balance, stress relief, inner peace, and overall well-being."],
+          ['11', 'Expert-Led Tarot Card Readings', 'tarot-readings', "Gain intuitive guidance and deeper insights into life's questions, challenges, opportunities, and future possibilities through Tarot."],
+          ['12', 'Expert-Led Guided Meditation', 'guided-meditation', "Experience guided meditation sessions designed to reduce stress, improve focus, enhance self-awareness, and foster inner harmony."],
+          ['13', 'Expert-Led Aura & Chakra Healing', 'chakra-healings', "Restore balance and harmony to your energy centers through chakra healing for improved emotional, mental, physical, and spiritual well-being."]
+        ];
+        
+        $stmt = $pdo->prepare('INSERT INTO pathway_cards (card_number, title, slug, short_desc, display_order) VALUES (?, ?, ?, ?, ?)');
+        foreach ($initialCards as $i => $card) {
+            $stmt->execute([$card[0], $card[1], $card[2], $card[3], $i]);
+        }
+    }
+} catch (Exception $e) {}
+
+$jwt_secret = 'supersecret123';
+
+function create_jwt($payload, $secret) {
+    $header = json_encode(['typ' => 'JWT', 'alg' => 'HS256']);
+    $payload = json_encode($payload);
+    $base64UrlHeader = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($header));
+    $base64UrlPayload = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($payload));
+    $signature = hash_hmac('sha256', $base64UrlHeader . "." . $base64UrlPayload, $secret, true);
+    $base64UrlSignature = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($signature));
+    return $base64UrlHeader . "." . $base64UrlPayload . "." . $base64UrlSignature;
 }
 
-// 3. Helper Functions for JSON Engine Fallback
-function readJsonDb() {
-    if (!file_exists(JSON_DB_PATH)) {
-        return ['settings' => [], 'life_paths' => [], 'testimonials' => [], 'content_pages' => [], 'faqs' => [], 'services' => []];
-    }
-    $content = file_get_contents(JSON_DB_PATH);
-    $data = json_decode($content, true);
-    return is_array($data) ? $data : ['settings' => [], 'life_paths' => [], 'testimonials' => [], 'content_pages' => [], 'faqs' => [], 'services' => []];
-}
-
-function writeJsonDb($data) {
-    file_put_contents(JSON_DB_PATH, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
-}
-
-// 4. Admin Auth Token Verification
-function requireAuth() {
-    $authHeader = '';
-    if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
-        $authHeader = trim($_SERVER["HTTP_AUTHORIZATION"]);
-    } else if (isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
-        $authHeader = trim($_SERVER["REDIRECT_HTTP_AUTHORIZATION"]);
-    } else if (function_exists('apache_request_headers')) {
-        $requestHeaders = apache_request_headers();
-        $requestHeaders = array_combine(array_map('ucwords', array_keys($requestHeaders)), array_values($requestHeaders));
-        if (isset($requestHeaders['Authorization'])) {
-            $authHeader = trim($requestHeaders['Authorization']);
-        }
-    } else if (function_exists('getallheaders')) {
-        $headers = getallheaders();
-        $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? '';
-    }
-
-    if (preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
-        $token = $matches[1];
-        if ($token === 'supersecret123') {
-            return true;
-        }
-    }
-    http_response_code(401);
-    echo json_encode(['error' => 'Unauthorized admin session']);
-    exit();
-}
-
-function updateEnvFile($smtpHost, $smtpPort, $smtpUser, $smtpPass, $geminiKey = null) {
-    try {
-        $envPath = __DIR__ . '/.env';
-        $examplePath = __DIR__ . '/.env.example';
-        $content = "";
-        
-        if (file_exists($envPath)) {
-            $content = file_get_contents($envPath);
-        } elseif (file_exists($examplePath)) {
-            $content = file_get_contents($examplePath);
-        }
-        
-        $lines = explode("\n", $content);
-        $variables = [];
-        foreach ($lines as $line) {
-            if (preg_match('/^([^#\s][^=]*)=(.*)$/', $line, $matches)) {
-                $key = trim($matches[1]);
-                $val = trim($matches[2]);
-                $val = preg_replace('/^[\'"]|[\'"]$/', '', $val);
-                $val = preg_replace('/^[\'"]|[\'"]$/', '', trim($val));
-                $variables[$key] = trim($val);
-            }
-        }
-        
-        if ($smtpHost) $variables['SMTP_HOST'] = trim($smtpHost);
-        if ($smtpPort) $variables['SMTP_PORT'] = trim($smtpPort);
-        if ($smtpUser) {
-            $variables['SMTP_USER'] = trim($smtpUser);
-            $variables['SMTP_FROM'] = 'Seven Astro Sanctuary <' . trim($smtpUser) . '>';
-        }
-        if ($smtpPass) $variables['SMTP_PASS'] = trim($smtpPass);
-        if ($geminiKey) $variables['GEMINI_API_KEY'] = trim($geminiKey);
-        
-        $newContent = "";
-        foreach ($variables as $key => $val) {
-            $cleanVal = preg_replace('/^[\'"]|[\'"]$/', '', trim($val));
-            $cleanVal = preg_replace('/^[\'"]|[\'"]$/', '', trim($cleanVal));
-            if (strpos($cleanVal, ' ') !== false || strpos($cleanVal, '<') !== false || strpos($cleanVal, '>') !== false) {
-                $newContent .= $key . '="' . $cleanVal . "\"\n";
-            } else {
-                $newContent .= $key . '=' . $cleanVal . "\n";
-            }
-        }
-        
-        file_put_contents($envPath, $newContent);
-        file_put_contents($examplePath, $newContent);
-    } catch (Exception $e) {
-        // Suppress writing errors
-    }
-}
-
-function sendSmartSmtpEmail($to, $subject, $htmlContent, $settings) {
-    $smtp_host = trim($settings['smtp_host'] ?? '');
-    $smtp_port = intval($settings['smtp_port'] ?? 465);
-    $smtp_user = trim($settings['smtp_user'] ?? '');
-    $smtp_pass = trim($settings['smtp_pass'] ?? '');
-
-    if (empty($smtp_host) || empty($smtp_user) || empty($smtp_pass)) {
-        // Fallback to PHP mail()
-        $headers = "MIME-Version: 1.0" . "\r\n";
-        $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
-        $headers .= "From: Seven Astro Sanctuary <7s.evolve@gmail.com>" . "\r\n";
-        return @mail($to, $subject, $htmlContent, $headers);
-    }
-
-    $host = $smtp_host;
-    if ($smtp_port === 465 && strpos($host, 'ssl://') === false) {
-        $host = 'ssl://' . $host;
-    }
-
-    $socket = @fsockopen($host, $smtp_port, $errno, $errstr, 15);
-    if (!$socket) {
-        // Fallback to php mail()
-        $headers = "MIME-Version: 1.0" . "\r\n";
-        $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
-        $headers .= "From: Seven Astro Sanctuary <$smtp_user>" . "\r\n";
-        return @mail($to, $subject, $htmlContent, $headers);
-    }
-
-    $getResponse = function($socket) {
-        $response = "";
-        while (($line = fgets($socket, 515)) !== false) {
-            $response .= $line;
-            if (substr($line, 3, 1) == " ") {
-                break;
-            }
-        }
-        return $response;
-    };
-
-    $sendCmd = function($socket, $cmd) use ($getResponse) {
-        fputs($socket, $cmd . "\r\n");
-        return $getResponse($socket);
-    };
-
-    $getResponse($socket);
-
-    $sendCmd($socket, "EHLO " . ($_SERVER['SERVER_NAME'] ?? 'localhost'));
+function verify_jwt($jwt, $secret) {
+    $tokenParts = explode('.', $jwt);
+    if (count($tokenParts) != 3) return false;
     
-    $res = $sendCmd($socket, "AUTH LOGIN");
-    if (strpos($res, '334') === false) {
-        fclose($socket);
-        $headers = "MIME-Version: 1.0" . "\r\n";
-        $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
-        $headers .= "From: Seven Astro Sanctuary <$smtp_user>" . "\r\n";
-        return @mail($to, $subject, $htmlContent, $headers);
+    $header = base64_decode(str_replace(['-', '_'], ['+', '/'], $tokenParts[0]));
+    $payload = base64_decode(str_replace(['-', '_'], ['+', '/'], $tokenParts[1]));
+    $signatureProvided = $tokenParts[2];
+
+    $base64UrlHeader = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($header));
+    $base64UrlPayload = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($payload));
+    $signature = hash_hmac('sha256', $base64UrlHeader . "." . $base64UrlPayload, $secret, true);
+    $base64UrlSignature = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($signature));
+
+    if (hash_equals($base64UrlSignature, $signatureProvided)) {
+        return json_decode($payload, true);
     }
-
-    $sendCmd($socket, base64_encode($smtp_user));
-    $sendCmd($socket, base64_encode($smtp_pass));
-
-    $sendCmd($socket, "MAIL FROM: <" . $smtp_user . ">");
-
-    $recipients = array_map('trim', explode(',', $to));
-    foreach ($recipients as $rcpt) {
-        if (!empty($rcpt)) {
-            $sendCmd($socket, "RCPT TO: <" . $rcpt . ">");
-        }
-    }
-
-    $sendCmd($socket, "DATA");
-
-    $headers = "MIME-Version: 1.0\r\n";
-    $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
-    $headers .= "From: Seven Astro Sanctuary <" . $smtp_user . ">\r\n";
-    $headers .= "To: " . $to . "\r\n";
-    $headers .= "Subject: " . $subject . "\r\n";
-    $headers .= "Date: " . date('r') . "\r\n";
-    $headers .= "X-Mailer: PHP/" . phpversion() . "\r\n";
-
-    $mailBody = $headers . "\r\n" . $htmlContent . "\r\n.";
-    $sendCmd($socket, $mailBody);
-
-    $sendCmd($socket, "QUIT");
-    fclose($socket);
-
-    return true;
+    return false;
 }
 
-// 5. Parse route mapping
-$route = $_GET['route'] ?? '';
-$parts = explode('/', trim($route, '/'));
-$resource = $parts[0] ?? '';
-$subResource = $parts[1] ?? null;
+function require_auth() {
+    global $jwt_secret;
+    $headers = apache_request_headers();
+    $authHeader = isset($headers['Authorization']) ? $headers['Authorization'] : '';
+    if (!$authHeader) {
+        $authHeader = isset($_SERVER['HTTP_AUTHORIZATION']) ? $_SERVER['HTTP_AUTHORIZATION'] : '';
+    }
+    
+    if (!$authHeader || !preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
+        http_response_code(401);
+        echo json_encode(['error' => 'Unauthorized']);
+        exit;
+    }
+    
+    $token = $matches[1];
+    $payload = verify_jwt($token, $jwt_secret);
+    if (!$payload) {
+        http_response_code(401);
+        echo json_encode(['error' => 'Invalid token']);
+        exit;
+    }
+}
 
-// Determine request method
+$route = isset($_GET['route']) ? $_GET['route'] : '';
 $method = $_SERVER['REQUEST_METHOD'];
 
-// Ensure critical tables exist when DB connects
-if (!$useFallback && $pdo) {
-    try {
-        $pdo->exec("CREATE TABLE IF NOT EXISTS services (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            title VARCHAR(255),
-            price VARCHAR(255),
-            rawPrice VARCHAR(255),
-            description TEXT,
-            iconText VARCHAR(50),
-            features TEXT,
-            display_order INT DEFAULT 0
-        )");
+$input = json_decode(file_get_contents('php://input'), true) ?: [];
+
+try {
+    if ($route === 'db-diagnostic' && $method === 'GET') {
+        $tables = ['admins', 'settings', 'life_paths', 'testimonials', 'content_pages', 'faqs'];
+        $status = [];
+        foreach ($tables as $tbl) {
+            try {
+                $count = $pdo->query("SELECT COUNT(*) as cnt FROM `$tbl`")->fetch()['cnt'];
+                $status[$tbl] = [
+                    'exists' => true,
+                    'rows' => $count
+                ];
+            } catch (Exception $e) {
+                $status[$tbl] = [
+                    'exists' => false,
+                    'error' => $e->getMessage()
+                ];
+            }
+        }
+        echo json_encode([
+            'database' => $db_name,
+            'tables' => $status
+        ]);
+        exit;
+    }
+    elseif ($route === 'db-rebuild' && $method === 'POST') {
+        $results = [];
+        $queries = [
+            'drop_admins' => 'DROP TABLE IF EXISTS `admins`',
+            'create_admins' => 'CREATE TABLE `admins` (
+                `id` INT PRIMARY KEY AUTO_INCREMENT,
+                `email` VARCHAR(191) UNIQUE,
+                `password` VARCHAR(255)
+            )',
+            'seed_admins' => "INSERT INTO admins (email, password) VALUES ('masteradmin@sevenastro.com', '@Masteradmin_2026')",
+            
+            'drop_settings' => 'DROP TABLE IF EXISTS `settings`',
+            'create_settings' => 'CREATE TABLE `settings` (
+                `id` INT PRIMARY KEY,
+                `whatsapp` VARCHAR(255),
+                `email` VARCHAR(255),
+                `whatsapp_message` TEXT,
+                `email_subject` VARCHAR(255),
+                `email_body` TEXT,
+                `gemini_api_key` VARCHAR(500) NULL
+            )',
+            'seed_settings' => "INSERT INTO settings (id, whatsapp, email, whatsapp_message, email_subject, email_body, gemini_api_key) VALUES (1, '917039516551', '7s.evolve@gmail.com', 'Hello! I would like to book a session.', 'Book a Session', 'Hi Team Seven,\\n\\nI want to book a session.', null)",
+            
+            'drop_life_paths' => 'DROP TABLE IF EXISTS `life_paths`',
+            'create_life_paths' => 'CREATE TABLE `life_paths` (
+                `id` INT PRIMARY KEY,
+                `name` VARCHAR(255),
+                `desc` TEXT
+            )',
+            
+            'drop_testimonials' => 'DROP TABLE IF EXISTS `testimonials`',
+            'create_testimonials' => 'CREATE TABLE `testimonials` (
+                `id` INT PRIMARY KEY,
+                `text` TEXT,
+                `initial` VARCHAR(10),
+                `name` VARCHAR(255),
+                `loc` VARCHAR(255),
+                `date` VARCHAR(255),
+                `rating` INT
+            )',
+            
+            'drop_content_pages' => 'DROP TABLE IF EXISTS `content_pages`',
+            'create_content_pages' => 'CREATE TABLE `content_pages` (
+                `slug` VARCHAR(50) PRIMARY KEY,
+                `title` VARCHAR(255),
+                `content` LONGTEXT
+            )',
+            
+            'drop_faqs' => 'DROP TABLE IF EXISTS `faqs`',
+            'create_faqs' => 'CREATE TABLE `faqs` (
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+                `question` VARCHAR(500),
+                `answer` LONGTEXT,
+                `display_order` INT DEFAULT 0
+            )',
+            
+            'drop_services' => 'DROP TABLE IF EXISTS `services`',
+            'create_services' => 'CREATE TABLE `services` (
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+                `title` VARCHAR(255),
+                `price` VARCHAR(255),
+                `rawPrice` INT,
+                `description` TEXT,
+                `iconText` VARCHAR(50),
+                `features` TEXT,
+                `display_order` INT DEFAULT 0
+            )',
+            
+            'drop_pathways' => 'DROP TABLE IF EXISTS `pathway_cards`',
+            'create_pathways' => 'CREATE TABLE `pathway_cards` (
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+                `card_number` VARCHAR(10),
+                `title` VARCHAR(255),
+                `slug` VARCHAR(255),
+                `short_desc` TEXT,
+                `display_order` INT DEFAULT 0
+            )',
+            
+            'drop_partners' => 'DROP TABLE IF EXISTS `partners`',
+            'create_partners' => 'CREATE TABLE `partners` (
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+                `name` VARCHAR(255),
+                `gratitude` VARCHAR(255) DEFAULT NULL,
+                `title` VARCHAR(255),
+                `description` TEXT,
+                `profile_photo` VARCHAR(500),
+                `display_order` INT DEFAULT 0
+            )'
+        ];
         
-        $pdo->exec("CREATE TABLE IF NOT EXISTS testimonials (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            text TEXT,
-            initial VARCHAR(10),
-            name VARCHAR(255),
-            loc VARCHAR(255),
-            date VARCHAR(255),
-            rating INT DEFAULT 5,
-            status VARCHAR(20) DEFAULT 'approved',
-            helpful_count INT DEFAULT 0
-        )");
-
-        // Seed services if empty
-        $stmtServices = $pdo->query("SELECT COUNT(*) FROM services");
-        if ($stmtServices->fetchColumn() == 0) {
-            $dbJson = file_exists(JSON_DB_PATH) ? json_decode(file_get_contents(JSON_DB_PATH), true) : [];
-            if (!empty($dbJson['services'])) {
-                $insertStmt = $pdo->prepare("INSERT INTO services (id, title, price, rawPrice, description, iconText, features, display_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                foreach ($dbJson['services'] as $s) {
-                    $insertStmt->execute([
-                        $s['id'] ?? null,
-                        $s['title'] ?? '',
-                        $s['price'] ?? '',
-                        $s['rawPrice'] ?? '',
-                        $s['description'] ?? '',
-                        $s['iconText'] ?? '',
-                        isset($s['features']) && is_array($s['features']) ? json_encode($s['features']) : ($s['features'] ?? '[]'),
-                        $s['display_order'] ?? 0
-                    ]);
-                }
+        foreach ($queries as $name => $sql) {
+            try {
+                $pdo->exec($sql);
+                $results[$name] = 'Success';
+            } catch (Exception $e) {
+                $results[$name] = 'Error: ' . $e->getMessage();
             }
         }
-
-        // Seed testimonials if empty
-        $stmtTestimonials = $pdo->query("SELECT COUNT(*) FROM testimonials");
-        if ($stmtTestimonials->fetchColumn() == 0) {
-            $dbJson = file_exists(JSON_DB_PATH) ? json_decode(file_get_contents(JSON_DB_PATH), true) : [];
-            if (!empty($dbJson['testimonials'])) {
-                $insertStmt = $pdo->prepare("INSERT INTO testimonials (id, text, initial, name, loc, date, rating, status, helpful_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                foreach ($dbJson['testimonials'] as $t) {
-                    $insertStmt->execute([
-                        $t['id'] ?? null,
-                        $t['text'] ?? '',
-                        $t['initial'] ?? '',
-                        $t['name'] ?? '',
-                        $t['loc'] ?? '',
-                        $t['date'] ?? '',
-                        $t['rating'] ?? 5,
-                        $t['status'] ?? 'approved',
-                        $t['helpful_count'] ?? 0
-                    ]);
-                }
+        
+        // Detailed seeding for lists
+        try {
+            $lps = [
+                [1, 'The Leader', 'Born to lead, Life Path 1 individuals are independent, ambitious, and determined.'],
+                [2, 'The Peacemaker', 'Gifted with sensitivity, intuition, and creativity, Life Path 2 individuals are natural harmonizers.'],
+                [3, 'The Creator', 'Life Path 3 individuals are naturally creative, expressive, and charismatic.'],
+                [4, 'The Builder', 'Life Path 4 individuals are practical, disciplined, and hardworking.'],
+                [5, 'The Explorer', 'Life Path 5 individuals are adventurous, versatile, and freedom-loving.'],
+                [6, 'The Nurturer', 'Life Path 6 individuals are compassionate, responsible, and deeply caring.'],
+                [7, 'The Seeker', 'Life Path 7 individuals are analytical, intuitive, and deeply spiritual.'],
+                [8, 'The Achiever', 'Life Path 8 individuals are ambitious, powerful, and naturally gifted in leadership.'],
+                [9, 'The Humanitarian', 'Life Path 9 individuals are compassionate, idealistic, and driven by a desire to make a positive impact on the world.'],
+                [11, 'The Visionary', 'Life Path 11 is a Master Number associated with intuition, inspiration, and spiritual insight.'],
+                [13, 'The Disciplined Builder', 'Life Path 13/4 is a Karmic Debt number that emphasizes hard work, discipline, and perseverance.'],
+                [14, 'The Freedom Seeker', 'Life Path 14/5 is a Karmic Debt number that emphasizes freedom, adaptability, and personal growth through experience.'],
+                [16, 'The Spiritual Seeker', 'Life Path 16/7 is a Karmic Debt number associated with wisdom, introspection, and spiritual growth.'],
+                [19, 'The Independent Leader', 'Life Path 19/1 is a Karmic Debt number associated with leadership, independence, and self-reliance.'],
+                [22, 'The Master Builder', 'Life Path 22 is the most powerful Master Number, combining vision, leadership, and practicality.'],
+                [33, 'The Master Teacher', 'Life Path 33 is the Master Teacher, representing unconditional love, compassion, and selfless service.']
+            ];
+            $stmt = $pdo->prepare('INSERT INTO life_paths (id, name, `desc`) VALUES (?, ?, ?)');
+            foreach ($lps as $lp) {
+                $stmt->execute($lp);
             }
+            $results['seed_life_paths'] = 'Success';
+        } catch (Exception $e) {
+            $results['seed_life_paths'] = 'Error: ' . $e->getMessage();
         }
+        
+        try {
+            $tests = [
+                [1, '"My session was nothing short of revelatory. The accuracy with which the numbers reflected my life\'s patterns left me speechless. I finally understand why certain things kept repeating."', 'P', 'Priya Malhotra', 'Mumbai, India', 'October 2023', 5],
+                [2, '"I was at a complete crossroads in my career. The reading gave me the courage and clarity to make a decision I\'d been avoiding for two years. Genuinely life-changing."', 'R', 'Rohan Kapoor', 'Bangalore, India', 'November 2023', 5],
+                [3, '"The relationship compatibility reading transformed how my partner and I communicate. Understanding our numbers made everything feel less like conflict and more like growth."', 'A', 'Anjali Singh', 'Delhi, India', 'January 2024', 5],
+                [4, '"Simply incredible. The insights into my personal year cycle explained exactly what I was feeling."', 'S', 'Sarah T.', 'London, UK', 'March 2024', 5]
+            ];
+            $stmt = $pdo->prepare('INSERT INTO testimonials (id, text, initial, name, loc, date, rating) VALUES (?, ?, ?, ?, ?, ?, ?)');
+            foreach ($tests as $t) {
+                $stmt->execute($t);
+            }
+            $results['seed_testimonials'] = 'Success';
+        } catch (Exception $e) {
+            $results['seed_testimonials'] = 'Error: ' . $e->getMessage();
+        }
+        
+        try {
+            $stmt = $pdo->prepare('INSERT INTO content_pages (slug, title, content) VALUES (?, ?, ?)');
+            $stmt->execute(['terms', 'Terms & Conditions', 'Welcome to our Terms & Conditions.']);
+            $stmt->execute(['privacy', 'Privacy Policy', 'Welcome to our Privacy Policy.']);
+            $stmt->execute(['faq', 'FAQ', '']);
+            $results['seed_content_pages'] = 'Success';
+        } catch (Exception $e) {
+            $results['seed_content_pages'] = 'Error: ' . $e->getMessage();
+        }
+        
+        try {
+            $stmt = $pdo->prepare('INSERT INTO faqs (question, answer) VALUES (?, ?)');
+            $stmt->execute(['What is Numerology?', 'Numerology is the study of numbers and their influence on our lives.']);
+            $stmt->execute(['How can I book a reading?', 'You can book a reading by visiting the Booking section on our homepage.']);
+            $results['seed_faqs'] = 'Success';
+        } catch (Exception $e) {
+            $results['seed_faqs'] = 'Error: ' . $e->getMessage();
+        }
+        
+        try {
+            $initialCards = [
+                ['01', 'Child Birth Date & Name Alignment Analysis', 'child-name-alignment', "Discover the optimal name vibration and cosmic alignment for your child's birth energy."],
+                ['02', 'Career Path & Success Guidance', 'career-success-guidance', "Explore your professional potential, ideal sectors, and key timing for career breakthroughs or transitions."],
+                ['03', 'Relationship Compatibility Analysis', 'relationship-compatibility', "Decipher the numerical resonance between partners to nourish harmony and conscious relationship growth."],
+                ['04', 'Birth Date, Name Analysis & Name Correction', 'birth-name-analysis', "A comprehensive analysis of your birth energy and full name correction for lifetime cosmic harmony."],
+                ['05', 'Business Numerology & Prosperity Blueprint', 'business-numerology', "Optimize corporate/brand alignment, choose lucky launch dates, and blueprint your business success."],
+                ['06', 'Lucky Numbers, Alphabets & Colour Alignment', 'lucky-alignment', "Elevate your daily frequency by aligning with your supportive numbers, letters, and visual energies."],
+                ['07', 'Focused Insight Session', 'focused-insight', "Directly target a single query or burning question for swift, clear metaphysical clarity (Single Question)."],
+                ['08', 'Gemstone, Crystal, Rudraksha & Yantra Recommendation', 'gemstone-crystal-rudraksha-recommendation', "Receive personalized astronomical cosmic prescription of specific crystals, powerful Rudrakshas, and precious gemstones to amplify protective fields and lucky energy bands."],
+                ['09', 'Mobile Number Numerology', 'mobile-number-numerology', "Analyze and optimize your mobile number vibrations to enhance communication, opportunities, prosperity, and overall life harmony."],
+                ['10', 'Expert-Led Reiki Healing Sessions', 'reiki-healings', "Experience energy healing through our Expert Reiki Healers to promote emotional balance, stress relief, inner peace, and overall well-being."],
+                ['11', 'Expert-Led Tarot Card Readings', 'tarot-readings', "Gain intuitive guidance and deeper insights into life's questions, challenges, opportunities, and future possibilities through Tarot."],
+                ['12', 'Expert-Led Guided Meditation', 'guided-meditation', "Experience guided meditation sessions designed to reduce stress, improve focus, enhance self-awareness, and foster inner harmony."],
+                ['13', 'Expert-Led Aura & Chakra Healing', 'chakra-healings', "Restore balance and harmony to your energy centers through chakra healing for improved emotional, mental, physical, and spiritual well-being."]
+            ];
+            
+            $stmt = $pdo->prepare('INSERT INTO pathway_cards (card_number, title, slug, short_desc, display_order) VALUES (?, ?, ?, ?, ?)');
+            foreach ($initialCards as $i => $card) {
+                $stmt->execute([$card[0], $card[1], $card[2], $card[3], $i]);
+            }
+            $results['seed_pathway_cards'] = 'Success';
+        } catch (Exception $e) {
+            $results['seed_pathway_cards'] = 'Error: ' . $e->getMessage();
+        }
+        
+        echo json_encode($results);
+        exit;
+    }
 
-    } catch(Exception $e) {}
-}
-
-// Handle upload specifically if requested
-if ($resource === 'upload') {
-    requireAuth();
-    if (!isset($_FILES['photo'])) {
-        http_response_code(400);
-        echo json_encode(['error' => 'No photo uploaded']);
-        exit();
+    if ($route === 'settings' && $method === 'GET') {
+        $stmt = $pdo->query('SELECT * FROM settings WHERE id = 1');
+        $row = $stmt->fetch();
+        echo json_encode($row ?: new stdClass());
     }
-    $file = $_FILES['photo'];
-    if ($file['error'] !== UPLOAD_ERR_OK) {
-        http_response_code(500);
-        echo json_encode(['error' => 'Upload failed on server']);
-        exit();
+    elseif ($route === 'life_paths' && $method === 'GET') {
+        $stmt = $pdo->query('SELECT * FROM life_paths ORDER BY id ASC');
+        echo json_encode($stmt->fetchAll());
     }
-    $uploadDir = __DIR__ . '/public/uploads/';
-    if (!is_dir($uploadDir)) {
-        mkdir($uploadDir, 0755, true);
+    elseif ($route === 'testimonials' && $method === 'GET') {
+        $stmt = $pdo->query('SELECT * FROM testimonials ORDER BY id ASC');
+        echo json_encode($stmt->fetchAll());
     }
-    $filename = 'profile-' . time() . '-' . rand(1000, 9999) . '.' . pathinfo($file['name'], PATHINFO_EXTENSION);
-    $targetPath = $uploadDir . $filename;
-    if (move_uploaded_file($file['tmp_name'], $targetPath)) {
-        echo json_encode(['url' => '/uploads/' . $filename]);
-    } else {
-        http_response_code(500);
-        echo json_encode(['error' => 'Failed to save uploaded file']);
-    }
-    exit();
-}
-
-// Handle Admin Login Specifically
-if ($resource === 'admin' && $subResource === 'login') {
-    $email = $inputData['email'] ?? '';
-    $password = $inputData['password'] ?? '';
-    
-    $authenticated = false;
-    if (!$useFallback) {
-        $stmt = $pdo->prepare("SELECT * FROM admins WHERE email = ? AND password = ?");
+    elseif ($route === 'admin/login' && $method === 'POST') {
+        $email = $input['email'] ?? '';
+        $password = $input['password'] ?? '';
+        $stmt = $pdo->prepare('SELECT * FROM admins WHERE email = ? AND password = ?');
         $stmt->execute([$email, $password]);
         if ($stmt->fetch()) {
-            $authenticated = true;
-        }
-    } else {
-        $db = readJsonDb();
-        foreach ($db['admins'] ?? [] as $admin) {
-            if ($admin['email'] === $email && $admin['password'] === $password) {
-                $authenticated = true;
-                break;
-            }
+            $token = create_jwt(['admin' => true, 'iat' => time(), 'exp' => time() + 36000], $jwt_secret);
+            echo json_encode(['token' => $token]);
+        } else {
+            http_response_code(401);
+            echo json_encode(['error' => 'Invalid credentials']);
         }
     }
-    
-    if ($authenticated) {
-        echo json_encode(['token' => 'supersecret123']);
-    } else {
-        http_response_code(401);
-        echo json_encode(['error' => 'Invalid email or password']);
-    }
-    exit();
-}
+    elseif ($route === 'settings' && $method === 'PUT') {
+        require_auth();
+        $gemini_key = isset($input['gemini_api_key']) ? $input['gemini_api_key'] : null;
 
-// ROUTING MATRIX
-try {
-    // ---- 1. SETTINGS ----
-    if ($resource === 'settings') {
-        if ($method === 'GET') {
-            if (!$useFallback) {
-                $stmt = $pdo->query("SELECT * FROM settings LIMIT 1");
-                $row = $stmt->fetch();
-                if ($row) {
-                    echo json_encode($row);
-                } else {
-                    echo json_encode([
-                        'id' => 1,
-                        'whatsapp' => '917039516551',
-                        'email' => '7s.evolve@gmail.com',
-                        'whatsapp_message' => 'Hello! I would like to book a session.',
-                        'email_subject' => 'Book a Session',
-                        'email_body' => "Hi Team Seven,\n\nI want to book a session."
-                    ]);
-                }
-            } else {
-                $db = readJsonDb();
-                $row = $db['settings'][0] ?? [
-                    'id' => 1,
-                    'whatsapp' => '917039516551',
-                    'email' => '7s.evolve@gmail.com',
-                    'whatsapp_message' => 'Hello! I would like to book a session.',
-                    'email_subject' => 'Book a Session',
-                    'email_body' => "Hi Team Seven,\n\nI want to book a session."
-                ];
-                echo json_encode($row);
-            }
-            exit();
+        $current = $pdo->query('SELECT * FROM settings WHERE id = 1')->fetch();
+        $about_title = isset($input['about_title']) ? $input['about_title'] : ($current['about_title'] ?? "Bridging ancient wisdom with modern life guidance");
+        $about_para1 = isset($input['about_para1']) ? $input['about_para1'] : ($current['about_para1'] ?? "");
+        $about_para2 = isset($input['about_para2']) ? $input['about_para2'] : ($current['about_para2'] ?? "");
+        $profile_photo = isset($input['profile_photo']) ? $input['profile_photo'] : ($current['profile_photo'] ?? "/profile.jpeg");
+
+        $stmt = $pdo->prepare('UPDATE settings SET whatsapp=?, email=?, whatsapp_message=?, email_subject=?, email_body=?, gemini_api_key=?, about_title=?, about_para1=?, about_para2=?, profile_photo=? WHERE id=1');
+        $stmt->execute([
+            $input['whatsapp'], 
+            $input['email'], 
+            $input['whatsapp_message'], 
+            $input['email_subject'], 
+            $input['email_body'], 
+            $gemini_key,
+            $about_title,
+            $about_para1,
+            $about_para2,
+            $profile_photo
+        ]);
+        echo json_encode(['success' => true]);
+    }
+    elseif ($route === 'upload' && $method === 'POST') {
+        require_auth();
+        if (!isset($_FILES['photo'])) {
+            http_response_code(400);
+            echo json_encode(['error' => 'No file uploaded']);
+            exit;
         }
-        
-        if ($method === 'PUT') {
-            requireAuth();
-            $whatsapp = $inputData['whatsapp'] ?? '';
-            $email = $inputData['email'] ?? '';
-            $whatsapp_message = $inputData['whatsapp_message'] ?? '';
-            $email_subject = $inputData['email_subject'] ?? '';
-            $email_body = $inputData['email_body'] ?? '';
-            $gemini_api_key = $inputData['gemini_api_key'] ?? '';
-            $profile_photo = $inputData['profile_photo'] ?? '';
-            $about_title = $inputData['about_title'] ?? '';
-            $about_para1 = $inputData['about_para1'] ?? '';
-            $about_para2 = $inputData['about_para2'] ?? '';
-            $smtp_host = $inputData['smtp_host'] ?? '';
-            $smtp_port = $inputData['smtp_port'] ?? '';
-            $smtp_user = $inputData['smtp_user'] ?? '';
-            $smtp_pass = $inputData['smtp_pass'] ?? '';
+        $file = $_FILES['photo'];
+        if ($file['error'] !== UPLOAD_ERR_OK) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Upload error code: ' . $file['error']]);
+            exit;
+        }
+
+        $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!in_array($file['type'], $allowedTypes)) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Only image uploads are allowed.']);
+            exit;
+        }
+
+        $targetDir = __DIR__ . '/uploads/';
+        if (!is_dir($targetDir)) {
+            mkdir($targetDir, 0755, true);
+        }
+
+        $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+        $filename = 'profile-' . time() . '-' . rand(1000, 9999) . '.' . $ext;
+        $targetPath = $targetDir . $filename;
+
+        if (move_uploaded_file($file['tmp_name'], $targetPath)) {
+            echo json_encode(['success' => true, 'url' => '/uploads/' . $filename]);
+        } else {
+            http_response_code(500);
+            echo json_encode(['error' => 'Failed to save uploaded file on server.']);
+        }
+        exit;
+    }
+    elseif (preg_match('/^life_paths\/(\d+)$/', $route, $m) && $method === 'PUT') {
+        require_auth();
+        $stmt = $pdo->prepare('UPDATE life_paths SET name=?, `desc`=? WHERE id=?');
+        $stmt->execute([$input['name'], $input['desc'], $m[1]]);
+        echo json_encode(['success' => true]);
+    }
+    elseif ($route === 'life_paths' && $method === 'POST') {
+        require_auth();
+        $stmt = $pdo->prepare('SELECT * FROM life_paths WHERE id=?');
+        $stmt->execute([$input['id']]);
+        if ($stmt->fetch()) {
+            http_response_code(400);
+            echo json_encode(['error' => 'ID already exists']);
+        } else {
+            $stmt = $pdo->prepare('INSERT INTO life_paths (id, name, `desc`) VALUES (?, ?, ?)');
+            $stmt->execute([$input['id'], $input['name'], $input['desc']]);
+            echo json_encode(['success' => true]);
+        }
+    }
+    elseif (preg_match('/^life_paths\/(\d+)$/', $route, $m) && $method === 'DELETE') {
+        require_auth();
+        $stmt = $pdo->prepare('DELETE FROM life_paths WHERE id=?');
+        $stmt->execute([$m[1]]);
+        echo json_encode(['success' => true]);
+    }
+    elseif ($route === 'testimonials' && $method === 'POST') {
+        require_auth();
+        $cnt = $pdo->query('SELECT COUNT(*) as cnt FROM testimonials')->fetch()['cnt'];
+        if ($cnt >= 7) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Maximum 7 testimonials allowed.']);
+        } else {
+            $stmt = $pdo->query('SELECT MAX(id) as maxId FROM testimonials');
+            $maxId = $stmt->fetch()['maxId'];
+            $newId = ($maxId !== null) ? $maxId + 1 : 1;
             
-            if (!$useFallback) {
-                // Ensure row 1 exists
-                $check = $pdo->query("SELECT COUNT(*) FROM settings WHERE id = 1")->fetchColumn();
-                if ($check == 0) {
-                    $pdo->prepare("INSERT INTO settings (id) VALUES (1)")->execute();
-                }
-                
-                $sql = "UPDATE settings SET 
-                        whatsapp = ?, email = ?, whatsapp_message = ?, email_subject = ?, email_body = ?, 
-                        gemini_api_key = ?, profile_photo = ?, about_title = ?, about_para1 = ?, about_para2 = ?,
-                        smtp_host = ?, smtp_port = ?, smtp_user = ?, smtp_pass = ?
-                        WHERE id = 1";
-                $pdo->prepare($sql)->execute([
-                    $whatsapp, $email, $whatsapp_message, $email_subject, $email_body, 
-                    $gemini_api_key, $profile_photo, $about_title, $about_para1, $about_para2,
-                    $smtp_host, $smtp_port, $smtp_user, $smtp_pass
-                ]);
-            } else {
-                $db = readJsonDb();
-                if (empty($db['settings'])) {
-                    $db['settings'] = [['id' => 1]];
-                }
-                $db['settings'][0]['whatsapp'] = $whatsapp;
-                $db['settings'][0]['email'] = $email;
-                $db['settings'][0]['whatsapp_message'] = $whatsapp_message;
-                $db['settings'][0]['email_subject'] = $email_subject;
-                $db['settings'][0]['email_body'] = $email_body;
-                $db['settings'][0]['gemini_api_key'] = $gemini_api_key;
-                $db['settings'][0]['profile_photo'] = $profile_photo;
-                $db['settings'][0]['about_title'] = $about_title;
-                $db['settings'][0]['about_para1'] = $about_para1;
-                $db['settings'][0]['about_para2'] = $about_para2;
-                $db['settings'][0]['smtp_host'] = $smtp_host;
-                $db['settings'][0]['smtp_port'] = $smtp_port;
-                $db['settings'][0]['smtp_user'] = $smtp_user;
-                $db['settings'][0]['smtp_pass'] = $smtp_pass;
-                writeJsonDb($db);
-            }
-            
-            updateEnvFile($smtp_host, $smtp_port, $smtp_user, $smtp_pass, $gemini_api_key);
-            
+            $stmt = $pdo->prepare('INSERT INTO testimonials (id, text, initial, name, loc, date, rating) VALUES (?, ?, ?, ?, ?, ?, ?)');
+            $stmt->execute([$newId, $input['text'], $input['initial'], $input['name'], $input['loc'], $input['date'], $input['rating']]);
             echo json_encode(['success' => true]);
-            exit();
         }
     }
-
-    // ---- 2. SERVICES ----
-    if ($resource === 'services') {
-        if ($method === 'GET') {
-            $fetched = false;
-            if (!$useFallback) {
-                try {
-                    $stmt = $pdo->query("SELECT * FROM services ORDER BY display_order ASC, id ASC");
-                    $rows = $stmt->fetchAll();
-                    echo json_encode($rows);
-                    $fetched = true;
-                } catch (Exception $e) {
-                    // Fall back to JSON DB
-                }
-            }
-            if (!$fetched) {
-                $db = readJsonDb();
-                $rows = $db['services'] ?? [];
-                usort($rows, function($a, $b) {
-                    return (($a['display_order'] ?? 0) - ($b['display_order'] ?? 0)) ?: (($a['id'] ?? 0) - ($b['id'] ?? 0));
-                });
-                echo json_encode($rows);
-            }
-            exit();
-        }
-
-        if ($method === 'POST') {
-            requireAuth();
-            if ($subResource === 'reorder') {
-                $orderIds = $inputData['orderIds'] ?? [];
-                if (!$useFallback) {
-                    $stmt = $pdo->prepare("UPDATE services SET display_order = ? WHERE id = ?");
-                    foreach ($orderIds as $idx => $id) {
-                        $stmt->execute([$idx, $id]);
-                    }
-                } else {
-                    $db = readJsonDb();
-                    foreach ($db['services'] as &$s) {
-                        $idx = array_search($s['id'], $orderIds);
-                        if ($idx !== false) {
-                            $s['display_order'] = $idx;
-                        }
-                    }
-                    writeJsonDb($db);
-                }
-                echo json_encode(['success' => true]);
-                exit();
-            } else {
-                $title = $inputData['title'] ?? '';
-                $price = $inputData['price'] ?? '';
-                $rawPrice = $inputData['rawPrice'] ?? '';
-                $description = $inputData['description'] ?? '';
-                $iconText = $inputData['iconText'] ?? '';
-                $features = is_array($inputData['features'] ?? null) ? json_encode($inputData['features']) : ($inputData['features'] ?? '[]');
-
-                if (!$useFallback) {
-                    $order = $pdo->query("SELECT COUNT(*) FROM services")->fetchColumn();
-                    $stmt = $pdo->prepare("INSERT INTO services (title, price, rawPrice, description, iconText, features, display_order) VALUES (?, ?, ?, ?, ?, ?, ?)");
-                    $stmt->execute([$title, $price, $rawPrice, $description, $iconText, $features, $order]);
-                    echo json_encode(['id' => $pdo->lastInsertId()]);
-                } else {
-                    $db = readJsonDb();
-                    if (!isset($db['services'])) $db['services'] = [];
-                    $maxId = 0;
-                    foreach ($db['services'] as $s) {
-                        if ($s['id'] > $maxId) $maxId = $s['id'];
-                    }
-                    $newId = $maxId + 1;
-                    $db['services'][] = [
-                        'id' => $newId,
-                        'title' => $title,
-                        'price' => $price,
-                        'rawPrice' => $rawPrice,
-                        'description' => $description,
-                        'iconText' => $iconText,
-                        'features' => $features,
-                        'display_order' => count($db['services'])
-                    ];
-                    writeJsonDb($db);
-                    echo json_encode(['id' => $newId]);
-                }
-                exit();
-            }
-        }
-
-        if ($method === 'PUT') {
-            requireAuth();
-            $id = intval($subResource);
-            $title = $inputData['title'] ?? '';
-            $price = $inputData['price'] ?? '';
-            $rawPrice = $inputData['rawPrice'] ?? '';
-            $description = $inputData['description'] ?? '';
-            $iconText = $inputData['iconText'] ?? '';
-            $features = is_array($inputData['features'] ?? null) ? json_encode($inputData['features']) : ($inputData['features'] ?? '[]');
-
-            if (!$useFallback) {
-                $stmt = $pdo->prepare("UPDATE services SET title = ?, price = ?, rawPrice = ?, description = ?, iconText = ?, features = ? WHERE id = ?");
-                $stmt->execute([$title, $price, $rawPrice, $description, $iconText, $features, $id]);
-            } else {
-                $db = readJsonDb();
-                foreach ($db['services'] as &$s) {
-                    if ($s['id'] === $id) {
-                        $s['title'] = $title;
-                        $s['price'] = $price;
-                        $s['rawPrice'] = $rawPrice;
-                        $s['description'] = $description;
-                        $s['iconText'] = $iconText;
-                        $s['features'] = $features;
-                    }
-                }
-                writeJsonDb($db);
-            }
-            echo json_encode(['success' => true]);
-            exit();
-        }
-
-        if ($method === 'DELETE') {
-            requireAuth();
-            $id = intval($subResource);
-            if (!$useFallback) {
-                $stmt = $pdo->prepare("DELETE FROM services WHERE id = ?");
-                $stmt->execute([$id]);
-            } else {
-                $db = readJsonDb();
-                $db['services'] = array_filter($db['services'] ?? [], function($s) use ($id) {
-                    return $s['id'] !== $id;
-                });
-                $db['services'] = array_values($db['services']);
-                writeJsonDb($db);
-            }
-            echo json_encode(['success' => true]);
-            exit();
+    elseif (preg_match('/^testimonials\/(\d+)$/', $route, $m) && $method === 'DELETE') {
+        require_auth();
+        $stmt = $pdo->prepare('DELETE FROM testimonials WHERE id=?');
+        $stmt->execute([$m[1]]);
+        echo json_encode(['success' => true]);
+    }
+    elseif ($route === 'pages' && $method === 'GET') {
+        $stmt = $pdo->query('SELECT * FROM content_pages');
+        echo json_encode($stmt->fetchAll());
+    }
+    elseif (preg_match('/^pages\/([a-zA-Z0-9_-]+)$/', $route, $m) && $method === 'GET') {
+        $stmt = $pdo->prepare('SELECT * FROM content_pages WHERE slug=?');
+        $stmt->execute([$m[1]]);
+        $row = $stmt->fetch();
+        if ($row) echo json_encode($row);
+        else {
+            http_response_code(404);
+            echo json_encode(['error' => 'Page not found']);
         }
     }
-
-    // ---- 3. FAQs ----
-    if ($resource === 'faqs') {
-        if ($method === 'GET') {
-            if (!$useFallback) {
-                $stmt = $pdo->query("SELECT * FROM faqs ORDER BY display_order ASC, id ASC");
-                echo json_encode($stmt->fetchAll());
-            } else {
-                $db = readJsonDb();
-                $rows = $db['faqs'] ?? [];
-                usort($rows, function($a, $b) {
-                    return (($a['display_order'] ?? 0) - ($b['display_order'] ?? 0)) ?: (($a['id'] ?? 0) - ($b['id'] ?? 0));
-                });
-                echo json_encode($rows);
-            }
-            exit();
-        }
-
-        if ($method === 'POST') {
-            requireAuth();
-            if ($subResource === 'reorder') {
-                $orderIds = $inputData['orderIds'] ?? [];
-                if (!$useFallback) {
-                    $stmt = $pdo->prepare("UPDATE faqs SET display_order = ? WHERE id = ?");
-                    foreach ($orderIds as $idx => $id) {
-                        $stmt->execute([$idx, $id]);
-                    }
-                } else {
-                    $db = readJsonDb();
-                    foreach ($db['faqs'] as &$f) {
-                        $idx = array_search($f['id'], $orderIds);
-                        if ($idx !== false) {
-                            $f['display_order'] = $idx;
-                        }
-                    }
-                    writeJsonDb($db);
-                }
-                echo json_encode(['success' => true]);
-                exit();
-            } else {
-                $question = $inputData['question'] ?? '';
-                $answer = $inputData['answer'] ?? '';
-                if (!$useFallback) {
-                    $stmt = $pdo->prepare("INSERT INTO faqs (question, answer) VALUES (?, ?)");
-                    $stmt->execute([$question, $answer]);
-                    echo json_encode(['id' => $pdo->lastInsertId()]);
-                } else {
-                    $db = readJsonDb();
-                    if (!isset($db['faqs'])) $db['faqs'] = [];
-                    $maxId = 0;
-                    foreach ($db['faqs'] as $f) {
-                        if ($f['id'] > $maxId) $maxId = $f['id'];
-                    }
-                    $newId = $maxId + 1;
-                    $db['faqs'][] = [
-                        'id' => $newId,
-                        'question' => $question,
-                        'answer' => $answer,
-                        'display_order' => 0
-                    ];
-                    writeJsonDb($db);
-                    echo json_encode(['id' => $newId]);
-                }
-                exit();
-            }
-        }
-
-        if ($method === 'PUT') {
-            requireAuth();
-            $id = intval($subResource);
-            $question = $inputData['question'] ?? '';
-            $answer = $inputData['answer'] ?? '';
-            if (!$useFallback) {
-                $stmt = $pdo->prepare("UPDATE faqs SET question = ?, answer = ? WHERE id = ?");
-                $stmt->execute([$question, $answer, $id]);
-            } else {
-                $db = readJsonDb();
-                foreach ($db['faqs'] as &$f) {
-                    if ($f['id'] === $id) {
-                        $f['question'] = $question;
-                        $f['answer'] = $answer;
-                    }
-                }
-                writeJsonDb($db);
-            }
-            echo json_encode(['success' => true]);
-            exit();
-        }
-
-        if ($method === 'DELETE') {
-            requireAuth();
-            $id = intval($subResource);
-            if (!$useFallback) {
-                $stmt = $pdo->prepare("DELETE FROM faqs WHERE id = ?");
-                $stmt->execute([$id]);
-            } else {
-                $db = readJsonDb();
-                $db['faqs'] = array_filter($db['faqs'] ?? [], function($f) use ($id) {
-                    return $f['id'] !== $id;
-                });
-                $db['faqs'] = array_values($db['faqs']);
-                writeJsonDb($db);
-            }
-            echo json_encode(['success' => true]);
-            exit();
-        }
+    elseif (preg_match('/^pages\/([a-zA-Z0-9_-]+)$/', $route, $m) && $method === 'PUT') {
+        require_auth();
+        $stmt = $pdo->prepare('UPDATE content_pages SET title=?, content=? WHERE slug=?');
+        $stmt->execute([$input['title'], $input['content'], $m[1]]);
+        echo json_encode(['success' => true]);
     }
-
-    // ---- 4. TESTIMONIALS ----
-    if ($resource === 'testimonials') {
-        if ($method === 'GET') {
-            if (!$useFallback) {
-                try {
-                    $stmt = $pdo->query("SELECT * FROM testimonials");
-                    $checkRows = $stmt->fetchAll();
-                    if (count($checkRows) === 0) {
-                        $tests = [
-                            [1, '"My session was nothing short of revelatory. The accuracy with which the numbers reflected my life\'s patterns left me speechless. I finally understand why certain things kept repeating."', 'P', 'Priya Malhotra', 'Mumbai, India', 'October 2023', 5, 'approved'],
-                            [2, '"I was at a complete crossroads in my career. The reading gave me the courage and clarity to make a decision I\'d been avoiding for two years. Genuinely life-changing."', 'R', 'Rohan Kapoor', 'Bangalore, India', 'November 2023', 5, 'approved'],
-                            [3, '"The relationship compatibility reading transformed how my partner and I communicate. Understanding our numbers made everything feel less like conflict and more like growth."', 'A', 'Anjali Singh', 'Delhi, India', 'January 2024', 5, 'approved'],
-                            [4, '"Simply incredible. The insights into my personal year cycle explained exactly what I was feeling."', 'S', 'Sarah T.', 'London, UK', 'March 2024', 5, 'approved']
-                        ];
-                        $insertStmt = $pdo->prepare("INSERT INTO testimonials (id, text, initial, name, loc, date, rating, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                        foreach ($tests as $t) {
-                            $insertStmt->execute($t);
-                        }
-                    }
-                } catch (\Exception $e) {}
-
-                try {
-                    $stmt = $pdo->query("SELECT * FROM testimonials WHERE status = 'approved' OR status IS NULL ORDER BY id ASC");
-                    echo json_encode($stmt->fetchAll());
-                } catch(PDOException $e) {
-                    $stmt = $pdo->query("SELECT * FROM testimonials ORDER BY id ASC");
-                    echo json_encode($stmt->fetchAll());
-                }
-            } else {
-                $db = readJsonDb();
-                $rows = array_filter($db['testimonials'] ?? [], function($t) {
-                    return !isset($t['status']) || $t['status'] === 'approved';
-                });
-                echo json_encode(array_values($rows));
-            }
-            exit();
-        }
-
-        if ($method === 'POST' && empty($subResource)) {
-            requireAuth();
-            $text = $inputData['text'] ?? '';
-            $initial = $inputData['initial'] ?? '';
-            $name = $inputData['name'] ?? '';
-            $loc = $inputData['loc'] ?? '';
-            $date = $inputData['date'] ?? '';
-            $rating = intval($inputData['rating'] ?? 5);
-            $status = $inputData['status'] ?? 'approved';
-
-            if (!$useFallback) {
-                $maxId = $pdo->query("SELECT IFNULL(MAX(id), 0) FROM testimonials")->fetchColumn();
-                $newId = $maxId + 1;
-                try {
-                    $stmt = $pdo->prepare("INSERT INTO testimonials (id, text, initial, name, loc, date, rating, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                    $stmt->execute([$newId, $text, $initial, $name, $loc, $date, $rating, $status]);
-                } catch(PDOException $e) {
-                    if (strpos($e->getMessage(), 'Unknown column') !== false) {
-                        $pdo->exec("ALTER TABLE testimonials ADD COLUMN status VARCHAR(20) DEFAULT 'approved'");
-                        $stmt = $pdo->prepare("INSERT INTO testimonials (id, text, initial, name, loc, date, rating, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                        $stmt->execute([$newId, $text, $initial, $name, $loc, $date, $rating, $status]);
-                    } else {
-                        throw $e;
-                    }
-                }
-                echo json_encode(['id' => $newId]);
-            } else {
-                $db = readJsonDb();
-                if (!isset($db['testimonials'])) $db['testimonials'] = [];
-                $maxId = 0;
-                foreach ($db['testimonials'] as $t) {
-                    if ($t['id'] > $maxId) $maxId = $t['id'];
-                }
-                $newId = $maxId + 1;
-                $db['testimonials'][] = [
-                    'id' => $newId,
-                    'text' => $text,
-                    'initial' => $initial,
-                    'name' => $name,
-                    'loc' => $loc,
-                    'date' => $date,
-                    'rating' => $rating,
-                    'status' => $status
-                ];
-                writeJsonDb($db);
-                echo json_encode(['id' => $newId]);
-            }
-            exit();
-        }
-
-        if ($method === 'PUT') {
-            requireAuth();
-            $id = intval($subResource);
-            $status = $inputData['status'] ?? 'approved';
-            
-            if (!$useFallback) {
-                try {
-                    $stmt = $pdo->prepare("UPDATE testimonials SET status = ? WHERE id = ?");
-                    $stmt->execute([$status, $id]);
-                } catch(PDOException $e) {
-                    if (strpos($e->getMessage(), 'Unknown column') !== false) {
-                        $pdo->exec("ALTER TABLE testimonials ADD COLUMN status VARCHAR(20) DEFAULT 'approved'");
-                        $stmt = $pdo->prepare("UPDATE testimonials SET status = ? WHERE id = ?");
-                        $stmt->execute([$status, $id]);
-                    } else {
-                        throw $e;
-                    }
-                }
-            } else {
-                $db = readJsonDb();
-                foreach ($db['testimonials'] as &$t) {
-                    if ($t['id'] === $id) {
-                        $t['status'] = $status;
-                        break;
-                    }
-                }
-                writeJsonDb($db);
-            }
-            echo json_encode(['success' => true]);
-            exit();
-        }
-
-        if ($method === 'POST' && $subResource && preg_match('/^testimonials\/\d+\/helpful$/', $route)) {
-            $parts = explode('/', trim($route, '/'));
-            $id = intval($parts[1]);
-            $increment = $inputData['increment'] ?? false;
-            
-            if (!$useFallback) {
-                try {
-                    $sql = $increment ? "UPDATE testimonials SET helpful_count = IFNULL(helpful_count, 0) + 1 WHERE id = ?" : "UPDATE testimonials SET helpful_count = GREATEST(0, IFNULL(helpful_count, 0) - 1) WHERE id = ?";
-                    $stmt = $pdo->prepare($sql);
-                    $stmt->execute([$id]);
-                } catch(PDOException $e) {
-                    if (strpos($e->getMessage(), 'Unknown column') !== false) {
-                        $pdo->exec("ALTER TABLE testimonials ADD COLUMN helpful_count INT DEFAULT 0");
-                        $sql = $increment ? "UPDATE testimonials SET helpful_count = IFNULL(helpful_count, 0) + 1 WHERE id = ?" : "UPDATE testimonials SET helpful_count = GREATEST(0, IFNULL(helpful_count, 0) - 1) WHERE id = ?";
-                        $stmt = $pdo->prepare($sql);
-                        $stmt->execute([$id]);
-                    } else {
-                        throw $e;
-                    }
-                }
-            } else {
-                $db = readJsonDb();
-                foreach ($db['testimonials'] as &$t) {
-                    if ($t['id'] === $id) {
-                        $t['helpful_count'] = isset($t['helpful_count']) ? $t['helpful_count'] : 0;
-                        if ($increment) {
-                            $t['helpful_count']++;
-                        } else {
-                            $t['helpful_count'] = max(0, $t['helpful_count'] - 1);
-                        }
-                        break;
-                    }
-                }
-                writeJsonDb($db);
-            }
-            echo json_encode(['success' => true]);
-            exit();
-        }
-
-        if ($method === 'DELETE') {
-            requireAuth();
-            $id = intval($subResource);
-            if (!$useFallback) {
-                $stmt = $pdo->prepare("DELETE FROM testimonials WHERE id = ?");
-                $stmt->execute([$id]);
-            } else {
-                $db = readJsonDb();
-                $db['testimonials'] = array_filter($db['testimonials'] ?? [], function($t) use ($id) {
-                    return $t['id'] !== $id;
-                });
-                $db['testimonials'] = array_values($db['testimonials']);
-                writeJsonDb($db);
-            }
-            echo json_encode(['success' => true]);
-            exit();
-        }
+    elseif ($route === 'faqs' && $method === 'GET') {
+        $stmt = $pdo->query('SELECT * FROM faqs ORDER BY display_order ASC, id ASC');
+        echo json_encode($stmt->fetchAll());
     }
-
-    // ---- 4.1 ADMIN TESTIMONIALS ----
-    if ($resource === 'admin' && $subResource === 'testimonials') {
-        if ($method === 'GET') {
-            requireAuth();
-            if (!$useFallback) {
-                try {
-                    $stmt = $pdo->query("SELECT * FROM testimonials");
-                    $checkRows = $stmt->fetchAll();
-                    if (count($checkRows) === 0) {
-                        $tests = [
-                            [1, '"My session was nothing short of revelatory. The accuracy with which the numbers reflected my life\'s patterns left me speechless. I finally understand why certain things kept repeating."', 'P', 'Priya Malhotra', 'Mumbai, India', 'October 2023', 5, 'approved'],
-                            [2, '"I was at a complete crossroads in my career. The reading gave me the courage and clarity to make a decision I\'d been avoiding for two years. Genuinely life-changing."', 'R', 'Rohan Kapoor', 'Bangalore, India', 'November 2023', 5, 'approved'],
-                            [3, '"The relationship compatibility reading transformed how my partner and I communicate. Understanding our numbers made everything feel less like conflict and more like growth."', 'A', 'Anjali Singh', 'Delhi, India', 'January 2024', 5, 'approved'],
-                            [4, '"Simply incredible. The insights into my personal year cycle explained exactly what I was feeling."', 'S', 'Sarah T.', 'London, UK', 'March 2024', 5, 'approved']
-                        ];
-                        $insertStmt = $pdo->prepare("INSERT INTO testimonials (id, text, initial, name, loc, date, rating, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                        foreach ($tests as $t) {
-                            $insertStmt->execute($t);
-                        }
-                    }
-                } catch (\Exception $e) {}
-
-                try {
-                   $stmt = $pdo->query("SELECT * FROM testimonials ORDER BY id ASC");
-                   echo json_encode($stmt->fetchAll());
-                } catch(PDOException $e) {
-                   if (strpos($e->getMessage(), 'Unknown column') !== false) {
-                       $pdo->exec("ALTER TABLE testimonials ADD COLUMN status VARCHAR(20) DEFAULT 'approved'");
-                       $stmt = $pdo->query("SELECT * FROM testimonials ORDER BY id ASC");
-                       echo json_encode($stmt->fetchAll());
-                   } else {
-                       throw $e;
-                   }
-                }
-            } else {
-                $db = readJsonDb();
-                echo json_encode($db['testimonials'] ?? []);
-            }
-            exit();
-        }
+    elseif ($route === 'faqs' && $method === 'POST') {
+        require_auth();
+        $stmt = $pdo->prepare('INSERT INTO faqs (question, answer) VALUES (?, ?)');
+        $stmt->execute([$input['question'], $input['answer']]);
+        echo json_encode(['id' => $pdo->lastInsertId()]);
     }
-
-    // ---- 4.2 USER SUBMIT TESTIMONIALS ----
-    if ($resource === 'user-testimonials') {
-        if ($method === 'POST') {
-            $text = $inputData['text'] ?? '';
-            $initial = $inputData['initial'] ?? '';
-            $name = $inputData['name'] ?? '';
-            $loc = $inputData['loc'] ?? '';
-            $date = $inputData['date'] ?? date('F j, Y');
-            $rating = intval($inputData['rating'] ?? 5);
-            $status = 'pending';
-
-            if (!$useFallback) {
-                $maxId = $pdo->query("SELECT IFNULL(MAX(id), 0) FROM testimonials")->fetchColumn();
-                $newId = $maxId + 1;
-                try {
-                    $stmt = $pdo->prepare("INSERT INTO testimonials (id, text, initial, name, loc, date, rating, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                    $stmt->execute([$newId, $text, $initial, $name, $loc, $date, $rating, $status]);
-                } catch(PDOException $e) {
-                    if (strpos($e->getMessage(), 'Unknown column') !== false) {
-                        $pdo->exec("ALTER TABLE testimonials ADD COLUMN status VARCHAR(20) DEFAULT 'approved'");
-                        $stmt = $pdo->prepare("INSERT INTO testimonials (id, text, initial, name, loc, date, rating, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                        $stmt->execute([$newId, $text, $initial, $name, $loc, $date, $rating, $status]);
-                    } else {
-                        throw $e;
-                    }
-                }
-            } else {
-                $db = readJsonDb();
-                if (!isset($db['testimonials'])) $db['testimonials'] = [];
-                $maxId = 0;
-                foreach ($db['testimonials'] as $t) {
-                    if ($t['id'] > $maxId) $maxId = $t['id'];
-                }
-                $newId = $maxId + 1;
-                $db['testimonials'][] = [
-                    'id' => $newId,
-                    'text' => $text,
-                    'initial' => $initial,
-                    'name' => $name,
-                    'loc' => $loc,
-                    'date' => $date,
-                    'rating' => $rating,
-                    'status' => $status
-                ];
-                writeJsonDb($db);
-            }
-
-            echo json_encode(['id' => $newId, 'success' => true]);
-            exit();
-        }
+    elseif (preg_match('/^faqs\/([0-9]+)$/', $route, $m) && $method === 'PUT') {
+        require_auth();
+        $stmt = $pdo->prepare('UPDATE faqs SET question=?, answer=? WHERE id=?');
+        $stmt->execute([$input['question'], $input['answer'], $m[1]]);
+        echo json_encode(['success' => true]);
     }
-
-    // ---- 5. LIFE PATHS ----
-    if ($resource === 'life_paths') {
-        if ($method === 'GET') {
-            if ($subResource !== null) {
-                $id = intval($subResource);
-                if (!$useFallback) {
-                    $stmt = $pdo->prepare("SELECT * FROM life_paths WHERE id = ?");
-                    $stmt->execute([$id]);
-                    $row = $stmt->fetch();
-                    if ($row) echo json_encode($row);
-                    else {
-                        http_response_code(404);
-                        echo json_encode(['error' => 'Not found']);
-                    }
-                } else {
-                    $db = readJsonDb();
-                    $found = null;
-                    foreach ($db['life_paths'] ?? [] as $lp) {
-                        if ($lp['id'] == $id) {
-                            $found = $lp;
-                            break;
-                        }
-                    }
-                    if ($found) echo json_encode($found);
-                    else {
-                        http_response_code(404);
-                        echo json_encode(['error' => 'Not found']);
-                    }
-                }
-            } else {
-                if (!$useFallback) {
-                    $stmt = $pdo->query("SELECT * FROM life_paths ORDER BY id ASC");
-                    echo json_encode($stmt->fetchAll());
-                } else {
-                    $db = readJsonDb();
-                    $rows = $db['life_paths'] ?? [];
-                    usort($rows, function($a, $b) { return $a['id'] - $b['id']; });
-                    echo json_encode($rows);
-                }
-            }
-            exit();
-        }
-
-        if ($method === 'PUT') {
-            requireAuth();
-            $id = intval($subResource);
-            $name = $inputData['name'] ?? '';
-            $desc = $inputData['desc'] ?? '';
-            if (!$useFallback) {
-                $stmt = $pdo->prepare("UPDATE life_paths SET name = ?, `desc` = ? WHERE id = ?");
-                $stmt->execute([$name, $desc, $id]);
-            } else {
-                $db = readJsonDb();
-                foreach ($db['life_paths'] as &$lp) {
-                    if ($lp['id'] === $id) {
-                        $lp['name'] = $name;
-                        $lp['desc'] = $desc;
-                    }
-                }
-                writeJsonDb($db);
-            }
-            echo json_encode(['success' => true]);
-            exit();
-        }
-
-        if ($method === 'POST') {
-            requireAuth();
-            $id = intval($inputData['id']);
-            $name = $inputData['name'] ?? '';
-            $desc = $inputData['desc'] ?? '';
-            if (!$useFallback) {
-                $stmt = $pdo->prepare("INSERT INTO life_paths (id, name, `desc`) VALUES (?, ?, ?)");
-                $stmt->execute([$id, $name, $desc]);
-            } else {
-                $db = readJsonDb();
-                if (!isset($db['life_paths'])) $db['life_paths'] = [];
-                $db['life_paths'][] = ['id' => $id, 'name' => $name, 'desc' => $desc];
-                writeJsonDb($db);
-            }
-            echo json_encode(['success' => true]);
-            exit();
-        }
-
-        if ($method === 'DELETE') {
-            requireAuth();
-            $id = intval($subResource);
-            if (!$useFallback) {
-                $stmt = $pdo->prepare("DELETE FROM life_paths WHERE id = ?");
-                $stmt->execute([$id]);
-            } else {
-                $db = readJsonDb();
-                $db['life_paths'] = array_filter($db['life_paths'] ?? [], function($lp) use ($id) {
-                    return $lp['id'] !== $id;
-                });
-                $db['life_paths'] = array_values($db['life_paths']);
-                writeJsonDb($db);
-            }
-            echo json_encode(['success' => true]);
-            exit();
-        }
+    elseif (preg_match('/^faqs\/([0-9]+)$/', $route, $m) && $method === 'DELETE') {
+        require_auth();
+        $stmt = $pdo->prepare('DELETE FROM faqs WHERE id=?');
+        $stmt->execute([$m[1]]);
+        echo json_encode(['success' => true]);
     }
-
-    // ---- 6. CONTENT PAGES ----
-    if ($resource === 'pages') {
-        if ($method === 'GET') {
-            if ($subResource !== null) {
-                $slug = strval($subResource);
-                if (!$useFallback) {
-                    $stmt = $pdo->prepare("SELECT * FROM content_pages WHERE slug = ?");
-                    $stmt->execute([$slug]);
-                    $row = $stmt->fetch();
-                    if ($row) echo json_encode($row);
-                    else {
-                        http_response_code(404);
-                        echo json_encode(['error' => 'Page not found']);
-                    }
-                } else {
-                    $db = readJsonDb();
-                    $found = null;
-                    foreach ($db['content_pages'] ?? [] as $cp) {
-                        if ($cp['slug'] === $slug) {
-                            $found = $cp;
-                            break;
-                        }
-                    }
-                    if ($found) echo json_encode($found);
-                    else {
-                        http_response_code(404);
-                        echo json_encode(['error' => 'Page not found']);
-                    }
-                }
-            } else {
-                if (!$useFallback) {
-                    $stmt = $pdo->query("SELECT * FROM content_pages");
-                    echo json_encode($stmt->fetchAll());
-                } else {
-                    $db = readJsonDb();
-                    echo json_encode($db['content_pages'] ?? []);
-                }
-            }
-            exit();
-        }
-
-        if ($method === 'PUT') {
-            requireAuth();
-            $slug = strval($subResource);
-            $title = $inputData['title'] ?? '';
-            $content = $inputData['content'] ?? '';
-            if (!$useFallback) {
-                $stmt = $pdo->prepare("UPDATE content_pages SET title = ?, content = ? WHERE slug = ?");
-                $stmt->execute([$title, $content, $slug]);
-            } else {
-                $db = readJsonDb();
-                foreach ($db['content_pages'] as &$cp) {
-                    if ($cp['slug'] === $slug) {
-                        $cp['title'] = $title;
-                        $cp['content'] = $content;
-                    }
-                }
-                writeJsonDb($db);
-            }
-            echo json_encode(['success' => true]);
-            exit();
-        }
+    elseif ($route === 'services' && $method === 'GET') {
+        $stmt = $pdo->query('SELECT * FROM services ORDER BY display_order ASC, id ASC');
+        echo json_encode($stmt->fetchAll());
     }
-
-    // ---- 7. CONTACT SUBMISSIONS ----
-    if ($resource === 'contact' || $resource === 'bookings') {
-        if ($method === 'POST') {
-            $fullName = $inputData['fullName'] ?? '';
-            $dob = $inputData['dob'] ?? '';
-            $tob = $inputData['tob'] ?? '';
-            $pob = $inputData['pob'] ?? '';
-            $mobile = $inputData['mobile'] ?? '';
-            $email = $inputData['email'] ?? '';
-            $comments = $inputData['comments'] ?? '';
-            $serviceTitle = $inputData['serviceTitle'] ?? '';
-            $servicePrice = $inputData['servicePrice'] ?? '';
-
-            // Get settings for email details
-            if (!$useFallback) {
-                $stmt = $pdo->query("SELECT * FROM settings LIMIT 1");
-                $settings = $stmt->fetch();
-            } else {
-                $db = readJsonDb();
-                $settings = $db['settings'][0] ?? null;
-            }
-
-            $adminEmail = !empty($settings['email']) ? trim($settings['email']) : "info@sevenastro.com";
-            $smtpUser = !empty($settings['smtp_user']) ? trim($settings['smtp_user']) : "";
-
-            // Save to DB or JSON
-            try {
-                if (!$useFallback) {
-                    $pdo->exec("CREATE TABLE IF NOT EXISTS contact_submissions (
-                        id INT AUTO_INCREMENT PRIMARY KEY,
-                        full_name VARCHAR(255),
-                        dob VARCHAR(255),
-                        tob VARCHAR(255),
-                        pob VARCHAR(255),
-                        mobile VARCHAR(255),
-                        email VARCHAR(255),
-                        comments TEXT,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    )");
-                    $stmt = $pdo->prepare("INSERT INTO contact_submissions (full_name, dob, tob, pob, mobile, email, comments) VALUES (?, ?, ?, ?, ?, ?, ?)");
-                    $stmt->execute([$fullName, $dob, $tob, $pob, $mobile, $email, $comments]);
-                } else {
-                    $db = readJsonDb();
-                    if (!isset($db['contact_submissions'])) {
-                        $db['contact_submissions'] = [];
-                    }
-                    $nextId = 1;
-                    foreach ($db['contact_submissions'] as $cs) {
-                        if ($cs['id'] >= $nextId) {
-                            $nextId = $cs['id'] + 1;
-                        }
-                    }
-                    $db['contact_submissions'][] = [
-                        'id' => $nextId,
-                        'full_name' => $fullName,
-                        'dob' => $dob,
-                        'tob' => $tob,
-                        'pob' => $pob,
-                        'mobile' => $mobile,
-                        'email' => $email,
-                        'comments' => $comments,
-                        'created_at' => date('c')
-                    ];
-                    writeJsonDb($db);
-                }
-            } catch (Exception $dbErr) {
-                // Keep moving
-            }
-
-            // Construct recipients
-            $adminRecipient = !empty($adminEmail) ? strtolower(trim($adminEmail)) : "info@sevenastro.com";
-            $visitorEmailLower = !empty($email) ? strtolower(trim($email)) : "";
-
-            // Separate tailored emails for Admin and Inquirer as requested
-
-            // 1. Admin Email HTML
-            $adminSubject = "✨ [Seven Astro] Celestial Consultation Request – " . $fullName;
-            $adminEmailHtml = "
-            <div style=\"background-color: #0b0c10; color: #c5a880; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px 20px; text-align: center; max-width: 600px; margin: 0 auto; border: 1px solid #c5a880; border-radius: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);\">
-              <div style=\"font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; color: #c5a880; margin-bottom: 10px;\">Divine Sanctuary Registry</div>
-              <div style=\"width: 50px; height: 1px; background-color: #c5a880; margin: 15px auto;\"></div>
-              
-              <h1 style=\"font-size: 26px; font-weight: 300; margin: 20px 0; color: #f5f5f5; font-family: 'Georgia', serif;\">Celestial Inquiry Registered</h1>
-              
-              <p style=\"color: #a5a5a5; font-size: 14px; line-height: 1.8; margin-bottom: 30px; text-align: left; padding: 0 10px;\">
-                Greetings Master Numerologist,<br/><br/>
-                A traveler's details and celestial coordinates have been successfully synchronized with the Seven Astro. Below are the inquiry's registration details:
-              </p>
-              
-              <table style=\"width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 13px; text-align: left; border: 1px solid rgba(197, 168, 128, 0.2);\">
-                <thead>
-                  <tr style=\"background-color: rgba(197, 168, 128, 0.1);\">
-                    <th colspan=\"2\" style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.2); color: #c5a880; text-transform: uppercase; font-size: 11px; letter-spacing: 0.1em; font-family: 'Georgia', serif;\">Visitor Coordinates</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5; width: 33%;\">Full Name:</td>
-                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5; font-weight: bold;\">" . htmlspecialchars($fullName) . "</td>
-                  </tr>
-                  <tr>
-                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;\">Date of Birth:</td>
-                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5;\">" . htmlspecialchars($dob) . "</td>
-                  </tr>
-                  <tr>
-                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;\">Time of Birth:</td>
-                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5;\">" . htmlspecialchars($tob) . "</td>
-                  </tr>
-                  <tr>
-                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;\">Place of Birth:</td>
-                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5;\">" . htmlspecialchars($pob) . "</td>
-                  </tr>
-                  <tr>
-                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;\">Mobile Number:</td>
-                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5;\">" . htmlspecialchars($mobile) . "</td>
-                  </tr>
-                  <tr>
-                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;\">Inquirer Email:</td>
-                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5;\">" . htmlspecialchars($email) . "</td>
-                  </tr>
-                  " . ($serviceTitle ? "
-                  <tr>
-                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;\">Service Selected:</td>
-                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5; font-weight: bold;\">" . htmlspecialchars($serviceTitle) . " (" . htmlspecialchars($servicePrice) . ")</td>
-                  </tr>" : "") . "
-                  <tr>
-                    <td style=\"padding: 12px; color: #a5a5a5; vertical-align: top;\">Special Comments:</td>
-                    <td style=\"padding: 12px; color: #f5f5f5; line-height: 1.6;\">" . nl2br(htmlspecialchars($comments)) . "</td>
-                  </tr>
-                </tbody>
-              </table>
-              
-              <div style=\"width: 50px; height: 1px; background-color: rgba(197, 168, 128, 0.2); margin: 20px auto;\"></div>
-              
-              <p style=\"color: #888888; font-size: 11px; line-height: 1.6; max-width: 450px; margin: 0 auto;\">
-                Seven Astro Sanctuary Premium Registry Alerts
-              </p>
-            </div>
-            ";
-
-            // 2. User/Inquirer Email HTML
-            $userSubject = "✨ [Seven Astro] Inquiry Received – " . $fullName;
-            $userEmailHtml = "
-            <div style=\"background-color: #0b0c10; color: #c5a880; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px 20px; text-align: center; max-width: 600px; margin: 0 auto; border: 1px solid #c5a880; border-radius: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);\">
-              <div style=\"font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; color: #c5a880; margin-bottom: 10px;\">Divine Sanctuary Registry</div>
-              <div style=\"width: 50px; height: 1px; background-color: #c5a880; margin: 15px auto;\"></div>
-              
-              <h1 style=\"font-size: 24px; font-weight: 300; margin: 20px 0; color: #f5f5f5; font-family: 'Georgia', serif;\">Inquiry Received</h1>
-              
-              <p style=\"color: #a5a5a5; font-size: 14px; line-height: 1.8; margin-bottom: 30px; text-align: left; padding: 0 10px;\">
-                Dear <strong>" . htmlspecialchars($fullName) . "</strong>,<br/><br/>
-                Thank you for providing details, We have received your inquiry. Please allow us 24 to 72 hours to give accurate guidance. Thank you for your patience.
-              </p>
-              
-              <table style=\"width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 13px; text-align: left; border: 1px solid rgba(197, 168, 128, 0.2);\">
-                <thead>
-                  <tr style=\"background-color: rgba(197, 168, 128, 0.1);\">
-                    <th colspan=\"2\" style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.2); color: #c5a880; text-transform: uppercase; font-size: 11px; letter-spacing: 0.1em; font-family: 'Georgia', serif;\">Your Submitted Details</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5; width: 35%;\">Birth Name:</td>
-                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5; font-weight: bold;\">" . htmlspecialchars($fullName) . "</td>
-                  </tr>
-                  <tr>
-                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;\">Date of Birth:</td>
-                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5;\">" . htmlspecialchars($dob) . "</td>
-                  </tr>
-                  <tr>
-                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;\">Time of Birth:</td>
-                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5;\">" . htmlspecialchars($tob) . "</td>
-                  </tr>
-                  <tr>
-                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;\">Place of Birth:</td>
-                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5;\">" . htmlspecialchars($pob) . "</td>
-                  </tr>
-                  <tr>
-                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;\">Mobile Number:</td>
-                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5;\">" . htmlspecialchars($mobile) . "</td>
-                  </tr>
-                  <tr>
-                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;\">Inquirer Email:</td>
-                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5;\">" . htmlspecialchars($email) . "</td>
-                  </tr>
-                  " . ($serviceTitle ? "
-                  <tr>
-                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #a5a5a5;\">Service Booked:</td>
-                    <td style=\"padding: 12px; border-bottom: 1px solid rgba(197, 168, 128, 0.1); color: #f5f5f5; font-weight: bold;\">" . htmlspecialchars($serviceTitle) . " (" . htmlspecialchars($servicePrice) . ")</td>
-                  </tr>" : "") . "
-                  <tr>
-                    <td style=\"padding: 12px; color: #a5a5a5; vertical-align: top;\">Your Question:</td>
-                    <td style=\"padding: 12px; color: #f5f5f5; line-height: 1.6;\">" . nl2br(htmlspecialchars($comments)) . "</td>
-                  </tr>
-                </tbody>
-              </table>
-              
-              <div style=\"width: 50px; height: 1px; background-color: rgba(197, 168, 128, 0.2); margin: 20px auto;\"></div>
-              
-              <p style=\"color: #888888; font-size: 11px; line-height: 1.6; max-width: 450px; margin: 0 auto;\">
-                Seven Astro © " . date('Y') . " • All spiritual alignments reserved.
-              </p>
-            </div>
-            ";
-
-            $adminMailSent = sendSmartSmtpEmail($adminRecipient, $adminSubject, $adminEmailHtml, $settings);
-
-            $userMailSent = false;
-            if (!empty($visitorEmailLower)) {
-                $userMailSent = sendSmartSmtpEmail($visitorEmailLower, $userSubject, $userEmailHtml, $settings);
-            }
-
-            echo json_encode(['success' => true, 'emailSent' => ($adminMailSent || $userMailSent)]);
-            exit();
-        }
+    elseif ($route === 'services' && $method === 'POST') {
+        require_auth();
+        $stmt = $pdo->query('SELECT COUNT(*) as cnt FROM services');
+        $order = $stmt->fetch()['cnt'];
+        $stmt = $pdo->prepare('INSERT INTO services (title, price, rawPrice, description, iconText, features, display_order) VALUES (?, ?, ?, ?, ?, ?, ?)');
+        $features = is_array($input['features']) ? json_encode($input['features']) : $input['features'];
+        $stmt->execute([$input['title'], $input['price'], $input['rawPrice'], $input['description'], $input['iconText'], $features, $order]);
+        echo json_encode(['id' => $pdo->lastInsertId()]);
     }
-
-    // Default Fallback Response if requested resource isn't matched
-    http_response_code(404);
-    echo json_encode(['error' => 'API endpoint not matched: ' . $resource]);
-
+    elseif ($route === 'services/reorder' && $method === 'POST') {
+        require_auth();
+        $pdo->beginTransaction();
+        $stmt = $pdo->prepare('UPDATE services SET display_order=? WHERE id=?');
+        foreach ($input['orderIds'] as $i => $id) {
+            $stmt->execute([$i, $id]);
+        }
+        $pdo->commit();
+        echo json_encode(['success' => true]);
+    }
+    elseif (preg_match('/^services\/([0-9]+)$/', $route, $m) && $method === 'PUT') {
+        require_auth();
+        $stmt = $pdo->prepare('UPDATE services SET title=?, price=?, rawPrice=?, description=?, iconText=?, features=? WHERE id=?');
+        $features = is_array($input['features']) ? json_encode($input['features']) : $input['features'];
+        $stmt->execute([$input['title'], $input['price'], $input['rawPrice'], $input['description'], $input['iconText'], $features, $m[1]]);
+        echo json_encode(['success' => true]);
+    }
+    elseif (preg_match('/^services\/([0-9]+)$/', $route, $m) && $method === 'DELETE') {
+        require_auth();
+        $stmt = $pdo->prepare('DELETE FROM services WHERE id=?');
+        $stmt->execute([$m[1]]);
+        echo json_encode(['success' => true]);
+    }
+    elseif ($route === 'pathway_cards' && $method === 'GET') {
+        $stmt = $pdo->query('SELECT * FROM pathway_cards ORDER BY display_order ASC, id ASC');
+        echo json_encode($stmt->fetchAll());
+    }
+    elseif ($route === 'pathway_cards' && $method === 'POST') {
+        require_auth();
+        $stmt = $pdo->query('SELECT COUNT(*) as cnt FROM pathway_cards');
+        $order = $stmt->fetch()['cnt'];
+        $stmt = $pdo->prepare('INSERT INTO pathway_cards (card_number, title, slug, short_desc, display_order) VALUES (?, ?, ?, ?, ?)');
+        $stmt->execute([$input['card_number'], $input['title'], $input['slug'], $input['short_desc'], $order]);
+        echo json_encode(['id' => $pdo->lastInsertId()]);
+    }
+    elseif ($route === 'pathway_cards/reorder' && $method === 'POST') {
+        require_auth();
+        $pdo->beginTransaction();
+        $stmt = $pdo->prepare('UPDATE pathway_cards SET display_order=? WHERE id=?');
+        foreach ($input['orderIds'] as $i => $id) {
+            $stmt->execute([$i, $id]);
+        }
+        $pdo->commit();
+        echo json_encode(['success' => true]);
+    }
+    elseif (preg_match('/^pathway_cards\/([0-9]+)$/', $route, $m) && $method === 'PUT') {
+        require_auth();
+        $stmt = $pdo->prepare('UPDATE pathway_cards SET card_number=?, title=?, slug=?, short_desc=? WHERE id=?');
+        $stmt->execute([$input['card_number'], $input['title'], $input['slug'], $input['short_desc'], $m[1]]);
+        echo json_encode(['success' => true]);
+    }
+    elseif (preg_match('/^pathway_cards\/([0-9]+)$/', $route, $m) && $method === 'DELETE') {
+        require_auth();
+        $stmt = $pdo->prepare('DELETE FROM pathway_cards WHERE id=?');
+        $stmt->execute([$m[1]]);
+        echo json_encode(['success' => true]);
+    }
+    elseif ($route === 'partners' && $method === 'GET') {
+        $stmt = $pdo->query('SELECT * FROM partners ORDER BY display_order ASC, id ASC');
+        echo json_encode($stmt->fetchAll());
+    }
+    elseif ($route === 'partners' && $method === 'POST') {
+        require_auth();
+        $stmt = $pdo->query('SELECT COUNT(*) as cnt FROM partners');
+        $order = $stmt->fetch()['cnt'];
+        $stmt = $pdo->prepare('INSERT INTO partners (name, gratitude, title, description, profile_photo, display_order) VALUES (?, ?, ?, ?, ?, ?)');
+        $gratitude = isset($input['gratitude']) ? $input['gratitude'] : '';
+        $stmt->execute([$input['name'], $gratitude, $input['title'], $input['description'], $input['profile_photo'], $order]);
+        echo json_encode(['id' => $pdo->lastInsertId()]);
+    }
+    elseif ($route === 'partners/reorder' && $method === 'POST') {
+        require_auth();
+        $pdo->beginTransaction();
+        $stmt = $pdo->prepare('UPDATE partners SET display_order=? WHERE id=?');
+        foreach ($input['orderIds'] as $i => $id) {
+            $stmt->execute([$i, $id]);
+        }
+        $pdo->commit();
+        echo json_encode(['success' => true]);
+    }
+    elseif (preg_match('/^partners\/([0-9]+)$/', $route, $m) && $method === 'PUT') {
+        require_auth();
+        $stmt = $pdo->prepare('UPDATE partners SET name=?, gratitude=?, title=?, description=?, profile_photo=? WHERE id=?');
+        $gratitude = isset($input['gratitude']) ? $input['gratitude'] : '';
+        $stmt->execute([$input['name'], $gratitude, $input['title'], $input['description'], $input['profile_photo'], $m[1]]);
+        echo json_encode(['success' => true]);
+    }
+    elseif (preg_match('/^partners\/([0-9]+)$/', $route, $m) && $method === 'DELETE') {
+        require_auth();
+        $stmt = $pdo->prepare('DELETE FROM partners WHERE id=?');
+        $stmt->execute([$m[1]]);
+        echo json_encode(['success' => true]);
+    }
+    else {
+        http_response_code(404);
+        echo json_encode(['error' => 'API Not Found']);
+    }
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode(['error' => $e->getMessage()]);

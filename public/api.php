@@ -140,7 +140,7 @@ try {
     $pdo->exec('CREATE TABLE IF NOT EXISTS `partners` (
         `id` INT AUTO_INCREMENT PRIMARY KEY,
         `name` VARCHAR(255),
-        `gratitude` VARCHAR(255) DEFAULT \'\',
+        `gratitude` VARCHAR(255) DEFAULT NULL,
         `title` VARCHAR(255),
         `description` TEXT,
         `profile_photo` VARCHAR(500),
@@ -148,7 +148,7 @@ try {
     )');
 } catch (Exception $e) {}
 
-try { $pdo->exec("ALTER TABLE `partners` ADD COLUMN `gratitude` VARCHAR(255) DEFAULT ''"); } catch (Exception $e) {}
+try { $pdo->exec("ALTER TABLE `partners` ADD COLUMN `gratitude` VARCHAR(255) DEFAULT NULL"); } catch (Exception $e) {}
 
 try { $pdo->exec("ALTER TABLE `pathway_cards` ADD COLUMN `display_order` INT DEFAULT 0"); } catch (Exception $e) {}
 try { $pdo->exec("ALTER TABLE `pathway_cards` ADD COLUMN `slug` VARCHAR(255)"); } catch (Exception $e) {}
@@ -470,7 +470,7 @@ try {
             'create_partners' => 'CREATE TABLE `partners` (
                 `id` INT AUTO_INCREMENT PRIMARY KEY,
                 `name` VARCHAR(255),
-                `gratitude` VARCHAR(255) DEFAULT '''',
+                `gratitude` VARCHAR(255) DEFAULT NULL,
                 `title` VARCHAR(255),
                 `description` TEXT,
                 `profile_photo` VARCHAR(500),

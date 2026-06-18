@@ -928,7 +928,7 @@ export default function Admin() {
              onClick={() => setActiveTab('partners')} 
              className={`w-full text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] transition-colors rounded ${activeTab === 'partners' ? 'bg-gold text-bg-dark font-bold' : 'text-gold hover:bg-gold/10'}`}
            >
-             Partners
+             Guiding Lights
            </button>
         </nav>
 
@@ -1729,12 +1729,12 @@ export default function Admin() {
           {activeTab === 'partners' && (
             <section className="space-y-12">
               <div className="flex items-center justify-between border-b border-gold/15 pb-4">
-                <h2 className="text-2xl font-serif text-gold">My Guiding lights (Partners)</h2>
+                <h2 className="text-2xl font-serif text-gold">My Guiding lights</h2>
               </div>
               <div className="bg-bg-card border border-gold/20 p-8 rounded shadow-sm max-w-4xl">
-                <h3 className="text-lg font-serif text-gold mb-6 border-b border-gold/15 pb-2">Existing Partners</h3>
+                <h3 className="text-lg font-serif text-gold mb-6 border-b border-gold/15 pb-2">Existing Guides</h3>
                 {partners.length === 0 ? (
-                  <p className="text-sm text-muted italic">No partners configured yet.</p>
+                  <p className="text-sm text-muted italic">No guides configured yet.</p>
                 ) : (
                   <Reorder.Group axis="y" values={partners} onReorder={async (newOrder) => {
                     setPartners(newOrder);
@@ -1847,7 +1847,7 @@ export default function Admin() {
               </div>
 
               <div className="bg-bg-card border border-gold/20 p-8 rounded shadow-sm max-w-3xl">
-                <h3 className="text-lg font-serif text-gold mb-6 border-b border-gold/15 pb-2">Add New Partner</h3>
+                <h3 className="text-lg font-serif text-gold mb-6 border-b border-gold/15 pb-2">Add New Guide / Healer</h3>
                 <form onSubmit={addPartner} className="grid grid-cols-1 gap-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>

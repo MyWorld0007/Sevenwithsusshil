@@ -33,14 +33,14 @@ export default function GuidingLights() {
           className="text-center mb-20"
         >
           <h1 className="text-4xl md:text-6xl font-light font-serif mb-6">My Guiding lights</h1>
-          <p className="text-sm md:text-base font-light text-muted uppercase tracking-[0.2em]">Our Partners & Healers</p>
+          <p className="text-sm md:text-base font-light text-muted uppercase tracking-[0.2em]">Our Healers</p>
           <div className="w-px h-16 bg-gold/30 mx-auto mt-12"></div>
         </motion.div>
 
         {loading ? (
           <div className="flex justify-center text-gold/60 py-20 uppercase tracking-widest text-xs">Loading guides...</div>
         ) : partners.length === 0 ? (
-          <div className="text-center text-muted font-light">No partners currently listed.</div>
+          <div className="text-center text-muted font-light">No guides currently listed.</div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-16 md:gap-24">
             {partners.map((partner, i) => (
