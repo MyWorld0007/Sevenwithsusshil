@@ -55,6 +55,9 @@ export interface PricingService {
   description: string;
   iconText: string;
   features: string | string[]; // holds serialized array from DB, parsed as string[] in the UI
+  operator_id?: number | null;
+  operator_name?: string | null;
+  operator_whatsapp?: string | null;
   display_order?: number;
 }
 
@@ -74,5 +77,6 @@ export interface Partner {
   title: string;
   description: string;
   profile_photo: string;
+  whatsapp?: string;
   display_order?: number;
 }

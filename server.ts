@@ -489,10 +489,12 @@ async function getDbPool() {
           title VARCHAR(255),
           description TEXT,
           profile_photo VARCHAR(500),
+          whatsapp VARCHAR(255) DEFAULT '',
           display_order INT DEFAULT 0
         )
       `);
       try { await pool.query('ALTER TABLE partners ADD COLUMN gratitude VARCHAR(255) DEFAULT ""'); } catch (e: any) { }
+      try { await pool.query('ALTER TABLE partners ADD COLUMN whatsapp VARCHAR(255) DEFAULT ""'); } catch (e: any) { }
     } catch (e: any) { console.error("[MYSQL Setup] partners table:", e.message); }
 
     try {
@@ -579,9 +581,11 @@ async function getDbPool() {
           description TEXT,
           iconText VARCHAR(50),
           features TEXT,
+          operator_id INT DEFAULT NULL,
           display_order INT DEFAULT 0
         )
       `);
+      try { await pool.query('ALTER TABLE services ADD COLUMN operator_id INT DEFAULT NULL'); } catch (e: any) { }
     } catch (e: any) { console.error("[MYSQL Setup] services table:", e.message); }
 
     // Seed data with individual try-catch blocks
@@ -944,7 +948,7 @@ async function startServer() {
   app.get("/api/services", async (req, res) => {
     try {
       const db = await getDbPool();
-      const [rows]: any = await db.query('SELECT * FROM services ORDER BY display_order ASC, id ASC');
+      const [rows]: any = await db.query('SELECT s.*, p.name as operator_name, p.whatsapp as operator_whatsapp FROM services s LEFT JOIN partners p ON s.operator_id = p.id ORDER BY s.display_order ASC, s.id ASC');
       res.json(rows);
     } catch (err: any) { res.status(500).json({ error: err.message }); }
   });
@@ -1180,6 +1184,63 @@ async function startServer() {
   });
 
   // Contact Inquiry Form Submission
+  app.post("/api/notify_expert_booking", async (req, res) => {
+    try {
+      const { serviceTitle, operatorName, operatorWhatsapp } = req.body;
+      const db = await getDbPool();
+      
+      const [settingsRows]: any = await db.query('SELECT * FROM settings WHERE id = 1');
+      const adminEmail = settingsRows.length > 0 ? settingsRows[0].email : "info@sevenastro.com";
+      const smtpHost = process.env.SMTP_HOST || settingsRows[0]?.smtp_host;
+      const smtpPortStr = process.env.SMTP_PORT || settingsRows[0]?.smtp_port;
+      const smtpPort = smtpPortStr ? parseInt(smtpPortStr, 10) : 465;
+      const smtpUser = process.env.SMTP_USER || settingsRows[0]?.smtp_user;
+      const smtpPass = process.env.SMTP_PASS || settingsRows[0]?.smtp_pass;
+      
+      if (smtpHost && smtpUser && smtpPass) {
+          const transporter = nodemailer.createTransport({
+            host: smtpHost,
+            port: smtpPort,
+            secure: smtpPort === 465,
+            auth: {
+              user: smtpUser,
+              pass: smtpPass,
+            },
+            tls: {
+              rejectUnauthorized: false
+            }
+          });
+
+          const adminBookingEmailHtml = `
+            <div style="background-color: #0b0c10; color: #c5a880; font-family: sans-serif; padding: 40px 20px; text-align: center;">
+              <h2 style="color: #c5a880; margin-bottom: 20px;">New Expert Booking Selected via WhatsApp</h2>
+              <p style="color: #c5a880; font-size: 16px; margin-bottom: 10px;">
+                <strong>Service:</strong> ${serviceTitle}
+              </p>
+              <p style="color: #c5a880; font-size: 16px; margin-bottom: 10px;">
+                <strong>Partner / Operator:</strong> ${operatorName}
+              </p>
+              <hr style="border: none; border-top: 1px solid rgba(197, 168, 128, 0.3); margin: 30px 0;" />
+              <p style="color: #c5a880; font-size: 14px; opacity: 0.8;">
+                The user has clicked "Book Now" and been redirected to the Partner's WhatsApp (${operatorWhatsapp}).
+              </p>
+            </div>
+          `;
+
+          await transporter.sendMail({
+            from: `"Seven Admin Notification" <${smtpUser}>`,
+            to: adminEmail,
+            subject: `Expert Booking Selected: ${serviceTitle} with ${operatorName}`,
+            html: adminBookingEmailHtml,
+          });
+      }
+      res.json({ success: true });
+    } catch(err: any) {
+      console.error("/api/notify_expert_booking error:", err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.post("/api/contact", async (req, res) => {
     try {
       const { fullName, dob, tob, pob, mobile, email, comments } = req.body;
@@ -1660,13 +1721,13 @@ async function startServer() {
   app.post("/api/services", requireAuth, async (req, res) => {
     try {
       const db = await getDbPool();
-      const { title, price, rawPrice, description, iconText, features } = req.body;
+      const { title, price, rawPrice, description, iconText, features, operator_id } = req.body;
       const strFeatures = typeof features === 'string' ? features : JSON.stringify(features || []);
       const [rows]: any = await db.query('SELECT COUNT(*) as cnt FROM services');
       const order = rows[0].cnt;
       const [result]: any = await db.query(
-        'INSERT INTO services (title, price, rawPrice, description, iconText, features, display_order) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [title, price, rawPrice, description, iconText, strFeatures, order]
+        'INSERT INTO services (title, price, rawPrice, description, iconText, features, operator_id, display_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [title, price, rawPrice, description, iconText, strFeatures, operator_id || null, order]
       );
       res.json({ id: result.insertId });
     } catch (err: any) { res.status(500).json({ error: err.message }); }
@@ -1686,11 +1747,11 @@ async function startServer() {
   app.put("/api/services/:id", requireAuth, async (req, res) => {
     try {
       const db = await getDbPool();
-      const { title, price, rawPrice, description, iconText, features } = req.body;
+      const { title, price, rawPrice, description, iconText, features, operator_id } = req.body;
       const strFeatures = typeof features === 'string' ? features : JSON.stringify(features || []);
       await db.query(
-        'UPDATE services SET title=?, price=?, rawPrice=?, description=?, iconText=?, features=? WHERE id=?',
-        [title, price, rawPrice, description, iconText, strFeatures, req.params.id]
+        'UPDATE services SET title=?, price=?, rawPrice=?, description=?, iconText=?, features=?, operator_id=? WHERE id=?',
+        [title, price, rawPrice, description, iconText, strFeatures, operator_id || null, req.params.id]
       );
       res.json({ success: true });
     } catch (err: any) { res.status(500).json({ error: err.message }); }
@@ -1760,12 +1821,12 @@ async function startServer() {
   app.post("/api/partners", requireAuth, async (req, res) => {
     try {
       const db = await getDbPool();
-      const { name, gratitude, title, description, profile_photo } = req.body;
+      const { name, gratitude, title, description, profile_photo, whatsapp } = req.body;
       const [rows]: any = await db.query('SELECT COUNT(*) as cnt FROM partners');
       const order = rows[0].cnt;
       const [result]: any = await db.query(
-        'INSERT INTO partners (name, gratitude, title, description, profile_photo, display_order) VALUES (?, ?, ?, ?, ?, ?)',
-        [name, gratitude || '', title, description, profile_photo, order]
+        'INSERT INTO partners (name, gratitude, title, description, profile_photo, whatsapp, display_order) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [name, gratitude || '', title, description, profile_photo, whatsapp || '', order]
       );
       res.json({ id: result.insertId });
     } catch (err: any) { res.status(500).json({ error: err.message }); }
@@ -1785,10 +1846,10 @@ async function startServer() {
   app.put("/api/partners/:id", requireAuth, async (req, res) => {
     try {
       const db = await getDbPool();
-      const { name, gratitude, title, description, profile_photo } = req.body;
+      const { name, gratitude, title, description, profile_photo, whatsapp } = req.body;
       await db.query(
-        'UPDATE partners SET name=?, gratitude=?, title=?, description=?, profile_photo=? WHERE id=?',
-        [name, gratitude || '', title, description, profile_photo, req.params.id]
+        'UPDATE partners SET name=?, gratitude=?, title=?, description=?, profile_photo=?, whatsapp=? WHERE id=?',
+        [name, gratitude || '', title, description, profile_photo, whatsapp || '', req.params.id]
       );
       res.json({ success: true });
     } catch (err: any) { res.status(500).json({ error: err.message }); }

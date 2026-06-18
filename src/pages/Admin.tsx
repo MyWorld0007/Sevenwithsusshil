@@ -5,6 +5,7 @@ import 'react-quill-new/dist/quill.snow.css';
 import { Settings, LifePath, Testimonial, Faq, PricingService, PathwayCard, Partner } from '../Types';
 import { GripVertical } from 'lucide-react';
 import { Reorder, useDragControls } from 'motion/react';
+import { PhoneInput } from '../components/PhoneInput';
 
 // Register custom fonts on the global Quill instance
 const QuillInstance = (ReactQuill as any).Quill || Quill;
@@ -170,11 +171,13 @@ function PathwayAdminItem({
 
 function ServiceAdminItem({
   service,
+  partners,
   onChange,
   onSave,
   onDelete
 }: {
   service: PricingService;
+  partners: Partner[];
   onChange: (updated: PricingService) => void;
   onSave: () => void | Promise<void>;
   onDelete: () => void | Promise<void>;
@@ -267,6 +270,20 @@ function ServiceAdminItem({
         />
       </div>
 
+      <div className="mb-4">
+        <label className="block text-[10px] uppercase tracking-[0.1em] text-muted mb-1 font-semibold">Operator</label>
+        <select
+          value={service.operator_id || ''}
+          onChange={(e) => onChange({ ...service, operator_id: e.target.value ? parseInt(e.target.value, 10) : null })}
+          className="w-full bg-bg-input border border-gold/20 p-2.5 outline-none focus:border-gold rounded text-sm text-text-main"
+        >
+          <option value="">Admin (Default)</option>
+          {partners.map(p => (
+            <option key={p.id} value={p.id}>{p.name}</option>
+          ))}
+        </select>
+      </div>
+
       <div>
         <label className="block text-[10px] uppercase tracking-[0.1em] text-muted mb-1 font-semibold">Highlights / Features (One per line)</label>
         <textarea
@@ -284,6 +301,7 @@ export default function Admin() {
   const [token, setToken] = useState(localStorage.getItem('admin_token') || '');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [newPartnerWhatsapp, setNewPartnerWhatsapp] = useState('');
   const [loginError, setLoginError] = useState('');
 
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -667,12 +685,13 @@ export default function Admin() {
     const rawPrice = form.rawPrice.value;
     const description = form.description.value;
     const iconText = form.iconText.value || "✨";
+    const operator_id = form.operator_id.value ? parseInt(form.operator_id.value, 10) : null;
     const features = []; // initially empty, user can add on list
 
     const res = await apiFetch('/api/services', {
       method: "POST",
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify({ title, price, rawPrice, description, iconText, features })
+      body: JSON.stringify({ title, price, rawPrice, description, iconText, features, operator_id })
     });
     const data = await res.json();
     if (data.error) {
@@ -793,6 +812,7 @@ export default function Admin() {
     const form = e.target;
     const name = form.name.value;
     const gratitude = form.gratitude?.value || '';
+    const whatsapp = form.whatsapp?.value || '';
     const title = form.title.value;
     const description = form.description.value;
     
@@ -822,7 +842,7 @@ export default function Admin() {
     const res = await apiFetch('/api/partners', {
       method: "POST",
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify({ name, gratitude, title, description, profile_photo })
+      body: JSON.stringify({ name, gratitude, title, description, profile_photo, whatsapp })
     });
     const data = await res.json();
     if (data.error) {
@@ -834,6 +854,7 @@ export default function Admin() {
         alert(data.error);
       }
     } else {
+      setNewPartnerWhatsapp('');
       form.reset();
       fetchData();
     }
@@ -1578,6 +1599,7 @@ export default function Admin() {
                       <ServiceAdminItem
                         key={service.id || index}
                         service={service}
+                        partners={partners}
                         onChange={(updated) => {
                           const copy = [...services];
                           copy[index] = updated;
@@ -1635,6 +1657,18 @@ export default function Admin() {
                       placeholder="e.g. 💑"
                       className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold rounded text-sm text-text-main"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2 font-semibold">Operator</label>
+                    <select
+                      name="operator_id"
+                      className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold rounded text-sm text-text-main"
+                    >
+                      <option value="">Admin (Default)</option>
+                      {partners.map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="md:col-span-2">
                     <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2 font-semibold font-serif">Service Description</label>
@@ -1837,6 +1871,20 @@ export default function Admin() {
                                 onBlur={() => savePartner(partner)}
                               />
                            </div>
+                           <div className="flex flex-col gap-1 w-full mt-3">
+                              <PhoneInput 
+                                label="WhatsApp Number *"
+                                className="w-full"
+                                value={partner.whatsapp || ''}
+                                onChange={value => {
+                                  const updated = { ...partner, whatsapp: value };
+                                  const copy = [...partners];
+                                  copy[index] = updated;
+                                  setPartners(copy);
+                                }}
+                                onBlur={() => savePartner(partner)}
+                              />
+                           </div>
                            <div className="flex flex-col gap-1 w-full mt-4">
                               <label className="text-[10px] uppercase tracking-widest text-muted font-semibold">Description (One Para)</label>
                               <textarea 
@@ -1894,6 +1942,15 @@ export default function Admin() {
                       required
                       placeholder="e.g. Senior Healer & Guide"
                       className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold rounded text-sm text-text-main"
+                    />
+                  </div>
+                  <div>
+                    <input type="hidden" name="whatsapp" value={newPartnerWhatsapp} />
+                    <PhoneInput 
+                      label="WhatsApp Number (Booking Contact)"
+                      className="w-full"
+                      value={newPartnerWhatsapp}
+                      onChange={setNewPartnerWhatsapp}
                     />
                   </div>
                   <div>

@@ -453,6 +453,7 @@ try {
                 `description` TEXT,
                 `iconText` VARCHAR(50),
                 `features` TEXT,
+                `operator_id` INT DEFAULT NULL,
                 `display_order` INT DEFAULT 0
             )',
             
@@ -474,6 +475,7 @@ try {
                 `title` VARCHAR(255),
                 `description` TEXT,
                 `profile_photo` VARCHAR(500),
+                `whatsapp` VARCHAR(255) DEFAULT NULL,
                 `display_order` INT DEFAULT 0
             )'
         ];
@@ -637,6 +639,24 @@ try {
         ]);
         echo json_encode(['success' => true]);
     }
+    elseif ($route === 'notify_expert_booking' && $method === 'POST') {
+        $stmt = $pdo->query('SELECT email FROM settings WHERE id = 1');
+        $settings = $stmt->fetch();
+        $adminEmail = $settings ? $settings['email'] : 'info@sevenastro.com';
+        $serviceTitle = isset($input['serviceTitle']) ? $input['serviceTitle'] : '';
+        $operatorName = isset($input['operatorName']) ? $input['operatorName'] : '';
+        $operatorWhatsapp = isset($input['operatorWhatsapp']) ? $input['operatorWhatsapp'] : '';
+        
+        $subject = "Expert Booking Selected: " . $serviceTitle . " with " . $operatorName;
+        $message = "New Expert Booking Selected via WhatsApp\n\n";
+        $message .= "Service: " . $serviceTitle . "\n";
+        $message .= "Partner: " . $operatorName . "\n\n";
+        $message .= "The user has clicked 'Book Now' and been redirected to the Partner's WhatsApp (" . $operatorWhatsapp . ").";
+        
+        $headers = "From: no-reply@" . $_SERVER['HTTP_HOST'] . "\r\n";
+        mail($adminEmail, $subject, $message, $headers);
+        echo json_encode(['success' => true]);
+    }
     elseif ($route === 'upload' && $method === 'POST') {
         require_auth();
         if (!isset($_FILES['photo'])) {
@@ -765,16 +785,17 @@ try {
         echo json_encode(['success' => true]);
     }
     elseif ($route === 'services' && $method === 'GET') {
-        $stmt = $pdo->query('SELECT * FROM services ORDER BY display_order ASC, id ASC');
+        $stmt = $pdo->query('SELECT s.*, p.name as operator_name, p.whatsapp as operator_whatsapp FROM services s LEFT JOIN partners p ON s.operator_id = p.id ORDER BY s.display_order ASC, s.id ASC');
         echo json_encode($stmt->fetchAll());
     }
     elseif ($route === 'services' && $method === 'POST') {
         require_auth();
         $stmt = $pdo->query('SELECT COUNT(*) as cnt FROM services');
         $order = $stmt->fetch()['cnt'];
-        $stmt = $pdo->prepare('INSERT INTO services (title, price, rawPrice, description, iconText, features, display_order) VALUES (?, ?, ?, ?, ?, ?, ?)');
+        $stmt = $pdo->prepare('INSERT INTO services (title, price, rawPrice, description, iconText, features, operator_id, display_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
         $features = is_array($input['features']) ? json_encode($input['features']) : $input['features'];
-        $stmt->execute([$input['title'], $input['price'], $input['rawPrice'], $input['description'], $input['iconText'], $features, $order]);
+        $operator_id = isset($input['operator_id']) ? $input['operator_id'] : null;
+        $stmt->execute([$input['title'], $input['price'], $input['rawPrice'], $input['description'], $input['iconText'], $features, $operator_id, $order]);
         echo json_encode(['id' => $pdo->lastInsertId()]);
     }
     elseif ($route === 'services/reorder' && $method === 'POST') {
@@ -789,9 +810,10 @@ try {
     }
     elseif (preg_match('/^services\/([0-9]+)$/', $route, $m) && $method === 'PUT') {
         require_auth();
-        $stmt = $pdo->prepare('UPDATE services SET title=?, price=?, rawPrice=?, description=?, iconText=?, features=? WHERE id=?');
+        $stmt = $pdo->prepare('UPDATE services SET title=?, price=?, rawPrice=?, description=?, iconText=?, features=?, operator_id=? WHERE id=?');
         $features = is_array($input['features']) ? json_encode($input['features']) : $input['features'];
-        $stmt->execute([$input['title'], $input['price'], $input['rawPrice'], $input['description'], $input['iconText'], $features, $m[1]]);
+        $operator_id = isset($input['operator_id']) ? $input['operator_id'] : null;
+        $stmt->execute([$input['title'], $input['price'], $input['rawPrice'], $input['description'], $input['iconText'], $features, $operator_id, $m[1]]);
         echo json_encode(['success' => true]);
     }
     elseif (preg_match('/^services\/([0-9]+)$/', $route, $m) && $method === 'DELETE') {
@@ -842,9 +864,10 @@ try {
         require_auth();
         $stmt = $pdo->query('SELECT COUNT(*) as cnt FROM partners');
         $order = $stmt->fetch()['cnt'];
-        $stmt = $pdo->prepare('INSERT INTO partners (name, gratitude, title, description, profile_photo, display_order) VALUES (?, ?, ?, ?, ?, ?)');
+        $stmt = $pdo->prepare('INSERT INTO partners (name, gratitude, title, description, profile_photo, whatsapp, display_order) VALUES (?, ?, ?, ?, ?, ?, ?)');
         $gratitude = isset($input['gratitude']) ? $input['gratitude'] : '';
-        $stmt->execute([$input['name'], $gratitude, $input['title'], $input['description'], $input['profile_photo'], $order]);
+        $whatsapp = isset($input['whatsapp']) ? $input['whatsapp'] : '';
+        $stmt->execute([$input['name'], $gratitude, $input['title'], $input['description'], $input['profile_photo'], $whatsapp, $order]);
         echo json_encode(['id' => $pdo->lastInsertId()]);
     }
     elseif ($route === 'partners/reorder' && $method === 'POST') {
@@ -859,9 +882,10 @@ try {
     }
     elseif (preg_match('/^partners\/([0-9]+)$/', $route, $m) && $method === 'PUT') {
         require_auth();
-        $stmt = $pdo->prepare('UPDATE partners SET name=?, gratitude=?, title=?, description=?, profile_photo=? WHERE id=?');
+        $stmt = $pdo->prepare('UPDATE partners SET name=?, gratitude=?, title=?, description=?, profile_photo=?, whatsapp=? WHERE id=?');
         $gratitude = isset($input['gratitude']) ? $input['gratitude'] : '';
-        $stmt->execute([$input['name'], $gratitude, $input['title'], $input['description'], $input['profile_photo'], $m[1]]);
+        $whatsapp = isset($input['whatsapp']) ? $input['whatsapp'] : '';
+        $stmt->execute([$input['name'], $gratitude, $input['title'], $input['description'], $input['profile_photo'], $whatsapp, $m[1]]);
         echo json_encode(['success' => true]);
     }
     elseif (preg_match('/^partners\/([0-9]+)$/', $route, $m) && $method === 'DELETE') {

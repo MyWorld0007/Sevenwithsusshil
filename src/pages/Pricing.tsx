@@ -126,25 +126,7 @@ function TimeWheelColumn({ options, value, onChange, itemHeight = 36 }: TimeWhee
   );
 }
 
-const COUNTRIES = [
-  { code: "NG", name: "Nigeria", dial: "+234", flag: "🇳🇬" },
-  { code: "IN", name: "India", dial: "+91", flag: "🇮🇳" },
-  { code: "KE", name: "Kenya", dial: "+254", flag: "🇰🇪" },
-  { code: "ZA", name: "South Africa", dial: "+27", flag: "🇿🇦" },
-  { code: "DE", name: "Germany", dial: "+49", flag: "🇩🇪" },
-  { code: "US", name: "United States", dial: "+1", flag: "🇺🇸" },
-  { code: "GB", name: "United Kingdom", dial: "+44", flag: "🇬🇧" },
-  { code: "AE", name: "United Arab Emirates", dial: "+971", flag: "🇦🇪" },
-  { code: "CA", name: "Canada", dial: "+1", flag: "🇨🇦" },
-  { code: "AU", name: "Australia", dial: "+61", flag: "🇦🇺" },
-  { code: "SG", name: "Singapore", dial: "+65", flag: "🇸🇬" },
-  { code: "MY", name: "Malaysia", dial: "+60", flag: "🇲🇾" },
-  { code: "NZ", name: "New Zealand", dial: "+64", flag: "🇳🇿" },
-  { code: "FR", name: "France", dial: "+33", flag: "🇫🇷" },
-  { code: "IT", name: "Italy", dial: "+39", flag: "🇮🇹" },
-  { code: "ES", name: "Spain", dial: "+34", flag: "🇪🇸" },
-  { code: "JP", name: "Japan", dial: "+81", flag: "🇯🇵" },
-];
+import { COUNTRIES } from '../lib/countries';
 
 const DEFAULT_SERVICES: PricingService[] = [
   {
@@ -429,10 +411,36 @@ export default function Pricing() {
     }
   };
 
+  const isExpertPartnerService = (service: PricingService) => {
+    return service.title.toLowerCase().startsWith('expert') && !!service.operator_id;
+  };
+
   const getWhatsAppLink = (service: PricingService) => {
-    if (!settings) return '#';
+    let phoneStr = settings?.whatsapp || '';
+    if (isExpertPartnerService(service) && service.operator_whatsapp) {
+      phoneStr = service.operator_whatsapp;
+    }
     const msg = `Hello! I would like to book the following service:\n\n*Service:* ${service.title}\n*Price:* ${service.price}\n\nPlease let me know the next steps for scheduling my session.`;
-    return `https://wa.me/${settings.whatsapp}?text=${encodeURIComponent(msg)}`;
+    return `https://wa.me/${phoneStr}?text=${encodeURIComponent(msg)}`;
+  };
+
+  const handleWhatsAppBooking = async (service: PricingService) => {
+    if (isExpertPartnerService(service)) {
+      try {
+        await apiFetch('/api/notify_expert_booking', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            serviceTitle: service.title,
+            operatorName: service.operator_name || 'Partner',
+            operatorWhatsapp: service.operator_whatsapp || ''
+          })
+        });
+      } catch (err) {
+        console.error('Failed to notify admin', err);
+      }
+    }
+    window.open(getWhatsAppLink(service), '_blank');
   };
 
   const getEmailLink = (service: PricingService) => {
@@ -885,30 +893,30 @@ export default function Pricing() {
                 </div>
 
                 <p className="text-[14px] text-muted font-light leading-relaxed mb-6 bg-white/50 border border-gold/10 p-4 rounded-sm">
-                  ✨ <strong>Select your preferred booking platform below.</strong> Your inquiry message will be drafted with the service title and price automatically to speed up your booking process.
+                  ✨ <strong>{isExpertPartnerService(selectedService) ? 'This is an Expert session handled directly on WhatsApp.' : 'Select your preferred booking platform below.'}</strong> Your inquiry message will be drafted with the service title and price automatically to speed up your booking process.
                 </p>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className={`grid gap-4 ${isExpertPartnerService(selectedService) ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'}`}>
                   {/* WhatsApp Option */}
-                  <a 
-                    href={getWhatsAppLink(selectedService)}
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-3 bg-[#25D366] hover:bg-[#20ba5a] text-white py-3.5 px-5 rounded-sm transition-all duration-300 font-medium text-[12px] uppercase tracking-[0.15em] shadow-md hover:shadow-lg active:scale-95"
+                  <button 
+                    onClick={() => handleWhatsAppBooking(selectedService)}
+                    className="flex items-center justify-center gap-3 bg-[#25D366] hover:bg-[#20ba5a] text-white py-3.5 px-5 rounded-sm transition-all duration-300 font-medium text-[12px] uppercase tracking-[0.15em] shadow-md hover:shadow-lg active:scale-95 border-none cursor-pointer"
                   >
                     <MessageSquare className="w-4 h-4" />
                     Book via WhatsApp
-                  </a>
+                  </button>
 
                   {/* Email Option */}
-                  <button 
-                    type="button"
-                    onClick={() => setShowEmailForm(true)}
-                    className="flex items-center justify-center gap-3 bg-gold hover:bg-gold-lt text-[#ffffff] py-3.5 px-5 rounded-sm transition-all duration-300 font-medium text-[12px] uppercase tracking-[0.15em] shadow-md hover:shadow-lg active:scale-95 border border-gold cursor-pointer"
-                  >
-                    <Mail className="w-4 h-4" />
-                    Book via Email
-                  </button>
+                  {!isExpertPartnerService(selectedService) && (
+                    <button 
+                      type="button"
+                      onClick={() => setShowEmailForm(true)}
+                      className="flex items-center justify-center gap-3 bg-gold hover:bg-gold-lt text-[#ffffff] py-3.5 px-5 rounded-sm transition-all duration-300 font-medium text-[12px] uppercase tracking-[0.15em] shadow-md hover:shadow-lg active:scale-95 border border-gold cursor-pointer"
+                    >
+                      <Mail className="w-4 h-4" />
+                      Book via Email
+                    </button>
+                  )}
                 </div>
 
                 <p className="text-[11px] text-zinc-400 text-center mt-6">
