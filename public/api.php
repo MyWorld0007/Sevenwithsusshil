@@ -647,10 +647,27 @@ try {
         $servicePrice = isset($input['servicePrice']) ? $input['servicePrice'] : '';
         $operatorName = isset($input['operatorName']) ? $input['operatorName'] : '';
         $operatorWhatsapp = isset($input['operatorWhatsapp']) ? $input['operatorWhatsapp'] : '';
+        $fullName = isset($input['fullName']) ? $input['fullName'] : '';
+        $dob = isset($input['dob']) ? $input['dob'] : '';
+        $tob = isset($input['tob']) ? $input['tob'] : '';
+        $pob = isset($input['pob']) ? $input['pob'] : '';
+        $mobile = isset($input['mobile']) ? $input['mobile'] : '';
+        $email = isset($input['email']) ? $input['email'] : '';
         
-        $subject = "Expert Booking Selected: " . $serviceTitle . " with " . $operatorName;
+        $subject = "Expert Booking via WhatsApp: " . $serviceTitle . " with " . $operatorName;
         $message = "New Expert Booking Selected via WhatsApp\n\n";
-        $message .= "A user just initiated a WhatsApp booking for " . $serviceTitle . " - " . $servicePrice . " with Partner " . $operatorName . ".\n\n";
+        $message .= "A user has initiated a WhatsApp booking for " . $serviceTitle . " - " . $servicePrice . " with Partner " . $operatorName . ".\n\n";
+        
+        if ($fullName) {
+            $message .= "User Details:\n";
+            $message .= "- Name: " . $fullName . "\n";
+            $message .= "- DOB: " . $dob . "\n";
+            $message .= "- TOB: " . $tob . "\n";
+            $message .= "- Location: " . $pob . "\n";
+            $message .= "- Phone: " . $mobile . "\n";
+            $message .= "- Email: " . $email . "\n\n";
+        }
+
         $message .= "The user has clicked 'Book Now' and been redirected to the Partner's WhatsApp (" . $operatorWhatsapp . ").";
         
         $headers = "From: no-reply@" . $_SERVER['HTTP_HOST'] . "\r\n";

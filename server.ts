@@ -1186,7 +1186,7 @@ async function startServer() {
   // Contact Inquiry Form Submission
   app.post("/api/notify_expert_booking", async (req, res) => {
     try {
-      const { serviceTitle, servicePrice, operatorName, operatorWhatsapp } = req.body;
+      const { serviceTitle, servicePrice, operatorName, operatorWhatsapp, fullName, dob, tob, pob, mobile, email } = req.body;
       const db = await getDbPool();
       
       const [settingsRows]: any = await db.query('SELECT * FROM settings WHERE id = 1');
@@ -1196,6 +1196,10 @@ async function startServer() {
       const smtpPort = smtpPortStr ? parseInt(smtpPortStr, 10) : 465;
       const smtpUser = process.env.SMTP_USER || settingsRows[0]?.smtp_user;
       const smtpPass = process.env.SMTP_PASS || settingsRows[0]?.smtp_pass;
+      let smtpFrom = process.env.SMTP_FROM || `"Seven Astro" <${smtpUser || "7s.evolve@gmail.com"}>`;
+      if (smtpFrom && smtpUser && !smtpFrom.includes("@")) {
+        smtpFrom = `"${smtpFrom.replace(/"/g, '')}" <${smtpUser}>`;
+      }
       
       if (smtpHost && smtpUser && smtpPass) {
           const transporter = nodemailer.createTransport({
@@ -1211,23 +1215,43 @@ async function startServer() {
             }
           });
 
+          // Include user details like email form
           const adminBookingEmailHtml = `
-            <div style="background-color: #0b0c10; color: #c5a880; font-family: sans-serif; padding: 40px 20px; text-align: center;">
-              <h2 style="color: #c5a880; margin-bottom: 20px;">New Expert Booking Selected via WhatsApp</h2>
-              <p style="color: #c5a880; font-size: 16px; margin-bottom: 10px;">
-                A user just initiated a WhatsApp booking for <strong>${serviceTitle}</strong> - <strong>${servicePrice || ''}</strong> with Partner <strong>${operatorName}</strong>.
+            <div style="background-color: #0b0c10; color: #c5a880; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px 20px; text-align: center; max-width: 600px; margin: 0 auto; border: 1px solid #c5a880; border-radius: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+              <div style="font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; color: #c5a880; margin-bottom: 10px;">Divine Sanctuary Booking Registry</div>
+              <div style="width: 50px; height: 1px; background-color: #c5a880; margin: 15px auto;"></div>
+              
+              <h2 style="color: #f5f5f5; font-family: 'Georgia', serif; font-weight: 300; margin-bottom: 20px;">New Expert Booking Selected via WhatsApp</h2>
+              <p style="color: #a5a5a5; font-size: 14px; line-height: 1.8; margin-bottom: 25px; text-align: left; padding: 0 10px;">
+                A user has initiated a WhatsApp booking for <strong>${serviceTitle}</strong> - <strong>${servicePrice || ''}</strong> with Partner <strong>${operatorName}</strong>.
               </p>
+
+              ${fullName ? `
+              <div style="background-color: rgba(197, 168, 128, 0.04); border: 1px solid rgba(197, 168, 128, 0.3); padding: 25px; text-align: left; border-radius: 2px;">
+                <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #c5a880; margin-bottom: 15px; border-bottom: 1px solid rgba(197, 168, 128, 0.2); padding-bottom: 5px;">Seeker Coordinates</div>
+                <table style="width: 100%; border-collapse: collapse;">
+                  <tbody>
+                    <tr><td style="padding: 6px 0; color: #888888; font-size: 13px; width: 40%;">Full Legal Name</td><td style="padding: 6px 0; color: #f5f5f5; font-size: 14px; font-weight: 500;">${fullName}</td></tr>
+                    <tr><td style="padding: 6px 0; color: #888888; font-size: 13px;">Date of Birth</td><td style="padding: 6px 0; color: #f5f5f5; font-size: 14px;">${dob}</td></tr>
+                    <tr><td style="padding: 6px 0; color: #888888; font-size: 13px;">Time of Birth</td><td style="padding: 6px 0; color: #f5f5f5; font-size: 14px;">${tob}</td></tr>
+                    <tr><td style="padding: 6px 0; color: #888888; font-size: 13px;">Place of Birth</td><td style="padding: 6px 0; color: #f5f5f5; font-size: 14px;">${pob}</td></tr>
+                    <tr><td style="padding: 6px 0; color: #888888; font-size: 13px; border-top: 1px solid rgba(197,168,128,0.1); margin-top: 5px;">Contact Number</td><td style="padding: 6px 0; color: #c5a880; font-size: 14px; border-top: 1px solid rgba(197,168,128,0.1); margin-top: 5px;">${mobile}</td></tr>
+                    <tr><td style="padding: 6px 0; color: #888888; font-size: 13px;">Email Address</td><td style="padding: 6px 0; color: #c5a880; font-size: 14px;">${email}</td></tr>
+                  </tbody>
+                </table>
+              </div>` : ''}
+
               <hr style="border: none; border-top: 1px solid rgba(197, 168, 128, 0.3); margin: 30px 0;" />
-              <p style="color: #c5a880; font-size: 14px; opacity: 0.8;">
+              <p style="color: #888888; font-size: 13px; text-align: center;">
                 The user has clicked "Book Now" and been redirected to the Partner's WhatsApp (${operatorWhatsapp}).
               </p>
             </div>
           `;
 
           await transporter.sendMail({
-            from: `"Seven Admin Notification" <${smtpUser}>`,
+            from: smtpFrom,
             to: adminEmail,
-            subject: `Expert Booking Selected: ${serviceTitle} with ${operatorName}`,
+            subject: `Expert Booking via WhatsApp: ${serviceTitle} with ${operatorName}`,
             html: adminBookingEmailHtml,
           });
       }
