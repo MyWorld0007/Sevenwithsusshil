@@ -1186,7 +1186,7 @@ async function startServer() {
   // Contact Inquiry Form Submission
   app.post("/api/notify_expert_booking", async (req, res) => {
     try {
-      const { serviceTitle, operatorName, operatorWhatsapp } = req.body;
+      const { serviceTitle, servicePrice, operatorName, operatorWhatsapp } = req.body;
       const db = await getDbPool();
       
       const [settingsRows]: any = await db.query('SELECT * FROM settings WHERE id = 1');
@@ -1215,10 +1215,7 @@ async function startServer() {
             <div style="background-color: #0b0c10; color: #c5a880; font-family: sans-serif; padding: 40px 20px; text-align: center;">
               <h2 style="color: #c5a880; margin-bottom: 20px;">New Expert Booking Selected via WhatsApp</h2>
               <p style="color: #c5a880; font-size: 16px; margin-bottom: 10px;">
-                <strong>Service:</strong> ${serviceTitle}
-              </p>
-              <p style="color: #c5a880; font-size: 16px; margin-bottom: 10px;">
-                <strong>Partner / Operator:</strong> ${operatorName}
+                A user just initiated a WhatsApp booking for <strong>${serviceTitle}</strong> - <strong>${servicePrice || ''}</strong> with Partner <strong>${operatorName}</strong>.
               </p>
               <hr style="border: none; border-top: 1px solid rgba(197, 168, 128, 0.3); margin: 30px 0;" />
               <p style="color: #c5a880; font-size: 14px; opacity: 0.8;">

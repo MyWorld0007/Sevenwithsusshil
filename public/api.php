@@ -644,13 +644,13 @@ try {
         $settings = $stmt->fetch();
         $adminEmail = $settings ? $settings['email'] : 'info@sevenastro.com';
         $serviceTitle = isset($input['serviceTitle']) ? $input['serviceTitle'] : '';
+        $servicePrice = isset($input['servicePrice']) ? $input['servicePrice'] : '';
         $operatorName = isset($input['operatorName']) ? $input['operatorName'] : '';
         $operatorWhatsapp = isset($input['operatorWhatsapp']) ? $input['operatorWhatsapp'] : '';
         
         $subject = "Expert Booking Selected: " . $serviceTitle . " with " . $operatorName;
         $message = "New Expert Booking Selected via WhatsApp\n\n";
-        $message .= "Service: " . $serviceTitle . "\n";
-        $message .= "Partner: " . $operatorName . "\n\n";
+        $message .= "A user just initiated a WhatsApp booking for " . $serviceTitle . " - " . $servicePrice . " with Partner " . $operatorName . ".\n\n";
         $message .= "The user has clicked 'Book Now' and been redirected to the Partner's WhatsApp (" . $operatorWhatsapp . ").";
         
         $headers = "From: no-reply@" . $_SERVER['HTTP_HOST'] . "\r\n";

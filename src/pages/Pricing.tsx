@@ -259,6 +259,7 @@ export default function Pricing() {
 
   // Form State
   const [showEmailForm, setShowEmailForm] = useState(false);
+  const [bookingType, setBookingType] = useState<'email' | 'whatsapp'>('email');
   const [fullName, setFullName] = useState('');
   const [dob, setDob] = useState('');
   const [pob, setPob] = useState('');
@@ -382,28 +383,55 @@ export default function Pricing() {
     setFormLoading(true);
     try {
       const timeOfBirthStr = `${hourWheel.toString().padStart(2, '0')}:${minuteWheel.toString().padStart(2, '0')} ${periodWheel}`;
-      const res = await apiFetch('/api/bookings', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          fullName,
-          dob,
-          tob: timeOfBirthStr,
-          pob,
-          mobile: `${selectedCountry.dial} ${phoneBody}`,
-          email,
-          serviceTitle: selectedService.title,
-          servicePrice: selectedService.price
-        })
-      });
+      const mobileFull = `${selectedCountry.dial} ${phoneBody}`;
 
-      if (!res.ok) {
-        throw new Error('Celestial connection error. Please try again.');
+      if (bookingType === 'whatsapp' && isExpertPartnerService(selectedService)) {
+        await apiFetch('/api/notify_expert_booking', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            serviceTitle: selectedService.title,
+            servicePrice: selectedService.price,
+            operatorName: selectedService.operator_name || 'Partner',
+            operatorWhatsapp: selectedService.operator_whatsapp || '',
+            fullName,
+            dob,
+            tob: timeOfBirthStr,
+            pob,
+            mobile: mobileFull,
+            email,
+          })
+        });
+
+        const phoneStr = selectedService.operator_whatsapp || settings?.whatsapp || '';
+        const msg = `Hello! I would like to book the following service:\n\n*Service:* ${selectedService.title}\n*Price:* ${selectedService.price}\n\n*My Details:*\n- Full Name: ${fullName}\n- Date of Birth: ${dob}\n- Time of Birth: ${timeOfBirthStr}\n- Place of Birth: ${pob}\n- Phone Number: ${mobileFull}\n- Email: ${email}\n\nPlease let me know the next steps for scheduling my session.`;
+        window.open(`https://wa.me/${phoneStr.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+        
+        setFormSubmitted(true);
+      } else {
+        const res = await apiFetch('/api/bookings', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            fullName,
+            dob,
+            tob: timeOfBirthStr,
+            pob,
+            mobile: mobileFull,
+            email,
+            serviceTitle: selectedService.title,
+            servicePrice: selectedService.price
+          })
+        });
+
+        if (!res.ok) {
+          throw new Error('Celestial connection error. Please try again.');
+        }
+
+        setFormSubmitted(true);
       }
-
-      setFormSubmitted(true);
     } catch (err: any) {
       setFormErrorMsg(err.message || 'An error occurred during booking. Please try again.');
     } finally {
@@ -421,26 +449,16 @@ export default function Pricing() {
       phoneStr = service.operator_whatsapp;
     }
     const msg = `Hello! I would like to book the following service:\n\n*Service:* ${service.title}\n*Price:* ${service.price}\n\nPlease let me know the next steps for scheduling my session.`;
-    return `https://wa.me/${phoneStr}?text=${encodeURIComponent(msg)}`;
+    return `https://wa.me/${phoneStr.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`;
   };
 
-  const handleWhatsAppBooking = async (service: PricingService) => {
+  const handleWhatsAppClick = (service: PricingService) => {
     if (isExpertPartnerService(service)) {
-      try {
-        await apiFetch('/api/notify_expert_booking', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            serviceTitle: service.title,
-            operatorName: service.operator_name || 'Partner',
-            operatorWhatsapp: service.operator_whatsapp || ''
-          })
-        });
-      } catch (err) {
-        console.error('Failed to notify admin', err);
-      }
+      setBookingType('whatsapp');
+      setShowEmailForm(true);
+    } else {
+      window.open(getWhatsAppLink(service), '_blank');
     }
-    window.open(getWhatsAppLink(service), '_blank');
   };
 
   const getEmailLink = (service: PricingService) => {
@@ -899,7 +917,7 @@ export default function Pricing() {
                 <div className={`grid gap-4 ${isExpertPartnerService(selectedService) ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'}`}>
                   {/* WhatsApp Option */}
                   <button 
-                    onClick={() => handleWhatsAppBooking(selectedService)}
+                    onClick={() => handleWhatsAppClick(selectedService)}
                     className="flex items-center justify-center gap-3 bg-[#25D366] hover:bg-[#20ba5a] text-white py-3.5 px-5 rounded-sm transition-all duration-300 font-medium text-[12px] uppercase tracking-[0.15em] shadow-md hover:shadow-lg active:scale-95 border-none cursor-pointer"
                   >
                     <MessageSquare className="w-4 h-4" />
@@ -910,7 +928,10 @@ export default function Pricing() {
                   {!isExpertPartnerService(selectedService) && (
                     <button 
                       type="button"
-                      onClick={() => setShowEmailForm(true)}
+                      onClick={() => {
+                        setBookingType('email');
+                        setShowEmailForm(true);
+                      }}
                       className="flex items-center justify-center gap-3 bg-gold hover:bg-gold-lt text-[#ffffff] py-3.5 px-5 rounded-sm transition-all duration-300 font-medium text-[12px] uppercase tracking-[0.15em] shadow-md hover:shadow-lg active:scale-95 border border-gold cursor-pointer"
                     >
                       <Mail className="w-4 h-4" />
