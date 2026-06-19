@@ -14,21 +14,14 @@ export function PhoneInput({ value, onChange, onBlur, label = "Partner WhatsApp 
   const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false);
   const [countrySearch, setCountrySearch] = useState('');
   
-  // Parse initial value to find country and phone body
+  // Parse initial value to find country
   const [selectedCountry, setSelectedCountry] = useState(() => {
     if (!value) return COUNTRIES[0];
     const match = COUNTRIES.find(c => value.startsWith(c.dial.replace('+', '')));
     return match || COUNTRIES[0];
   });
   
-  const [phoneBody, setPhoneBody] = useState(() => {
-    if (!value) return '';
-    const dialCode = selectedCountry.dial.replace('+', '');
-    if (value.startsWith(dialCode)) {
-      return value.substring(dialCode.length).trim();
-    }
-    return value;
-  });
+  const phoneBody = value ? (value.startsWith(selectedCountry.dial.replace('+', '')) ? value.substring(selectedCountry.dial.replace('+', '').length).trim() : value) : '';
 
   const filteredCountries = COUNTRIES.filter(c =>
     c.name.toLowerCase().includes(countrySearch.toLowerCase()) ||
@@ -36,30 +29,18 @@ export function PhoneInput({ value, onChange, onBlur, label = "Partner WhatsApp 
     c.code.toLowerCase().includes(countrySearch.toLowerCase())
   );
 
-  // Sync external value to internal state if it changes from outside
+  // Sync external value to internal country state if it changes from outside
   useEffect(() => {
-    const currentConstructed = phoneBody.trim() 
-      ? `${selectedCountry.dial.replace('+', '')}${phoneBody.trim()}` 
-      : '';
-      
-    if (value !== currentConstructed) {
-      if (!value) {
-        setPhoneBody('');
-      } else {
-        const match = COUNTRIES.find(c => value.startsWith(c.dial.replace('+', '')));
-        if (match) {
-          setSelectedCountry(match);
-          setPhoneBody(value.substring(match.dial.replace('+', '').length).trim());
-        } else {
-          setPhoneBody(value);
-        }
+    if (value) {
+      const match = COUNTRIES.find(c => value.startsWith(c.dial.replace('+', '')));
+      if (match && match.code !== selectedCountry.code) {
+        setSelectedCountry(match);
       }
     }
   }, [value]);
 
   const handlePhoneBodyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.replace(/[^0-9\- ]/g, '');
-    setPhoneBody(val);
     if (val.trim()) {
       onChange(`${selectedCountry.dial.replace('+', '')}${val.trim()}`);
     } else {

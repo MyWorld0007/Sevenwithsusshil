@@ -1866,20 +1866,24 @@ export default function Admin() {
                                 <label className="text-[10px] uppercase tracking-widest text-muted font-semibold">Gratitude</label>
                                 <div 
                                   className="relative w-[130px] h-[34px] bg-bg-card border border-gold/20 rounded-full flex items-center cursor-pointer select-none overflow-hidden"
-                                  onClick={(e) => {
+                                  onClick={async (e) => {
                                     e.stopPropagation();
                                     const newStatus = partner.status === 'live' ? 'pause' : 'live';
                                     const updated = { ...partner, status: newStatus };
                                     const copy = [...partners];
                                     copy[index] = updated;
                                     setPartners(copy);
-                                    savePartner(updated);
+                                    await apiFetch(`/api/partners/${partner.id}`, {
+                                      method: "PUT",
+                                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                      body: JSON.stringify(updated)
+                                    });
                                   }}
                                 >
                                   <div 
                                     className={`absolute top-1 left-1 w-[calc(50%-4px)] h-[calc(100%-8px)] bg-gold transition-transform duration-300 ease-in-out pointer-events-none rounded-full ${partner.status === 'pause' ? 'translate-x-full' : 'translate-x-0'}`}
                                   />
-                                  <div className={`relative z-10 flex-1 flex items-center justify-center h-full text-[10px] uppercase tracking-widest font-bold transition-colors duration-300 ${partner.status === 'live' ? 'text-bg-dark' : 'text-gold'}`}>
+                                  <div className={`relative z-10 flex-1 flex items-center justify-center h-full text-[10px] uppercase tracking-widest font-bold transition-colors duration-300 ${partner.status === 'pause' || !partner.status ? 'text-gold' : 'text-bg-dark'}`}>
                                     Live
                                   </div>
                                   <div className={`relative z-10 flex-1 flex items-center justify-center h-full text-[10px] uppercase tracking-widest font-bold transition-colors duration-300 ${partner.status === 'pause' ? 'text-bg-dark' : 'text-gold'}`}>
