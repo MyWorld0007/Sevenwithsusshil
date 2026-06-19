@@ -485,7 +485,7 @@ async function getDbPool() {
         CREATE TABLE IF NOT EXISTS partners (
           id INT AUTO_INCREMENT PRIMARY KEY,
           name VARCHAR(255),
-          gratitude VARCHAR(255) DEFAULT '',
+          gratitude VARCHAR(5000) DEFAULT '',
           title VARCHAR(255),
           description TEXT,
           profile_photo VARCHAR(500),
@@ -493,8 +493,10 @@ async function getDbPool() {
           display_order INT DEFAULT 0
         )
       `);
-      try { await pool.query('ALTER TABLE partners ADD COLUMN gratitude VARCHAR(255) DEFAULT ""'); } catch (e: any) { }
+      try { await pool.query('ALTER TABLE partners ADD COLUMN gratitude VARCHAR(5000) DEFAULT ""'); } catch (e: any) { }
+      try { await pool.query('ALTER TABLE partners MODIFY COLUMN gratitude VARCHAR(5000) DEFAULT ""'); } catch (e: any) { }
       try { await pool.query('ALTER TABLE partners ADD COLUMN whatsapp VARCHAR(255) DEFAULT ""'); } catch (e: any) { }
+      try { await pool.query('ALTER TABLE partners ADD COLUMN status VARCHAR(20) DEFAULT "live"'); } catch (e: any) { }
     } catch (e: any) { console.error("[MYSQL Setup] partners table:", e.message); }
 
     try {
@@ -1819,12 +1821,12 @@ async function startServer() {
   app.post("/api/partners", requireAuth, async (req, res) => {
     try {
       const db = await getDbPool();
-      const { name, gratitude, title, description, profile_photo, whatsapp } = req.body;
+      const { name, gratitude, title, description, profile_photo, whatsapp, status } = req.body;
       const [rows]: any = await db.query('SELECT COUNT(*) as cnt FROM partners');
       const order = rows[0].cnt;
       const [result]: any = await db.query(
-        'INSERT INTO partners (name, gratitude, title, description, profile_photo, whatsapp, display_order) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [name, gratitude || '', title, description, profile_photo, whatsapp || '', order]
+        'INSERT INTO partners (name, gratitude, title, description, profile_photo, whatsapp, display_order, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [name, gratitude || '', title, description, profile_photo, whatsapp || '', order, status || 'live']
       );
       res.json({ id: result.insertId });
     } catch (err: any) { res.status(500).json({ error: err.message }); }
@@ -1844,10 +1846,10 @@ async function startServer() {
   app.put("/api/partners/:id", requireAuth, async (req, res) => {
     try {
       const db = await getDbPool();
-      const { name, gratitude, title, description, profile_photo, whatsapp } = req.body;
+      const { name, gratitude, title, description, profile_photo, whatsapp, status } = req.body;
       await db.query(
-        'UPDATE partners SET name=?, gratitude=?, title=?, description=?, profile_photo=?, whatsapp=? WHERE id=?',
-        [name, gratitude || '', title, description, profile_photo, whatsapp || '', req.params.id]
+        'UPDATE partners SET name=?, gratitude=?, title=?, description=?, profile_photo=?, whatsapp=?, status=? WHERE id=?',
+        [name, gratitude || '', title, description, profile_photo, whatsapp || '', status || 'live', req.params.id]
       );
       res.json({ success: true });
     } catch (err: any) { res.status(500).json({ error: err.message }); }

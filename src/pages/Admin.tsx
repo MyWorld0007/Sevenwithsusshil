@@ -36,6 +36,42 @@ const quillFormats = [
   'align', 'link'
 ];
 
+function AdminRichText({ name, required, value: initialValue, onChange, onBlur, placeholder, className }: any) {
+  const [content, setContent] = useState(initialValue || '');
+  
+  useEffect(() => {
+    if (initialValue !== undefined) {
+      if (initialValue !== content) {
+        setContent(initialValue);
+      }
+    }
+  }, [initialValue]);
+
+  const handleChange = (val: string) => {
+    setContent(val);
+    if (onChange) {
+      // Simulate event if needed by parent
+      onChange({ target: { value: val, name } });
+    }
+  };
+
+  return (
+    <div className="relative">
+      {name && <textarea name={name} className="hidden" value={content || ''} readOnly />}
+      <ReactQuill 
+        theme="snow"
+        modules={quillModules}
+        formats={quillFormats}
+        value={content || ''}
+        onChange={handleChange}
+        onBlur={(_range, _source, _quill) => { if (onBlur) onBlur(); }}
+        placeholder={placeholder}
+        className={className || "w-full bg-bg-input border border-gold/20 text-text-main pb-10 font-sans"}
+      />
+    </div>
+  );
+}
+
 function FaqAdminItem({ 
   faq, 
   isSelected,
@@ -158,10 +194,10 @@ function PathwayAdminItem({
         </div>
         <div>
           <label className="block text-[10px] uppercase tracking-[0.1em] text-muted mb-1 font-semibold">Short Description</label>
-          <textarea
+          <AdminRichText
             value={pathway.short_desc || ''}
-            onChange={e => onChange({ ...pathway, short_desc: e.target.value })}
-            className="w-full bg-bg-input border border-gold/20 p-2 outline-none h-20 resize-none focus:border-gold rounded text-sm text-text-main"
+            onChange={(e: any) => onChange({ ...pathway, short_desc: e.target.value })}
+            className="w-full bg-bg-input border border-gold/20 pb-10 rounded text-sm min-h-[140px]"
           />
         </div>
       </div>
@@ -262,11 +298,11 @@ function ServiceAdminItem({
 
       <div className="mb-4">
         <label className="block text-[10px] uppercase tracking-[0.1em] text-muted mb-1 font-semibold">Service Description</label>
-        <textarea
+        <AdminRichText
           value={service.description || ''}
           placeholder="Detailed service explanation..."
-          onChange={e => onChange({ ...service, description: e.target.value })}
-          className="w-full bg-bg-input border border-gold/20 p-2.5 outline-none h-16 resize-none focus:border-gold rounded text-sm text-text-main"
+          onChange={(e: any) => onChange({ ...service, description: e.target.value })}
+          className="w-full bg-bg-input border border-gold/20 pb-10 rounded text-sm min-h-[140px]"
         />
       </div>
 
@@ -999,7 +1035,7 @@ export default function Admin() {
                 </div>
                 <div className="md:col-span-2">
                    <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Email Body</label>
-                   <textarea value={settings.email_body} onChange={e=>setSettings({...settings, email_body: e.target.value})} className="w-full bg-bg-input border border-gold/20 p-3 h-32 outline-none focus:border-gold" />
+                   <AdminRichText value={settings.email_body} onChange={(e: any)=>setSettings({...settings, email_body: e.target.value})} className="w-full bg-bg-input border border-gold/20 pb-10 min-h-[160px]" />
                 </div>
               </div>
 
@@ -1138,7 +1174,7 @@ export default function Admin() {
                    <form onSubmit={addTestimonial} className="grid grid-cols-1 md:grid-cols-2 gap-6">
                        <div className="md:col-span-2">
                            <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Story Text</label>
-                           <textarea name="text" required className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold min-h-[100px]" />
+                           <AdminRichText name="text" required className="w-full bg-bg-input border border-gold/20 pb-10 min-h-[140px]" />
                        </div>
                        <div>
                            <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Reviewer Name</label>
@@ -1192,9 +1228,9 @@ export default function Admin() {
                         <input type="text" value={lp.name} placeholder="Title (e.g. The Leader)" onChange={e => {
                             setLifePaths(lifePaths.map(p => p.id === lp.id ? {...p, name: e.target.value} : p));
                         }} className="w-full bg-bg-input border border-gold/20 p-3 mb-4 outline-none focus:border-gold" />
-                        <textarea value={lp.desc} placeholder="Description" onChange={e => {
+                        <AdminRichText value={lp.desc} placeholder="Description" onChange={(e: any) => {
                             setLifePaths(lifePaths.map(p => p.id === lp.id ? {...p, desc: e.target.value} : p));
-                        }} className="w-full bg-bg-input border border-gold/20 p-3 h-28 outline-none focus:border-gold" />
+                        }} className="w-full bg-bg-input border border-gold/20 pb-10 min-h-[160px]" />
                     </div>
                 ))}
              </div>
@@ -1212,7 +1248,7 @@ export default function Admin() {
                    </div>
                    <div>
                        <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Description</label>
-                       <textarea name="desc" required className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold min-h-[100px]" placeholder="Detailed description..." />
+                       <AdminRichText name="desc" required className="w-full bg-bg-input border border-gold/20 pb-10 min-h-[140px]" placeholder="Detailed description..." />
                    </div>
                    <div className="mt-2">
                        <button className="bg-gold text-bg-dark px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-gold-lt transition-colors rounded">Add Life Path</button>
@@ -1245,15 +1281,12 @@ export default function Admin() {
                         }} className="w-full bg-bg-input border border-gold/20 p-3 mb-4 outline-none focus:border-gold" />
                         
                         <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Page Content</label>
-                        <ReactQuill
-                          theme="snow"
-                          modules={quillModules}
-                          formats={quillFormats}
+                        <AdminRichText
                           value={page.content || ''} 
-                          onChange={(content) => {
-                            setPages(pages.map(p => p.slug === page.slug ? {...p, content} : p));
+                          onChange={(e: any) => {
+                            setPages(pages.map(p => p.slug === page.slug ? {...p, content: e.target.value} : p));
                           }} 
-                          className="w-full bg-bg-input border border-gold/20 text-text-main h-64 mb-12 font-sans pb-10" 
+                          className="w-full bg-bg-input border border-gold/20 text-text-main mb-12 font-sans pb-10 min-h-[300px]" 
                         />
                     </div>
                 ))}
@@ -1357,11 +1390,10 @@ export default function Admin() {
                    </div>
                    <div>
                      <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Description</label>
-                     <textarea
-                       rows={4}
+                     <AdminRichText
                        value={settings.journey_step1_desc || ''}
-                       onChange={e => setSettings({ ...settings, journey_step1_desc: e.target.value })}
-                       className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold rounded font-sans resize-y"
+                       onChange={(e: any) => setSettings({ ...settings, journey_step1_desc: e.target.value })}
+                       className="w-full bg-bg-input border border-gold/20 pb-10 rounded min-h-[140px]"
                      />
                    </div>
                  </div>
@@ -1383,11 +1415,10 @@ export default function Admin() {
                    </div>
                    <div>
                      <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Description</label>
-                     <textarea
-                       rows={4}
+                     <AdminRichText
                        value={settings.journey_step2_desc || ''}
-                       onChange={e => setSettings({ ...settings, journey_step2_desc: e.target.value })}
-                       className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold rounded font-sans resize-y"
+                       onChange={(e: any) => setSettings({ ...settings, journey_step2_desc: e.target.value })}
+                       className="w-full bg-bg-input border border-gold/20 pb-10 rounded min-h-[140px]"
                      />
                    </div>
                  </div>
@@ -1409,11 +1440,10 @@ export default function Admin() {
                    </div>
                    <div>
                      <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Description</label>
-                     <textarea
-                       rows={4}
+                     <AdminRichText
                        value={settings.journey_step3_desc || ''}
-                       onChange={e => setSettings({ ...settings, journey_step3_desc: e.target.value })}
-                       className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold rounded font-sans resize-y"
+                       onChange={(e: any) => setSettings({ ...settings, journey_step3_desc: e.target.value })}
+                       className="w-full bg-bg-input border border-gold/20 pb-10 rounded min-h-[140px]"
                      />
                    </div>
                  </div>
@@ -1529,11 +1559,11 @@ export default function Admin() {
                        <label className="block text-xs uppercase tracking-[0.1em] text-muted font-semibold font-mono">About SEVEN Description: Paragraph 1</label>
                        <span className="text-[10px] text-gold font-mono font-semibold">Better alignment view</span>
                      </div>
-                     <textarea 
+                     <AdminRichText 
                        value={settings.about_para1 || ''} 
-                       onChange={e => setSettings({...settings, about_para1: e.target.value})} 
+                       onChange={(e: any) => setSettings({...settings, about_para1: e.target.value})} 
                        placeholder="Structure your first introduction paragraph..." 
-                       className="w-full bg-bg-input border border-gold/20 p-3 h-36 outline-none focus:border-gold text-sm text-text-main leading-relaxed resize-y" 
+                       className="w-full bg-bg-input border border-gold/20 pb-10 min-h-[140px]" 
                      />
                    </div>
 
@@ -1542,11 +1572,11 @@ export default function Admin() {
                        <label className="block text-xs uppercase tracking-[0.1em] text-muted font-semibold font-mono">About SEVEN Description: Paragraph 2</label>
                        <span className="text-[10px] text-gold font-mono font-semibold font-serif">Better alignment view</span>
                      </div>
-                     <textarea 
+                     <AdminRichText 
                        value={settings.about_para2 || ''} 
-                       onChange={e => setSettings({...settings, about_para2: e.target.value})} 
+                       onChange={(e: any) => setSettings({...settings, about_para2: e.target.value})} 
                        placeholder="Structure your second approach or philosophy paragraph..." 
-                       className="w-full bg-bg-input border border-gold/20 p-3 h-36 outline-none focus:border-gold text-sm text-text-main leading-relaxed resize-y" 
+                       className="w-full bg-bg-input border border-gold/20 pb-10 min-h-[140px]" 
                      />
                    </div>
 
@@ -1672,11 +1702,11 @@ export default function Admin() {
                   </div>
                   <div className="md:col-span-2">
                     <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2 font-semibold font-serif">Service Description</label>
-                    <textarea
+                    <AdminRichText
                       name="description"
                       required
                       placeholder="Summarize this service vibration in few elegant lines..."
-                      className="w-full bg-bg-input border border-gold/20 p-3 h-24 outline-none focus:border-gold rounded text-sm text-text-main"
+                      className="w-full bg-bg-input border border-gold/20 pb-10 min-h-[140px]"
                     />
                   </div>
                   <div className="md:col-span-2 pt-2">
@@ -1760,11 +1790,11 @@ export default function Admin() {
                   </div>
                   <div className="md:col-span-2">
                     <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2 font-semibold font-serif">Short Description</label>
-                    <textarea
+                    <AdminRichText
                       name="short_desc"
                       required
                       placeholder="Describe this pathway..."
-                      className="w-full bg-bg-input border border-gold/20 p-3 h-24 outline-none focus:border-gold rounded text-sm text-text-main resize-y"
+                      className="w-full bg-bg-input border border-gold/20 pb-10 min-h-[140px]"
                     />
                   </div>
                   <div className="md:col-span-2 pt-2">
@@ -1779,7 +1809,7 @@ export default function Admin() {
           {activeTab === 'partners' && (
             <section className="space-y-12">
               <div className="flex items-center justify-between border-b border-gold/15 pb-4">
-                <h2 className="text-2xl font-serif text-gold">My Guiding lights</h2>
+                <h2 className="text-2xl font-serif text-gold">My Guiding Lights</h2>
               </div>
               <div className="bg-bg-card border border-gold/20 p-8 rounded shadow-sm max-w-4xl">
                 <h3 className="text-lg font-serif text-gold mb-6 border-b border-gold/15 pb-2">Existing Guides</h3>
@@ -1824,21 +1854,34 @@ export default function Admin() {
                           </div>
                         </div>
 
-                        <div className="flex-grow space-y-4 pr-8 w-full">
+                           <div className="absolute top-4 right-4 flex items-center gap-2 z-10 bg-bg-card p-2 rounded shadow-md border border-gold/20">
+                             <span className="text-[10px] uppercase font-bold tracking-widest text-gold">Status:</span>
+                             <button 
+                               onClick={() => {
+                                 const updated = { ...partner, status: partner.status === 'pause' ? 'live' : 'pause' };
+                                 const copy = [...partners];
+                                 copy[index] = updated;
+                                 setPartners(copy);
+                                 savePartner(updated);
+                               }}
+                               className={`px-3 py-1 text-[10px] uppercase tracking-widest font-bold rounded-sm transition-colors ${partner.status === 'pause' ? 'bg-red-900/40 text-red-400 border border-red-500/30 hover:bg-red-900/60' : 'bg-green-900/40 text-green-400 border border-green-500/30 hover:bg-green-900/60'}`}
+                             >
+                               {partner.status === 'pause' ? 'PAUSED' : 'LIVE'}
+                             </button>
+                           </div>
+
+                        <div className="flex-grow space-y-4 pr-8 w-full mt-10 md:mt-0">
                            <div className="flex flex-col gap-1 w-full">
                               <label className="text-[10px] uppercase tracking-widest text-muted font-semibold">Gratitude</label>
-                              <input 
-                                type="text"
-                                className="bg-transparent border-b border-gold/10 pb-1 text-gold font-serif text-xl outline-none focus:border-gold w-full"
+                              <AdminRichText 
+                                className="w-full bg-bg-dark border border-gold/10 pb-10 min-h-[140px]"
                                 value={partner.gratitude || ''}
-                                placeholder="e.g. With Gratitude"
-                                onChange={e => {
+                                onChange={(e: any) => {
                                   const updated = { ...partner, gratitude: e.target.value };
                                   const copy = [...partners];
                                   copy[index] = updated;
                                   setPartners(copy);
                                 }}
-                                onBlur={() => savePartner(partner)}
                               />
                            </div>
                            <div className="flex flex-col gap-1 w-full mt-2">
@@ -1853,7 +1896,6 @@ export default function Admin() {
                                   copy[index] = updated;
                                   setPartners(copy);
                                 }}
-                                onBlur={() => savePartner(partner)}
                               />
                            </div>
                            <div className="flex flex-col gap-1 w-full">
@@ -1868,7 +1910,6 @@ export default function Admin() {
                                   copy[index] = updated;
                                   setPartners(copy);
                                 }}
-                                onBlur={() => savePartner(partner)}
                               />
                            </div>
                            <div className="flex flex-col gap-1 w-full mt-3">
@@ -1882,27 +1923,30 @@ export default function Admin() {
                                   copy[index] = updated;
                                   setPartners(copy);
                                 }}
-                                onBlur={() => savePartner(partner)}
                               />
                            </div>
                            <div className="flex flex-col gap-1 w-full mt-4">
                               <label className="text-[10px] uppercase tracking-widest text-muted font-semibold">Description (One Para)</label>
-                              <textarea 
-                                className="w-full bg-bg-dark border border-gold/10 p-3 h-28 outline-none focus:border-gold rounded text-sm text-text-main resize-y leading-relaxed"
+                              <AdminRichText 
+                                className="w-full bg-bg-dark border border-gold/10 pb-10 min-h-[140px]"
                                 value={partner.description}
-                                onChange={e => {
+                                onChange={(e: any) => {
                                   const updated = { ...partner, description: e.target.value };
                                   const copy = [...partners];
                                   copy[index] = updated;
                                   setPartners(copy);
                                 }}
-                                onBlur={() => savePartner(partner)}
                               />
                            </div>
                            
-                           <button onClick={() => deletePartner(partner.id!)} className="text-[10px] font-bold tracking-[0.1em] text-red-400 hover:text-red-300 transition-colors uppercase pt-2">
-                             Delete Guide
-                           </button>
+                           <div className="flex items-center gap-4 pt-4 border-t border-gold/10">
+                             <button onClick={() => savePartner(partner)} className="bg-gold text-bg-dark px-6 py-2 text-[10px] font-bold tracking-[0.2em] hover:bg-gold-lt transition-colors rounded uppercase">
+                               Save Guide Changes
+                             </button>
+                             <button onClick={() => deletePartner(partner.id!)} className="text-[10px] font-bold tracking-[0.1em] text-red-400 hover:text-red-300 transition-colors uppercase">
+                               Delete Guide
+                             </button>
+                           </div>
                         </div>
                       </Reorder.Item>
                     ))}
@@ -1913,16 +1957,15 @@ export default function Admin() {
               <div className="bg-bg-card border border-gold/20 p-8 rounded shadow-sm max-w-3xl">
                 <h3 className="text-lg font-serif text-gold mb-6 border-b border-gold/15 pb-2">Add New Guide / Healer</h3>
                 <form onSubmit={addPartner} className="grid grid-cols-1 gap-6">
+                  <div>
+                    <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2 font-semibold">Gratitude</label>
+                    <AdminRichText
+                      name="gratitude"
+                      placeholder="e.g. With Gratitude"
+                      className="w-full bg-bg-input border border-gold/20 pb-10 min-h-[140px]"
+                    />
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2 font-semibold">Gratitude</label>
-                      <input
-                        type="text"
-                        name="gratitude"
-                        placeholder="e.g. With Gratitude"
-                        className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold rounded font-serif text-sm text-text-main"
-                      />
-                    </div>
                     <div>
                       <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2 font-semibold">Name</label>
                       <input
@@ -1933,16 +1976,16 @@ export default function Admin() {
                         className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold rounded font-serif text-sm text-text-main"
                       />
                     </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2 font-semibold">Title</label>
-                    <input
-                      type="text"
-                      name="title"
-                      required
-                      placeholder="e.g. Senior Healer & Guide"
-                      className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold rounded text-sm text-text-main"
-                    />
+                    <div>
+                      <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2 font-semibold">Title</label>
+                      <input
+                        type="text"
+                        name="title"
+                        required
+                        placeholder="e.g. Senior Healer & Guide"
+                        className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold rounded text-sm text-text-main"
+                      />
+                    </div>
                   </div>
                   <div>
                     <input type="hidden" name="whatsapp" value={newPartnerWhatsapp} />
@@ -1964,11 +2007,11 @@ export default function Admin() {
                   </div>
                   <div>
                     <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2 font-semibold font-serif">Description</label>
-                    <textarea
+                    <AdminRichText
                       name="description"
                       required
                       placeholder="Brief bio or description here..."
-                      className="w-full bg-bg-input border border-gold/20 p-3 h-24 outline-none focus:border-gold rounded text-sm text-text-main resize-y"
+                      className="w-full bg-bg-input border border-gold/20 pb-10 min-h-[140px]"
                     />
                   </div>
                   <div className="pt-2">

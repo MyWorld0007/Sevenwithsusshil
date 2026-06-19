@@ -54,7 +54,7 @@ export default function About() {
             to="/my-guiding-lights" 
             className="inline-block bg-gold text-bg-dark px-8 py-4 text-[11px] font-semibold tracking-[0.2em] uppercase hover:bg-gold-lt transition-colors"
           >
-            My Guiding lights
+            My Guiding Lights
           </Link>
         </div>
       </div>

@@ -79,4 +79,5 @@ export interface Partner {
   profile_photo: string;
   whatsapp?: string;
   display_order?: number;
+  status?: string;
 }
