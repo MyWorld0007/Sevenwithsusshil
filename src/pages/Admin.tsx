@@ -823,21 +823,25 @@ export default function Admin() {
 
 
   const savePartner = async (partner: Partner, showMessage: boolean = true) => {
-    const res = await apiFetch(`/api/partners/${partner.id}`, {
-      method: "PUT",
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-      body: JSON.stringify(partner)
-    });
-    const data = await res.json();
-    if (data.error) {
-      alert(data.error);
-    } else {
-      fetchData();
-      if (showMessage) {
-        setPartnerSaveSuccess(partner.id!);
-        setTimeout(() => setPartnerSaveSuccess(null), 3000);
-        alert("Changes saved successfully!");
+    try {
+      const res = await apiFetch(`/api/partners/${partner.id}`, {
+        method: "PUT",
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(partner)
+      });
+      const data = await res.json();
+      if (data.error) {
+        alert(data.error);
+      } else {
+        fetchData();
+        if (showMessage) {
+          setPartnerSaveSuccess(partner.id!);
+          setTimeout(() => setPartnerSaveSuccess(null), 3000);
+          alert("Changes saved successfully!");
+        }
       }
+    } catch (err: any) {
+      alert("Failed to save: " + err.message);
     }
   };
 

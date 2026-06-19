@@ -15,13 +15,14 @@ export function PhoneInput({ value, onChange, onBlur, label = "Partner WhatsApp 
   const [countrySearch, setCountrySearch] = useState('');
   
   // Parse initial value to find country
+  const cleanValue = value ? value.replace(/[^0-9]/g, '') : '';
   const [selectedCountry, setSelectedCountry] = useState(() => {
-    if (!value) return COUNTRIES[0];
-    const match = COUNTRIES.find(c => value.startsWith(c.dial.replace('+', '')));
+    if (!cleanValue) return COUNTRIES[0];
+    const match = COUNTRIES.find(c => cleanValue.startsWith(c.dial.replace('+', '')));
     return match || COUNTRIES[0];
   });
   
-  const phoneBody = value ? (value.startsWith(selectedCountry.dial.replace('+', '')) ? value.substring(selectedCountry.dial.replace('+', '').length).trim() : value) : '';
+  const phoneBody = cleanValue ? (cleanValue.startsWith(selectedCountry.dial.replace('+', '')) ? cleanValue.substring(selectedCountry.dial.replace('+', '').length).trim() : cleanValue) : '';
 
   const filteredCountries = COUNTRIES.filter(c =>
     c.name.toLowerCase().includes(countrySearch.toLowerCase()) ||
@@ -31,13 +32,13 @@ export function PhoneInput({ value, onChange, onBlur, label = "Partner WhatsApp 
 
   // Sync external value to internal country state if it changes from outside
   useEffect(() => {
-    if (value) {
-      const match = COUNTRIES.find(c => value.startsWith(c.dial.replace('+', '')));
+    if (cleanValue) {
+      const match = COUNTRIES.find(c => cleanValue.startsWith(c.dial.replace('+', '')));
       if (match && match.code !== selectedCountry.code) {
         setSelectedCountry(match);
       }
     }
-  }, [value]);
+  }, [cleanValue]);
 
   const handlePhoneBodyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.replace(/[^0-9\- ]/g, '');
