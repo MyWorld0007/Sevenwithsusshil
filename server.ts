@@ -1444,6 +1444,7 @@ async function startServer() {
           // Form public transporter packet
           const adminRecipient = adminEmail && adminEmail.trim() ? adminEmail.trim().toLowerCase() : "info@sevenastro.com";
           const visitorEmailClean = email ? email.trim().toLowerCase() : "";
+          const smtpUserClean = smtpUser ? smtpUser.trim().toLowerCase() : "";
 
           // Send to Admin
           await transporter.sendMail({
@@ -1454,8 +1455,8 @@ async function startServer() {
             html: adminEmailHtml,
           });
 
-          // Send separate automated receipt to Inquirer if email is set
-          if (visitorEmailClean) {
+          // Send separate automated receipt to Inquirer if email is set and is not the admin or the admin SMTP user
+          if (visitorEmailClean && visitorEmailClean !== adminRecipient && visitorEmailClean !== smtpUserClean) {
             await transporter.sendMail({
               from: smtpFrom,
               to: visitorEmailClean,

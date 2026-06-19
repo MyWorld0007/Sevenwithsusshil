@@ -172,6 +172,7 @@ export default function Contact() {
   const [emailSent, setEmailSent] = useState<boolean | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
+  const isSubmitting = useRef(false);
 
   // Auto-sync hourWheel, minuteWheel, and periodWheel with the string 'tob'
   useEffect(() => {
@@ -185,6 +186,7 @@ export default function Contact() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting.current) return;
     setErrorMsg('');
     
     if (!fullName || !dob || !tob || !pob || !mobile || !email) {
@@ -192,6 +194,7 @@ export default function Contact() {
       return;
     }
 
+    isSubmitting.current = true;
     setLoading(true);
     try {
       const res = await apiFetch('/api/contact', {
@@ -226,6 +229,7 @@ export default function Contact() {
       setErrorMsg(err.message || 'An error occurred. Please try again.');
     } finally {
       setLoading(false);
+      isSubmitting.current = false;
     }
   };
 

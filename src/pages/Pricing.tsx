@@ -282,6 +282,7 @@ export default function Pricing() {
   const [formLoading, setFormLoading] = useState(false);
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [formErrorMsg, setFormErrorMsg] = useState('');
+  const isFormSubmitting = useRef(false);
 
   // Auto-sync hourWheel, minuteWheel, and periodWheel with the string 'tob'
   useEffect(() => {
@@ -370,6 +371,7 @@ export default function Pricing() {
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isFormSubmitting.current) return;
     setFormErrorMsg('');
 
     if (!fullName || !dob || !tob || !pob || !phoneBody || !email) {
@@ -379,6 +381,7 @@ export default function Pricing() {
 
     if (!selectedService) return;
 
+    isFormSubmitting.current = true;
     setFormLoading(true);
     try {
       const timeOfBirthStr = `${hourWheel.toString().padStart(2, '0')}:${minuteWheel.toString().padStart(2, '0')} ${periodWheel}`;
@@ -408,6 +411,7 @@ export default function Pricing() {
       setFormErrorMsg(err.message || 'An error occurred during booking. Please try again.');
     } finally {
       setFormLoading(false);
+      isFormSubmitting.current = false;
     }
   };
 
@@ -424,7 +428,11 @@ export default function Pricing() {
     return `https://wa.me/${phoneStr}?text=${encodeURIComponent(msg)}`;
   };
 
+  const [whatsappLoading, setWhatsappLoading] = useState(false);
+
   const handleWhatsAppBooking = async (service: PricingService) => {
+    if (whatsappLoading) return;
+    setWhatsappLoading(true);
     if (isExpertPartnerService(service)) {
       try {
         await apiFetch('/api/notify_expert_booking', {
@@ -442,6 +450,10 @@ export default function Pricing() {
       }
     }
     window.open(getWhatsAppLink(service), '_blank');
+    // We intentionally do not immediately set back to false to avoid double clicks opening 2 tabs
+    setTimeout(() => {
+      setWhatsappLoading(false);
+    }, 2000);
   };
 
   const getEmailLink = (service: PricingService) => {
@@ -901,10 +913,11 @@ export default function Pricing() {
                   {/* WhatsApp Option */}
                   <button 
                     onClick={() => handleWhatsAppBooking(selectedService)}
-                    className="flex items-center justify-center gap-3 bg-[#25D366] hover:bg-[#20ba5a] text-white py-3.5 px-5 rounded-sm transition-all duration-300 font-medium text-[12px] uppercase tracking-[0.15em] shadow-md hover:shadow-lg active:scale-95 border-none cursor-pointer"
+                    disabled={whatsappLoading}
+                    className="flex items-center justify-center gap-3 bg-[#25D366] hover:bg-[#20ba5a] text-white py-3.5 px-5 rounded-sm transition-all duration-300 font-medium text-[12px] uppercase tracking-[0.15em] shadow-md hover:shadow-lg active:scale-95 border-none cursor-pointer disabled:opacity-50"
                   >
                     <MessageSquare className="w-4 h-4" />
-                    Book via WhatsApp
+                    {whatsappLoading ? 'Opening...' : 'Book via WhatsApp'}
                   </button>
 
                   {/* Email Option */}
