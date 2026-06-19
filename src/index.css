@@ -226,7 +226,8 @@ html {
   word-break: break-word;
   overflow-wrap: break-word;
 }
-.ql-editor-render p { margin-bottom: 1rem; }
+.ql-editor-render p { margin-bottom: 1rem; white-space: normal !important; }
+.ql-editor-render * { white-space: normal !important; max-width: 100%; }
 .ql-editor-render strong, .ql-editor-render b { font-weight: 600; color: inherit; }
 .ql-editor-render em, .ql-editor-render i { font-style: italic; }
 .ql-editor-render .ql-size-large { font-size: 1.35em !important; line-height: 1.4 !important; }

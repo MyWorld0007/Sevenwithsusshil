@@ -483,6 +483,7 @@ export default function Admin() {
   const [saveError, setSaveError] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
+  const [partnerSaveSuccess, setPartnerSaveSuccess] = useState<number | null>(null);
 
   const saveSettings = async () => {
      if (!settings) return;
@@ -828,8 +829,13 @@ export default function Admin() {
       body: JSON.stringify(partner)
     });
     const data = await res.json();
-    if (data.error) alert(data.error);
-    else fetchData();
+    if (data.error) {
+      alert(data.error);
+    } else {
+      fetchData();
+      setPartnerSaveSuccess(partner.id!);
+      setTimeout(() => setPartnerSaveSuccess(null), 3000);
+    }
   };
 
   const deletePartner = async (id: number) => {
@@ -1862,8 +1868,9 @@ export default function Admin() {
                                   <span className="text-[10px] uppercase font-bold tracking-widest text-gold">Status:</span>
                                   <button 
                                     type="button"
-                                    onPointerDownCapture={(e) => e.stopPropagation()}
-                                    onClick={() => {
+                                    onPointerDown={(e) => {
+                                      e.stopPropagation();
+                                      e.preventDefault();
                                       const updated = { ...partner, status: partner.status === 'pause' ? 'live' : 'pause' };
                                       const copy = [...partners];
                                       copy[index] = updated;
@@ -1943,12 +1950,15 @@ export default function Admin() {
                            </div>
                            
                            <div className="flex items-center gap-4 pt-4 border-t border-gold/10">
-                             <button type="button" onPointerDownCapture={(e) => e.stopPropagation()} onClick={() => savePartner(partner)} className="bg-gold text-bg-dark px-6 py-2 text-[10px] font-bold tracking-[0.2em] hover:bg-gold-lt transition-colors rounded uppercase">
+                             <button type="button" onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); savePartner(partner) }} className="bg-gold text-bg-dark px-6 py-2 text-[10px] font-bold tracking-[0.2em] hover:bg-gold-lt transition-colors rounded uppercase">
                                Save Guide Changes
                              </button>
-                             <button type="button" onPointerDownCapture={(e) => e.stopPropagation()} onClick={() => deletePartner(partner.id!)} className="text-[10px] font-bold tracking-[0.1em] text-red-400 hover:text-red-300 transition-colors uppercase">
+                             <button type="button" onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); deletePartner(partner.id!) }} className="text-[10px] font-bold tracking-[0.1em] text-red-400 hover:text-red-300 transition-colors uppercase">
                                Delete Guide
                              </button>
+                             {partnerSaveSuccess === partner.id && (
+                               <span className="text-emerald-400 font-mono text-xs animate-pulse ml-2">✓ Saved</span>
+                             )}
                            </div>
                         </div>
                       </Reorder.Item>
