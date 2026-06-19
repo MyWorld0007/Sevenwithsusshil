@@ -1849,7 +1849,7 @@ async function startServer() {
       const { name, gratitude, title, description, profile_photo, whatsapp, status } = req.body;
       await db.query(
         'UPDATE partners SET name=?, gratitude=?, title=?, description=?, profile_photo=?, whatsapp=?, status=? WHERE id=?',
-        [name, gratitude || '', title, description, profile_photo, whatsapp || '', status || 'live', req.params.id]
+        [name || '', gratitude || '', title || '', description || '', profile_photo ?? null, whatsapp || '', status || 'live', req.params.id]
       );
       res.json({ success: true });
     } catch (err: any) { res.status(500).json({ error: err.message }); }

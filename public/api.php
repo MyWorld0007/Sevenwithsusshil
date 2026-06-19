@@ -148,7 +148,12 @@ try {
     )');
 } catch (Exception $e) {}
 
+try { $pdo->exec("ALTER TABLE `testimonials` ADD COLUMN `status` VARCHAR(20) DEFAULT 'approved'"); } catch (Exception $e) {}
+try { $pdo->exec("ALTER TABLE `testimonials` ADD COLUMN `helpful_count` INT DEFAULT 0"); } catch (Exception $e) {}
+
 try { $pdo->exec("ALTER TABLE `partners` ADD COLUMN `gratitude` VARCHAR(255) DEFAULT NULL"); } catch (Exception $e) {}
+try { $pdo->exec("ALTER TABLE `partners` ADD COLUMN `whatsapp` VARCHAR(255) DEFAULT NULL"); } catch (Exception $e) {}
+try { $pdo->exec("ALTER TABLE `partners` ADD COLUMN `status` VARCHAR(20) DEFAULT 'live'"); } catch (Exception $e) {}
 
 try { $pdo->exec("ALTER TABLE `pathway_cards` ADD COLUMN `display_order` INT DEFAULT 0"); } catch (Exception $e) {}
 try { $pdo->exec("ALTER TABLE `pathway_cards` ADD COLUMN `slug` VARCHAR(255)"); } catch (Exception $e) {}
@@ -476,6 +481,7 @@ try {
                 `description` TEXT,
                 `profile_photo` VARCHAR(500),
                 `whatsapp` VARCHAR(255) DEFAULT NULL,
+                `status` VARCHAR(20) DEFAULT \'live\',
                 `display_order` INT DEFAULT 0
             )'
         ];
@@ -593,7 +599,7 @@ try {
         echo json_encode($stmt->fetchAll());
     }
     elseif ($route === 'testimonials' && $method === 'GET') {
-        $stmt = $pdo->query('SELECT * FROM testimonials ORDER BY id ASC');
+        $stmt = $pdo->query("SELECT * FROM testimonials WHERE status = 'approved' OR status IS NULL ORDER BY id ASC");
         echo json_encode($stmt->fetchAll());
     }
     elseif ($route === 'admin/testimonials' && $method === 'GET') {
@@ -723,18 +729,36 @@ try {
     elseif ($route === 'testimonials' && $method === 'POST') {
         require_auth();
         $cnt = $pdo->query('SELECT COUNT(*) as cnt FROM testimonials')->fetch()['cnt'];
-        if ($cnt >= 7) {
+        if ($cnt >= 50) {
             http_response_code(400);
-            echo json_encode(['error' => 'Maximum 7 testimonials allowed.']);
+            echo json_encode(['error' => 'Maximum 50 testimonials allowed.']);
         } else {
             $stmt = $pdo->query('SELECT MAX(id) as maxId FROM testimonials');
             $maxId = $stmt->fetch()['maxId'];
             $newId = ($maxId !== null) ? $maxId + 1 : 1;
             
-            $stmt = $pdo->prepare('INSERT INTO testimonials (id, text, initial, name, loc, date, rating) VALUES (?, ?, ?, ?, ?, ?, ?)');
-            $stmt->execute([$newId, $input['text'], $input['initial'], $input['name'], $input['loc'], $input['date'], $input['rating']]);
+            $stmt = $pdo->prepare('INSERT INTO testimonials (id, text, initial, name, loc, date, rating, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+            $status = isset($input['status']) ? $input['status'] : 'approved';
+            $stmt->execute([$newId, $input['text'], $input['initial'], $input['name'], $input['loc'], $input['date'], $input['rating'], $status]);
             echo json_encode(['success' => true]);
         }
+    }
+    elseif (preg_match('/^testimonials\/(\d+)$/', $route, $m) && $method === 'PUT') {
+        require_auth();
+        $stmt = $pdo->prepare('UPDATE testimonials SET status=? WHERE id=?');
+        $status = isset($input['status']) ? $input['status'] : 'approved';
+        $stmt->execute([$status, $m[1]]);
+        echo json_encode(['success' => true]);
+    }
+    elseif (preg_match('/^testimonials\/(\d+)\/helpful$/', $route, $m) && $method === 'POST') {
+        if (!empty($input['increment'])) {
+            $stmt = $pdo->prepare('UPDATE testimonials SET helpful_count = COALESCE(helpful_count, 0) + 1 WHERE id=?');
+            $stmt->execute([$m[1]]);
+        } else if (!empty($input['decrement'])) {
+            $stmt = $pdo->prepare('UPDATE testimonials SET helpful_count = GREATEST(COALESCE(helpful_count, 0) - 1, 0) WHERE id=?');
+            $stmt->execute([$m[1]]);
+        }
+        echo json_encode(['success' => true]);
     }
     elseif (preg_match('/^testimonials\/(\d+)$/', $route, $m) && $method === 'DELETE') {
         require_auth();
@@ -864,10 +888,11 @@ try {
         require_auth();
         $stmt = $pdo->query('SELECT COUNT(*) as cnt FROM partners');
         $order = $stmt->fetch()['cnt'];
-        $stmt = $pdo->prepare('INSERT INTO partners (name, gratitude, title, description, profile_photo, whatsapp, display_order) VALUES (?, ?, ?, ?, ?, ?, ?)');
+        $stmt = $pdo->prepare('INSERT INTO partners (name, gratitude, title, description, profile_photo, whatsapp, status, display_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
         $gratitude = isset($input['gratitude']) ? $input['gratitude'] : '';
         $whatsapp = isset($input['whatsapp']) ? $input['whatsapp'] : '';
-        $stmt->execute([$input['name'], $gratitude, $input['title'], $input['description'], $input['profile_photo'], $whatsapp, $order]);
+        $status = isset($input['status']) ? $input['status'] : 'live';
+        $stmt->execute([$input['name'], $gratitude, $input['title'], $input['description'], $input['profile_photo'], $whatsapp, $status, $order]);
         echo json_encode(['id' => $pdo->lastInsertId()]);
     }
     elseif ($route === 'partners/reorder' && $method === 'POST') {
@@ -882,10 +907,15 @@ try {
     }
     elseif (preg_match('/^partners\/([0-9]+)$/', $route, $m) && $method === 'PUT') {
         require_auth();
-        $stmt = $pdo->prepare('UPDATE partners SET name=?, gratitude=?, title=?, description=?, profile_photo=?, whatsapp=? WHERE id=?');
+        $stmt = $pdo->prepare('UPDATE partners SET name=?, gratitude=?, title=?, description=?, profile_photo=?, whatsapp=?, status=? WHERE id=?');
+        $name = isset($input['name']) ? $input['name'] : '';
         $gratitude = isset($input['gratitude']) ? $input['gratitude'] : '';
+        $title = isset($input['title']) ? $input['title'] : '';
+        $desc = isset($input['description']) ? $input['description'] : '';
+        $photo = isset($input['profile_photo']) ? $input['profile_photo'] : null;
         $whatsapp = isset($input['whatsapp']) ? $input['whatsapp'] : '';
-        $stmt->execute([$input['name'], $gratitude, $input['title'], $input['description'], $input['profile_photo'], $whatsapp, $m[1]]);
+        $status = isset($input['status']) ? $input['status'] : 'live';
+        $stmt->execute([$name, $gratitude, $title, $desc, $photo, $whatsapp, $status, $m[1]]);
         echo json_encode(['success' => true]);
     }
     elseif (preg_match('/^partners\/([0-9]+)$/', $route, $m) && $method === 'DELETE') {
