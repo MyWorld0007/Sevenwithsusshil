@@ -72,6 +72,156 @@ function AdminRichText({ name, required, value: initialValue, onChange, onBlur, 
   );
 }
 
+function PartnerAdminItem({
+  partner,
+  index,
+  savePartner,
+  deletePartner,
+  setPartners,
+  partners,
+  handlePartnerPhotoUpload,
+  partnerSaveSuccess
+}: {
+  partner: Partner;
+  index: number;
+  savePartner: (partner: Partner, showMessage?: boolean) => Promise<void>;
+  deletePartner: (id: number) => Promise<void>;
+  setPartners: (p: Partner[]) => void;
+  partners: Partner[];
+  handlePartnerPhotoUpload: (file: File, id: number, partner: Partner) => Promise<void>;
+  partnerSaveSuccess: number | null;
+}) {
+  const controls = useDragControls();
+
+  const handleUpdate = (updates: Partial<Partner>) => {
+    const updated = { ...partner, ...updates };
+    const copy = [...partners];
+    copy[index] = updated;
+    setPartners(copy);
+  };
+
+  return (
+    <Reorder.Item 
+      key={partner.id} 
+      value={partner} 
+      dragListener={false} 
+      dragControls={controls}
+      className="bg-bg-input border border-gold/10 p-6 flex flex-col md:flex-row gap-6 items-start rounded shadow-sm relative group"
+    >
+      <div 
+        className="absolute top-4 right-4 text-gold/30 hover:text-gold transition-colors cursor-grab active:cursor-grabbing p-1"
+        onPointerDown={(e) => controls.start(e)}
+        style={{ touchAction: "none" }}
+      >
+        <GripVertical size={20} />
+      </div>
+      
+      <div className="w-full md:w-32 flex-shrink-0 space-y-3">
+        <p className="text-[10px] uppercase tracking-widest text-muted font-semibold">Photo</p>
+        <div className="w-full aspect-[3/4] bg-bg-dark border border-gold/20 rounded relative overflow-hidden flex items-center justify-center">
+          {partner.profile_photo ? (
+            <img src={partner.profile_photo} alt={partner.name} className="w-full h-full object-cover relative z-10" />
+          ) : (
+            <span className="text-gold/30 text-xs">No Photo</span>
+          )}
+          <input 
+            type="file" 
+            className="absolute inset-0 opacity-0 cursor-pointer z-20"
+            accept="image/*"
+            onChange={(e) => {
+              if (e.target.files && e.target.files.length > 0) {
+                handlePartnerPhotoUpload(e.target.files[0], partner.id!, partner);
+              }
+            }}
+          />
+          <div className="absolute bottom-0 left-0 w-full bg-black/60 p-1 text-[8px] text-center pointer-events-none z-20 text-white/80 uppercase tracking-wider">
+            Click to Replace
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-grow space-y-4 pr-4 md:pr-8 w-full mt-4 md:mt-0">
+         <div className="flex flex-col gap-1 w-full">
+            <div className="flex justify-between items-center w-full mb-1">
+              <label className="text-[10px] uppercase tracking-widest text-muted font-semibold">Gratitude</label>
+              <div 
+                className="relative w-[130px] h-[34px] bg-bg-card border border-gold/20 rounded-full flex items-center cursor-pointer select-none overflow-hidden"
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  const newStatus = partner.status === 'live' ? 'pause' : 'live';
+                  const updated = { ...partner, status: newStatus };
+                  handleUpdate({ status: newStatus });
+                  await savePartner(updated, true);
+                }}
+              >
+                <div 
+                  className={`absolute top-1 left-1 w-[calc(50%-4px)] h-[calc(100%-8px)] bg-gold transition-transform duration-300 ease-in-out pointer-events-none rounded-full ${partner.status === 'pause' ? 'translate-x-full' : 'translate-x-0'}`}
+                />
+                <div className={`relative z-10 flex-1 flex items-center justify-center h-full text-[10px] uppercase tracking-widest font-bold transition-colors duration-300 ${partner.status === 'pause' || !partner.status ? 'text-gold' : 'text-bg-dark'}`}>
+                  Live
+                </div>
+                <div className={`relative z-10 flex-1 flex items-center justify-center h-full text-[10px] uppercase tracking-widest font-bold transition-colors duration-300 ${partner.status === 'pause' ? 'text-bg-dark' : 'text-gold'}`}>
+                  Pause
+                </div>
+              </div>
+            </div>
+            <AdminRichText 
+              className="w-full bg-bg-dark border border-gold/10 pb-10 min-h-[140px]"
+              value={partner.gratitude || ''}
+              onChange={(e: any) => handleUpdate({ gratitude: e.target.value })}
+            />
+         </div>
+         <div className="flex flex-col gap-1 w-full mt-2">
+            <label className="text-[10px] uppercase tracking-widest text-muted font-semibold">Name</label>
+            <input 
+              type="text"
+              className="bg-transparent border-b border-gold/10 pb-1 text-gold font-serif text-xl outline-none focus:border-gold w-full"
+              value={partner.name}
+              onChange={e => handleUpdate({ name: e.target.value })}
+            />
+         </div>
+         <div className="flex flex-col gap-1 w-full">
+            <label className="text-[10px] uppercase tracking-widest text-muted font-semibold">Title</label>
+            <input 
+              type="text"
+              className="bg-transparent border-b border-gold/10 pb-1 text-sm outline-none focus:border-gold w-full text-text-main"
+              value={partner.title}
+              onChange={e => handleUpdate({ title: e.target.value })}
+            />
+         </div>
+         <div className="flex flex-col gap-1 w-full mt-3">
+            <PhoneInput 
+              label="WhatsApp Number *"
+              className="w-full"
+              value={partner.whatsapp || ''}
+              onChange={value => handleUpdate({ whatsapp: value })}
+            />
+         </div>
+         <div className="flex flex-col gap-1 w-full mt-4">
+            <label className="text-[10px] uppercase tracking-widest text-muted font-semibold">Description (One Para)</label>
+            <AdminRichText 
+              className="w-full bg-bg-dark border border-gold/10 pb-10 min-h-[140px]"
+              value={partner.description}
+              onChange={(e: any) => handleUpdate({ description: e.target.value })}
+            />
+         </div>
+         
+         <div className="flex items-center gap-4 pt-4 border-t border-gold/10">
+           <button type="button" onClick={() => savePartner(partner)} className="bg-gold text-bg-dark px-6 py-2 text-[10px] font-bold tracking-[0.2em] hover:bg-gold-lt transition-colors rounded uppercase cursor-pointer">
+             Save Guide Changes
+           </button>
+           <button type="button" onClick={() => deletePartner(partner.id!)} className="text-[10px] font-bold tracking-[0.1em] text-red-400 hover:text-red-300 transition-colors uppercase cursor-pointer">
+             Delete Guide
+           </button>
+           {partnerSaveSuccess === partner.id && (
+             <span className="text-emerald-400 font-mono text-xs animate-pulse ml-2">✓ Saved</span>
+           )}
+         </div>
+      </div>
+    </Reorder.Item>
+  );
+}
+
 function FaqAdminItem({ 
   faq, 
   isSelected,
