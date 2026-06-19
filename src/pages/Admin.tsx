@@ -822,7 +822,7 @@ export default function Admin() {
   };
 
 
-  const savePartner = async (partner: Partner) => {
+  const savePartner = async (partner: Partner, showMessage: boolean = true) => {
     const res = await apiFetch(`/api/partners/${partner.id}`, {
       method: "PUT",
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -833,8 +833,11 @@ export default function Admin() {
       alert(data.error);
     } else {
       fetchData();
-      setPartnerSaveSuccess(partner.id!);
-      setTimeout(() => setPartnerSaveSuccess(null), 3000);
+      if (showMessage) {
+        setPartnerSaveSuccess(partner.id!);
+        setTimeout(() => setPartnerSaveSuccess(null), 3000);
+        alert("Changes saved successfully!");
+      }
     }
   };
 
@@ -1873,11 +1876,7 @@ export default function Admin() {
                                     const copy = [...partners];
                                     copy[index] = updated;
                                     setPartners(copy);
-                                    await apiFetch(`/api/partners/${partner.id}`, {
-                                      method: "PUT",
-                                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                                      body: JSON.stringify(updated)
-                                    });
+                                    await savePartner(updated, true);
                                   }}
                                 >
                                   <div 
