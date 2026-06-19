@@ -402,8 +402,10 @@ export default function Pricing() {
         })
       });
 
+      const resData = await res.json().catch(() => ({}));
+
       if (!res.ok) {
-        throw new Error('Celestial connection error. Please try again.');
+        throw new Error(resData.error || 'Celestial connection error. Please try again.');
       }
 
       if (isExpertPartnerService(selectedService)) {

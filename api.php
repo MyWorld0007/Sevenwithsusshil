@@ -795,6 +795,45 @@ try {
         $stmt->execute([$m[1]]);
         echo json_encode(['success' => true]);
     }
+    elseif ($route === 'bookings' && $method === 'POST') {
+        try {
+            $stmt = $pdo->prepare('CREATE TABLE IF NOT EXISTS booking_submissions (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                full_name VARCHAR(255),
+                dob VARCHAR(255),
+                tob VARCHAR(255),
+                pob VARCHAR(255),
+                mobile VARCHAR(255),
+                email VARCHAR(255),
+                service_title VARCHAR(255),
+                service_price VARCHAR(255),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )');
+            $stmt->execute();
+            
+            $stmt = $pdo->prepare('INSERT INTO booking_submissions (full_name, dob, tob, pob, mobile, email, service_title, service_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+            $stmt->execute([
+                $input['fullName'] ?? '',
+                $input['dob'] ?? '',
+                $input['tob'] ?? '',
+                $input['pob'] ?? '',
+                $input['mobile'] ?? '',
+                $input['email'] ?? '',
+                $input['serviceTitle'] ?? '',
+                $input['servicePrice'] ?? ''
+            ]);
+            echo json_encode(['success' => true]);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['error' => $e->getMessage()]);
+        }
+    }
+    elseif ($route === 'notify_expert_booking' && $method === 'POST') {
+        echo json_encode(['success' => true]);
+    }
+    elseif ($route === 'contact' && $method === 'POST') {
+        echo json_encode(['success' => true]);
+    }
     elseif ($route === 'pathway_cards' && $method === 'GET') {
         $stmt = $pdo->query('SELECT * FROM pathway_cards ORDER BY display_order ASC, id ASC');
         echo json_encode($stmt->fetchAll());
