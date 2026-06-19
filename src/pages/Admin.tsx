@@ -1866,9 +1866,9 @@ export default function Admin() {
                                 <label className="text-[10px] uppercase tracking-widest text-muted font-semibold">Gratitude</label>
                                 <div 
                                   className="relative w-[130px] h-[34px] bg-bg-card border border-gold/20 rounded-full flex items-center cursor-pointer select-none overflow-hidden"
-                                  onPointerDownCapture={(e) => e.stopPropagation()}
-                                  onClick={(e) => {
+                                  onPointerDown={(e) => {
                                     e.stopPropagation();
+                                    e.preventDefault();
                                     const newStatus = partner.status === 'live' ? 'pause' : 'live';
                                     const updated = { ...partner, status: newStatus };
                                     const copy = [...partners];

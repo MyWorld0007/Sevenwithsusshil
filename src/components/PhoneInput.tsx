@@ -36,6 +36,27 @@ export function PhoneInput({ value, onChange, onBlur, label = "Partner WhatsApp 
     c.code.toLowerCase().includes(countrySearch.toLowerCase())
   );
 
+  // Sync external value to internal state if it changes from outside
+  useEffect(() => {
+    const currentConstructed = phoneBody.trim() 
+      ? `${selectedCountry.dial.replace('+', '')}${phoneBody.trim()}` 
+      : '';
+      
+    if (value !== currentConstructed) {
+      if (!value) {
+        setPhoneBody('');
+      } else {
+        const match = COUNTRIES.find(c => value.startsWith(c.dial.replace('+', '')));
+        if (match) {
+          setSelectedCountry(match);
+          setPhoneBody(value.substring(match.dial.replace('+', '').length).trim());
+        } else {
+          setPhoneBody(value);
+        }
+      }
+    }
+  }, [value]);
+
   // Sync internal state to parent when it changes
   useEffect(() => {
     if (phoneBody.trim()) {
