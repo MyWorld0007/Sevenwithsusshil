@@ -1866,9 +1866,8 @@ export default function Admin() {
                                 <label className="text-[10px] uppercase tracking-widest text-muted font-semibold">Gratitude</label>
                                 <div 
                                   className="relative w-[130px] h-[34px] bg-bg-card border border-gold/20 rounded-full flex items-center cursor-pointer select-none overflow-hidden"
-                                  onPointerDown={(e) => {
+                                  onClick={(e) => {
                                     e.stopPropagation();
-                                    e.preventDefault();
                                     const newStatus = partner.status === 'live' ? 'pause' : 'live';
                                     const updated = { ...partner, status: newStatus };
                                     const copy = [...partners];
@@ -1878,8 +1877,7 @@ export default function Admin() {
                                   }}
                                 >
                                   <div 
-                                    className="absolute top-1 left-1 w-[calc(50%-4px)] h-[calc(100%-8px)] bg-gold transition-transform ease-in-out pointer-events-none rounded-full"
-                                    style={{ transitionDuration: '0.35s', transform: partner.status === 'pause' ? 'translateX(61px)' : 'translateX(0)' }} 
+                                    className={`absolute top-1 left-1 w-[calc(50%-4px)] h-[calc(100%-8px)] bg-gold transition-transform duration-300 ease-in-out pointer-events-none rounded-full ${partner.status === 'pause' ? 'translate-x-full' : 'translate-x-0'}`}
                                   />
                                   <div className={`relative z-10 flex-1 flex items-center justify-center h-full text-[10px] uppercase tracking-widest font-bold transition-colors duration-300 ${partner.status === 'live' ? 'text-bg-dark' : 'text-gold'}`}>
                                     Live

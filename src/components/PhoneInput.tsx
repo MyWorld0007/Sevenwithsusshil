@@ -57,18 +57,14 @@ export function PhoneInput({ value, onChange, onBlur, label = "Partner WhatsApp 
     }
   }, [value]);
 
-  // Sync internal state to parent when it changes
-  useEffect(() => {
-    if (phoneBody.trim()) {
-      onChange(`${selectedCountry.dial.replace('+', '')}${phoneBody.trim()}`);
-    } else {
-      onChange('');
-    }
-  }, [selectedCountry, phoneBody]);
-  
   const handlePhoneBodyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.replace(/[^0-9\- ]/g, '');
     setPhoneBody(val);
+    if (val.trim()) {
+      onChange(`${selectedCountry.dial.replace('+', '')}${val.trim()}`);
+    } else {
+      onChange('');
+    }
   };
 
   return (
@@ -139,6 +135,11 @@ export function PhoneInput({ value, onChange, onBlur, label = "Partner WhatsApp 
                         setSelectedCountry(c);
                         setIsCountryDropdownOpen(false);
                         setCountrySearch('');
+                        if (phoneBody.trim()) {
+                          onChange(`${c.dial.replace('+', '')}${phoneBody.trim()}`);
+                        } else {
+                          onChange('');
+                        }
                       }}
                       className={`w-full flex items-center justify-between text-left px-2 py-1.5 rounded-sm transition-all cursor-pointer border ${
                         isSelected ? 'bg-gold/10 border-gold/30' : 'hover:bg-gold/5 border-transparent'
