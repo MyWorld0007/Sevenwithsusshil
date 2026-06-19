@@ -403,9 +403,10 @@ export default function Stories({ isFullPage = false }: StoriesProps) {
     : "5.0";
 
   const SubmitModal = isSubmitModalOpen ? (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
       <div 
         className="absolute inset-0 z-0" 
+
         onClick={() => setIsSubmitModalOpen(false)} 
       />
       <div className="bg-bg-dark border border-gold/20 p-8 w-full max-w-lg shadow-2xl relative z-10">

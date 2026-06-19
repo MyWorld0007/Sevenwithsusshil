@@ -588,6 +588,7 @@ export default function Pricing() {
           
           {/* Modal Container */}
           <div className={`relative bg-bg-card border-2 border-gold/40 w-full ${showEmailForm && !formSubmitted ? 'max-w-xl' : 'max-w-lg'} p-6 md:p-8 rounded-sm shadow-2xl z-10 animate-[fadeIn_0.25s_ease-out] text-left my-8`}>
+
             
             {/* Close Button */}
             <button 
@@ -698,12 +699,12 @@ export default function Pricing() {
                         <>
                           {/* Close overlay */}
                           <div 
-                            className="fixed inset-0 z-30" 
+                            className="fixed inset-0 z-[160]" 
                             onClick={() => setIsTimePopoverOpen(false)} 
                           />
                           
                           {/* Time Picker popover containing scroll-based cylindrical helper */}
-                          <div className="absolute left-0 right-0 mt-2 bg-bg-card border border-gold/30 p-3 rounded-md shadow-[0_15px_30px_rgba(0,0,0,0.8)] z-40 animate-in fade-in slide-in-from-top-3 duration-250 backdrop-blur-md">
+                          <div className="absolute left-0 right-0 mt-2 bg-bg-card border border-gold/30 p-3 rounded-md shadow-[0_15px_30px_rgba(0,0,0,0.8)] z-[170] animate-in fade-in slide-in-from-top-3 duration-250 backdrop-blur-md">
                             <div className="absolute -top-[6px] left-[15%] w-3 h-3 bg-bg-card border-t border-l border-gold/30 transform rotate-45"></div>
                             
                             <div className="w-full bg-bg-dark/80 p-2 rounded-sm flex flex-col items-center relative overflow-hidden">
@@ -806,11 +807,11 @@ export default function Pricing() {
                       {isCountryDropdownOpen && (
                         <>
                           <div 
-                            className="fixed inset-0 z-40 bg-transparent" 
+                            className="fixed inset-0 z-[160] bg-transparent" 
                             onClick={() => setIsCountryDropdownOpen(false)} 
                           />
                           
-                          <div className="absolute left-0 right-0 mt-2 bg-bg-card border border-gold/25 rounded-sm shadow-[0_15px_30px_rgba(0,0,0,0.85)] z-50 p-3 animate-in fade-in slide-in-from-top-2 duration-200 backdrop-blur-md">
+                          <div className="absolute left-0 right-0 mt-2 bg-bg-card border border-gold/25 rounded-sm shadow-[0_15px_30px_rgba(0,0,0,0.85)] z-[170] p-3 animate-in fade-in slide-in-from-top-2 duration-200 backdrop-blur-md">
                             <div className="relative mb-2">
                               <Search className="w-3.5 h-3.5 text-gold/65 absolute left-2.5 top-1/2 -translate-y-1/2" />
                               <input

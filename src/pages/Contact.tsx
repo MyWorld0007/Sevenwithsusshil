@@ -396,12 +396,12 @@ export default function Contact() {
                         <>
                           {/* Close overlay */}
                           <div 
-                            className="fixed inset-0 z-30" 
+                            className="fixed inset-0 z-[160]" 
                             onClick={() => setIsTimePopoverOpen(false)} 
                           />
                           
                           {/* Interactive popover containing the cylinder 3D wheels, styled exactly like the requested mockup */}
-                          <div className="absolute left-0 right-0 mt-3 bg-bg-card border border-gold/30 p-4 rounded-md shadow-[0_15px_30px_rgba(0,0,0,0.8)] z-40 animate-in fade-in slide-in-from-top-3 duration-250 backdrop-blur-md">
+                          <div className="absolute left-0 right-0 mt-3 bg-bg-card border border-gold/30 p-4 rounded-md shadow-[0_15px_30px_rgba(0,0,0,0.8)] z-[170] animate-in fade-in slide-in-from-top-3 duration-250 backdrop-blur-md">
                             {/* Speech bubble arrow pointer */}
                             <div className="absolute -top-[6px] left-[15%] w-3 h-3 bg-bg-card border-t border-l border-gold/30 transform rotate-45"></div>
                             
@@ -514,11 +514,11 @@ export default function Contact() {
                         <>
                           {/* Top-level click dismiss backdrop */}
                           <div 
-                            className="fixed inset-0 z-40 bg-transparent" 
+                            className="fixed inset-0 z-[160] bg-transparent" 
                             onClick={() => setIsCountryDropdownOpen(false)} 
                           />
                           
-                          <div className="absolute left-0 right-0 mt-2 bg-bg-card border border-gold/25 rounded-sm shadow-[0_15px_30px_rgba(0,0,0,0.85)] z-50 p-3.5 animate-in fade-in slide-in-from-top-2 duration-200 backdrop-blur-md">
+                          <div className="absolute left-0 right-0 mt-2 bg-bg-card border border-gold/25 rounded-sm shadow-[0_15px_30px_rgba(0,0,0,0.85)] z-[170] p-3.5 animate-in fade-in slide-in-from-top-2 duration-200 backdrop-blur-md">
                             {/* Search box with search icon */}
                             <div className="relative mb-3">
                               <Search className="w-3.5 h-3.5 text-gold/65 absolute left-3 top-1/2 -translate-y-1/2" />

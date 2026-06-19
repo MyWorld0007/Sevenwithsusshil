@@ -90,11 +90,11 @@ export function PhoneInput({ value, onChange, onBlur, label = "Partner WhatsApp 
         {isCountryDropdownOpen && (
           <>
             <div 
-              className="fixed inset-0 z-40 bg-transparent" 
+              className="fixed inset-0 z-[160] bg-transparent" 
               onClick={() => setIsCountryDropdownOpen(false)} 
             />
             
-            <div className="absolute left-0 right-0 mt-2 bg-bg-card border border-gold/25 rounded-sm shadow-[0_15px_30px_rgba(0,0,0,0.85)] z-50 p-3 animate-in fade-in slide-in-from-top-2 duration-200 backdrop-blur-md">
+            <div className="absolute left-0 right-0 mt-2 bg-bg-card border border-gold/25 rounded-sm shadow-[0_15px_30px_rgba(0,0,0,0.85)] z-[170] p-3 animate-in fade-in slide-in-from-top-2 duration-200 backdrop-blur-md">
               <div className="relative mb-2">
                 <Search className="w-3.5 h-3.5 text-gold/65 absolute left-2.5 top-1/2 -translate-y-1/2" />
                 <input

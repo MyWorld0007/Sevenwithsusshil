@@ -136,12 +136,12 @@ export default function App() {
   return (
     <div className="relative min-h-screen bg-bg-dark text-text-main font-sans overflow-x-hidden flex flex-col pb-0">
       <div className="fixed inset-0 border-8 border-bg-card pointer-events-none z-[100]"></div>
-      <canvas id="bg-canvas" ref={canvasRef} className="fixed top-0 left-0 w-full h-full z-0 pointer-events-none"></canvas>
+      <canvas id="bg-canvas" ref={canvasRef} className="fixed top-0 left-0 w-full h-full z-[-1] pointer-events-none"></canvas>
 
       {/* Animated Elements */}
-      <div className="font-serif fixed text-gold pointer-events-none float-anim text-6xl top-[25%] right-20 z-0" style={{ animationDelay: '2s' }}>3</div>
-      <div className="font-serif fixed text-gold pointer-events-none float-anim text-8xl bottom-20 left-[33%] z-0" style={{ animationDelay: '4s' }}>11</div>
-      <div className="font-serif fixed text-gold pointer-events-none float-anim text-5xl top-[60%] right-[25%] z-0" style={{ animationDelay: '1s' }}>9</div>
+      <div className="font-serif fixed text-gold pointer-events-none float-anim text-6xl top-[25%] right-20 z-[-1]" style={{ animationDelay: '2s' }}>3</div>
+      <div className="font-serif fixed text-gold pointer-events-none float-anim text-8xl bottom-20 left-[33%] z-[-1]" style={{ animationDelay: '4s' }}>11</div>
+      <div className="font-serif fixed text-gold pointer-events-none float-anim text-5xl top-[60%] right-[25%] z-[-1]" style={{ animationDelay: '1s' }}>9</div>
 
       {/* ═══ NAV ═══ */}
       <nav id="nav" className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${navScrolled ? 'bg-bg-dark/95 border-b border-gold-bd backdrop-blur-xl' : 'border-b border-transparent'}`}>
@@ -193,7 +193,7 @@ export default function App() {
         </div>
       </nav>
 
-      <main className="relative z-10 flex-grow flex flex-col items-center pt-24 min-h-screen">
+      <main className="relative flex-grow flex flex-col items-center pt-24 min-h-screen">
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/about" element={<About />} />
@@ -212,7 +212,7 @@ export default function App() {
       </main>
 
       {/* ═══ FOOTER LINKS ═══ */}
-      <div className="relative z-10 border-t border-gold/10 bg-bg-dark px-6 md:px-12 py-8 flex justify-center mt-auto">
+      <div className="relative border-t border-gold/10 bg-bg-dark px-6 md:px-12 py-8 flex justify-center mt-auto">
         <ul className="flex flex-wrap justify-center gap-8 md:gap-16 text-[10px] md:text-[11px] uppercase tracking-[0.2em]">
           <li><Link to="/pages/terms" className="text-dim hover:text-gold transition-colors">Terms & Conditions</Link></li>
           <li><Link to="/pages/privacy" className="text-dim hover:text-gold transition-colors">Privacy Policy</Link></li>
@@ -222,7 +222,7 @@ export default function App() {
       </div>
 
       {/* ═══ FOOTER ═══ */}
-      <div className="relative z-10 border-t border-gold/10 bg-bg-card/50 px-6 md:px-12 py-6 flex flex-col md:flex-row justify-between items-center gap-6">
+      <div className="relative border-t border-gold/10 bg-bg-card/50 px-6 md:px-12 py-6 flex flex-col md:flex-row justify-between items-center gap-6">
         <div className="flex gap-8 md:gap-12">
           <div className="flex flex-col text-center md:text-left">
             <span className="text-2xl font-serif text-gold">555+</span>
