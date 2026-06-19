@@ -52,7 +52,7 @@ export default function GuidingLights() {
                 transition={{ delay: i * 0.1 }}
                 className="grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-16 items-start"
               >
-                <div className={`md:col-span-5 relative max-w-[320px] md:max-w-none mx-auto w-full ${i % 2 === 1 ? 'md:order-2' : ''}`}>
+                <div className={`md:col-span-5 relative min-w-0 max-w-[320px] md:max-w-none mx-auto w-full ${i % 2 === 1 ? 'md:order-2' : ''}`}>
                   <div className="w-full aspect-[3/4] bg-bg-input border border-gold/20 rounded-sm flex items-center justify-center relative shadow-[0_0_40px_rgba(201,160,80,0.1)] overflow-hidden">
                     {partner.profile_photo ? (
                        <img src={partner.profile_photo} alt={partner.name} className="w-full h-full object-cover relative z-10 transition-transform duration-700 hover:scale-105" />
@@ -64,7 +64,7 @@ export default function GuidingLights() {
                   </div>
                 </div>
                 
-                <div className={`md:col-span-7 ${i % 2 === 1 ? 'md:order-1' : ''}`}>
+                <div className={`md:col-span-7 min-w-0 ${i % 2 === 1 ? 'md:order-1' : ''}`}>
                   {partner.gratitude && (
                     <div 
                       className="text-[18px] md:text-[22px] font-light font-serif leading-[1.6] text-gold/90 mb-6 ql-editor-render" 

@@ -1854,25 +1854,28 @@ export default function Admin() {
                           </div>
                         </div>
 
-                           <div className="absolute top-4 right-4 flex items-center gap-2 z-10 bg-bg-card p-2 rounded shadow-md border border-gold/20">
-                             <span className="text-[10px] uppercase font-bold tracking-widest text-gold">Status:</span>
-                             <button 
-                               onClick={() => {
-                                 const updated = { ...partner, status: partner.status === 'pause' ? 'live' : 'pause' };
-                                 const copy = [...partners];
-                                 copy[index] = updated;
-                                 setPartners(copy);
-                                 savePartner(updated);
-                               }}
-                               className={`px-3 py-1 text-[10px] uppercase tracking-widest font-bold rounded-sm transition-colors ${partner.status === 'pause' ? 'bg-red-900/40 text-red-400 border border-red-500/30 hover:bg-red-900/60' : 'bg-green-900/40 text-green-400 border border-green-500/30 hover:bg-green-900/60'}`}
-                             >
-                               {partner.status === 'pause' ? 'PAUSED' : 'LIVE'}
-                             </button>
-                           </div>
-
-                        <div className="flex-grow space-y-4 pr-8 w-full mt-10 md:mt-0">
+                        <div className="flex-grow space-y-4 pr-4 md:pr-8 w-full mt-4 md:mt-0" onPointerDownCapture={(e) => e.stopPropagation()}>
                            <div className="flex flex-col gap-1 w-full">
-                              <label className="text-[10px] uppercase tracking-widest text-muted font-semibold">Gratitude</label>
+                              <div className="flex justify-between items-center w-full mb-1">
+                                <label className="text-[10px] uppercase tracking-widest text-muted font-semibold">Gratitude</label>
+                                <div className="flex items-center gap-2 bg-bg-card p-1.5 px-3 rounded shadow-sm border border-gold/10">
+                                  <span className="text-[10px] uppercase font-bold tracking-widest text-gold">Status:</span>
+                                  <button 
+                                    type="button"
+                                    onPointerDownCapture={(e) => e.stopPropagation()}
+                                    onClick={() => {
+                                      const updated = { ...partner, status: partner.status === 'pause' ? 'live' : 'pause' };
+                                      const copy = [...partners];
+                                      copy[index] = updated;
+                                      setPartners(copy);
+                                      savePartner(updated);
+                                    }}
+                                    className={`px-3 py-1 text-[10px] uppercase tracking-widest font-bold rounded-sm transition-colors ${partner.status === 'pause' ? 'bg-red-900/40 text-red-400 border border-red-500/30 hover:bg-red-900/60' : 'bg-green-900/40 text-green-400 border border-green-500/30 hover:bg-green-900/60'}`}
+                                  >
+                                    {partner.status === 'pause' ? 'PAUSED' : 'LIVE'}
+                                  </button>
+                                </div>
+                              </div>
                               <AdminRichText 
                                 className="w-full bg-bg-dark border border-gold/10 pb-10 min-h-[140px]"
                                 value={partner.gratitude || ''}
@@ -1940,10 +1943,10 @@ export default function Admin() {
                            </div>
                            
                            <div className="flex items-center gap-4 pt-4 border-t border-gold/10">
-                             <button onClick={() => savePartner(partner)} className="bg-gold text-bg-dark px-6 py-2 text-[10px] font-bold tracking-[0.2em] hover:bg-gold-lt transition-colors rounded uppercase">
+                             <button type="button" onPointerDownCapture={(e) => e.stopPropagation()} onClick={() => savePartner(partner)} className="bg-gold text-bg-dark px-6 py-2 text-[10px] font-bold tracking-[0.2em] hover:bg-gold-lt transition-colors rounded uppercase">
                                Save Guide Changes
                              </button>
-                             <button onClick={() => deletePartner(partner.id!)} className="text-[10px] font-bold tracking-[0.1em] text-red-400 hover:text-red-300 transition-colors uppercase">
+                             <button type="button" onPointerDownCapture={(e) => e.stopPropagation()} onClick={() => deletePartner(partner.id!)} className="text-[10px] font-bold tracking-[0.1em] text-red-400 hover:text-red-300 transition-colors uppercase">
                                Delete Guide
                              </button>
                            </div>

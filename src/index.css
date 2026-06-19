@@ -222,7 +222,9 @@ html {
 
 .ql-editor-render {
   padding: 0 !important;
-  white-space: normal;
+  white-space: normal !important;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 .ql-editor-render p { margin-bottom: 1rem; }
 .ql-editor-render strong, .ql-editor-render b { font-weight: 600; color: inherit; }
