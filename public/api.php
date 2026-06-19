@@ -691,6 +691,30 @@ try {
                 $input['serviceTitle'] ?? '',
                 $input['servicePrice'] ?? ''
             ]);
+
+            // Email admin with form details
+            $stmt = $pdo->query('SELECT email FROM settings WHERE id = 1');
+            $settings = $stmt->fetch();
+            $adminEmail = $settings ? $settings['email'] : 'info@sevenastro.com';
+
+            $serviceTitle = $input['serviceTitle'] ?? '';
+            $fullName = $input['fullName'] ?? '';
+
+            $subject = "Booking Request: " . $serviceTitle . " - " . $fullName;
+            $message = "New Booking Request Received\n\n";
+            $message .= "Service: " . $serviceTitle . "\n";
+            $message .= "Price: " . ($input['servicePrice'] ?? '') . "\n\n";
+            $message .= "Seeker Details:\n";
+            $message .= "Full Name: " . $fullName . "\n";
+            $message .= "Date of Birth: " . ($input['dob'] ?? '') . "\n";
+            $message .= "Time of Birth: " . ($input['tob'] ?? '') . "\n";
+            $message .= "Place of Birth: " . ($input['pob'] ?? '') . "\n";
+            $message .= "Mobile: " . ($input['mobile'] ?? '') . "\n";
+            $message .= "Email: " . ($input['email'] ?? '') . "\n";
+
+            $headers = "From: no-reply@" . $_SERVER['HTTP_HOST'] . "\r\n";
+            mail($adminEmail, $subject, $message, $headers);
+
             echo json_encode(['success' => true]);
         } catch (Exception $e) {
             http_response_code(500);
