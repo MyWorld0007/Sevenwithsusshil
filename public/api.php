@@ -647,7 +647,7 @@ try {
         echo json_encode(['success' => true]);
     }
     elseif ($route === 'notify_expert_booking' && $method === 'POST') {
-        $stmt = $pdo->query('SELECT email FROM settings WHERE id = 1');
+        $stmt = $pdo->query('SELECT * FROM settings WHERE id = 1');
         $settings = $stmt->fetch();
         $adminEmail = $settings ? $settings['email'] : 'info@sevenastro.com';
         $serviceTitle = isset($input['serviceTitle']) ? $input['serviceTitle'] : '';
@@ -656,12 +656,24 @@ try {
         $operatorWhatsapp = isset($input['operatorWhatsapp']) ? $input['operatorWhatsapp'] : '';
         
         $subject = "Expert Booking Selected: " . $serviceTitle . " with " . $operatorName;
-        $message = "New Expert Booking Selected via WhatsApp\n\n";
-        $message .= "A user just initiated a WhatsApp booking for " . $serviceTitle . " - " . $servicePrice . " with Partner " . $operatorName . ".\n\n";
+        $message = "New Expert Booking Selected via WhatsApp\r\n\r\n";
+        $message .= "A user just initiated a WhatsApp booking for " . $serviceTitle . " - " . $servicePrice . " with Partner " . $operatorName . ".\r\n\r\n";
         $message .= "The user has clicked 'Book Now' and been redirected to the Partner's WhatsApp (" . $operatorWhatsapp . ").";
         
-        $headers = "From: no-reply@" . $_SERVER['HTTP_HOST'] . "\r\n";
-        mail($adminEmail, $subject, $message, $headers);
+        // Hostinger requires the FROM address to be the exact verified domain email
+        $headers = "From: " . $adminEmail . "\r\n";
+        $headers .= "Reply-To: " . $adminEmail . "\r\n";
+        $headers .= "MIME-Version: 1.0\r\n";
+        $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+        $headers .= "X-Mailer: PHP/" . phpversion() . "\r\n";
+        
+        // Function to send via SMTP if settings exist, else mail()
+        if (!empty($settings['smtp_host']) && !empty($settings['smtp_username']) && !empty($settings['smtp_password'])) {
+            require_once __DIR__ . '/smtp.php'; // Optional fallback if they added it
+            send_custom_smtp($settings['smtp_host'], $settings['smtp_port'] ?? 587, $settings['smtp_username'], $settings['smtp_password'], $adminEmail, $adminEmail, $subject, $message);
+        } else {
+            mail($adminEmail, $subject, $message, $headers);
+        }
         echo json_encode(['success' => true]);
     }
     elseif ($route === 'bookings' && $method === 'POST') {
@@ -693,27 +705,38 @@ try {
             ]);
 
             // Email admin with form details
-            $stmt = $pdo->query('SELECT email FROM settings WHERE id = 1');
+            $stmt = $pdo->query('SELECT * FROM settings WHERE id = 1');
             $settings = $stmt->fetch();
             $adminEmail = $settings ? $settings['email'] : 'info@sevenastro.com';
 
             $serviceTitle = $input['serviceTitle'] ?? '';
             $fullName = $input['fullName'] ?? '';
+            $userEmail = $input['email'] ?? '';
 
             $subject = "Booking Request: " . $serviceTitle . " - " . $fullName;
-            $message = "New Booking Request Received\n\n";
-            $message .= "Service: " . $serviceTitle . "\n";
-            $message .= "Price: " . ($input['servicePrice'] ?? '') . "\n\n";
-            $message .= "Seeker Details:\n";
-            $message .= "Full Name: " . $fullName . "\n";
-            $message .= "Date of Birth: " . ($input['dob'] ?? '') . "\n";
-            $message .= "Time of Birth: " . ($input['tob'] ?? '') . "\n";
-            $message .= "Place of Birth: " . ($input['pob'] ?? '') . "\n";
-            $message .= "Mobile: " . ($input['mobile'] ?? '') . "\n";
-            $message .= "Email: " . ($input['email'] ?? '') . "\n";
+            $message = "New Booking Request Received\r\n\r\n";
+            $message .= "Service: " . $serviceTitle . "\r\n";
+            $message .= "Price: " . ($input['servicePrice'] ?? '') . "\r\n\r\n";
+            $message .= "Seeker Details:\r\n";
+            $message .= "Full Name: " . $fullName . "\r\n";
+            $message .= "Date of Birth: " . ($input['dob'] ?? '') . "\r\n";
+            $message .= "Time of Birth: " . ($input['tob'] ?? '') . "\r\n";
+            $message .= "Place of Birth: " . ($input['pob'] ?? '') . "\r\n";
+            $message .= "Mobile: " . ($input['mobile'] ?? '') . "\r\n";
+            $message .= "Email: " . $userEmail . "\r\n";
 
-            $headers = "From: no-reply@" . $_SERVER['HTTP_HOST'] . "\r\n";
-            mail($adminEmail, $subject, $message, $headers);
+            $headers = "From: " . $adminEmail . "\r\n";
+            $headers .= "Reply-To: " . (!empty($userEmail) ? $userEmail : $adminEmail) . "\r\n";
+            $headers .= "MIME-Version: 1.0\r\n";
+            $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+            $headers .= "X-Mailer: PHP/" . phpversion() . "\r\n";
+            
+            if (!empty($settings['smtp_host']) && !empty($settings['smtp_username']) && !empty($settings['smtp_password'])) {
+                require_once __DIR__ . '/smtp.php';
+                send_custom_smtp($settings['smtp_host'], $settings['smtp_port'] ?? 587, $settings['smtp_username'], $settings['smtp_password'], $adminEmail, $adminEmail, $subject, $message);
+            } else {
+                mail($adminEmail, $subject, $message, $headers);
+            }
 
             echo json_encode(['success' => true]);
         } catch (Exception $e) {

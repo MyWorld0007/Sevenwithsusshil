@@ -1,0 +1,89 @@
+<?php
+/**
+ * Simple PHP SMTP client without dependencies
+ */
+function send_custom_smtp($host, $port, $user, $pass, $from, $to, $subject, $message) {
+    if (!$port) $port = 587;
+    $timeout = 15;
+    
+    $socket = fsockopen($host, $port, $errno, $errstr, $timeout);
+    if (!$socket) {
+        error_log("SMTP Error: Could not connect to $host:$port ($errstr)");
+        return false;
+    }
+    
+    stream_set_timeout($socket, $timeout);
+
+    function _smtp_get_lines($socket, $expected) {
+        $data = "";
+        while($line = fgets($socket, 515)) {
+            $data .= $line;
+            if(substr($line, 3, 1) == " ") {
+                break;
+            }
+        }
+        if (substr($data, 0, 3) != $expected) {
+            return false; // Error unexpected code
+        }
+        return true;
+    }
+
+    if (!_smtp_get_lines($socket, "220")) return false;
+
+    // EHLO
+    fputs($socket, "EHLO " . (isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'localhost') . "\r\n");
+    if (!_smtp_get_lines($socket, "250")) return false;
+
+    // STARTTLS if port is 587
+    if ($port == 587 || $port == 25) {
+        fputs($socket, "STARTTLS\r\n");
+        if (_smtp_get_lines($socket, "220")) {
+            stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT);
+            
+            fputs($socket, "EHLO " . (isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'localhost') . "\r\n");
+            if (!_smtp_get_lines($socket, "250")) return false;
+        }
+    }
+
+    // AUTH
+    if (!empty($user) && !empty($pass)) {
+        fputs($socket, "AUTH LOGIN\r\n");
+        if (!_smtp_get_lines($socket, "334")) return false;
+
+        fputs($socket, base64_encode($user) . "\r\n");
+        if (!_smtp_get_lines($socket, "334")) return false;
+
+        fputs($socket, base64_encode($pass) . "\r\n");
+        if (!_smtp_get_lines($socket, "235")) return false;
+    }
+
+    // MAIL FROM
+    fputs($socket, "MAIL FROM: <$from>\r\n");
+    if (!_smtp_get_lines($socket, "250")) return false;
+
+    // RCPT TO
+    fputs($socket, "RCPT TO: <$to>\r\n");
+    if (!_smtp_get_lines($socket, "250") && !_smtp_get_lines($socket, "251")) return false;
+
+    // DATA
+    fputs($socket, "DATA\r\n");
+    if (!_smtp_get_lines($socket, "354")) return false;
+
+    // Message Headers
+    $headers  = "From: SevenAstro <$from>\r\n";
+    $headers .= "To: <$to>\r\n";
+    $headers .= "Subject: $subject\r\n";
+    $headers .= "MIME-Version: 1.0\r\n";
+    $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+    $headers .= "\r\n";
+    $headers .= $message;
+    $headers .= "\r\n.\r\n";
+
+    fputs($socket, $headers);
+    if (!_smtp_get_lines($socket, "250")) return false;
+
+    fputs($socket, "QUIT\r\n");
+    fclose($socket);
+    
+    return true;
+}
