@@ -664,6 +664,39 @@ try {
         mail($adminEmail, $subject, $message, $headers);
         echo json_encode(['success' => true]);
     }
+    elseif ($route === 'bookings' && $method === 'POST') {
+        try {
+            $stmt = $pdo->prepare('CREATE TABLE IF NOT EXISTS booking_submissions (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                full_name VARCHAR(255),
+                dob VARCHAR(255),
+                tob VARCHAR(255),
+                pob VARCHAR(255),
+                mobile VARCHAR(255),
+                email VARCHAR(255),
+                service_title VARCHAR(255),
+                service_price VARCHAR(255),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )');
+            $stmt->execute();
+            
+            $stmt = $pdo->prepare('INSERT INTO booking_submissions (full_name, dob, tob, pob, mobile, email, service_title, service_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+            $stmt->execute([
+                $input['fullName'] ?? '',
+                $input['dob'] ?? '',
+                $input['tob'] ?? '',
+                $input['pob'] ?? '',
+                $input['mobile'] ?? '',
+                $input['email'] ?? '',
+                $input['serviceTitle'] ?? '',
+                $input['servicePrice'] ?? ''
+            ]);
+            echo json_encode(['success' => true]);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['error' => $e->getMessage()]);
+        }
+    }
     elseif ($route === 'upload' && $method === 'POST') {
         require_auth();
         if (!isset($_FILES['photo'])) {
@@ -726,6 +759,53 @@ try {
         $stmt = $pdo->prepare('DELETE FROM life_paths WHERE id=?');
         $stmt->execute([$m[1]]);
         echo json_encode(['success' => true]);
+    }
+    elseif ($route === 'user-testimonials' && $method === 'POST') {
+        $cnt = $pdo->query('SELECT COUNT(*) as cnt FROM testimonials')->fetch()['cnt'];
+        if ($cnt >= 50) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Maximum 50 testimonials allowed.']);
+        } else {
+            $stmt = $pdo->query('SELECT MAX(id) as maxId FROM testimonials');
+            $maxId = $stmt->fetch()['maxId'];
+            $newId = ($maxId !== null) ? $maxId + 1 : 1;
+            
+            $stmt = $pdo->prepare('INSERT INTO testimonials (id, text, initial, name, loc, date, rating, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+            $date = !empty($input['date']) ? $input['date'] : date("F j, Y");
+            $stmt->execute([$newId, $input['text'], $input['initial'], $input['name'], $input['loc'], $date, $input['rating'], 'pending']);
+            echo json_encode(['success' => true, 'id' => $newId]);
+        }
+    }
+    elseif ($route === 'contact' && $method === 'POST') {
+        try {
+            $stmt = $pdo->prepare('CREATE TABLE IF NOT EXISTS contact_submissions (
+              id INT AUTO_INCREMENT PRIMARY KEY,
+              full_name VARCHAR(255),
+              dob VARCHAR(255),
+              tob VARCHAR(255),
+              pob VARCHAR(255),
+              mobile VARCHAR(255),
+              email VARCHAR(255),
+              comments TEXT,
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )');
+            $stmt->execute();
+            
+            $stmt = $pdo->prepare('INSERT INTO contact_submissions (full_name, dob, tob, pob, mobile, email, comments) VALUES (?, ?, ?, ?, ?, ?, ?)');
+            $stmt->execute([
+                $input['fullName'] ?? '',
+                $input['dob'] ?? '',
+                $input['tob'] ?? '',
+                $input['pob'] ?? '',
+                $input['mobile'] ?? '',
+                $input['email'] ?? '',
+                $input['comments'] ?? ''
+            ]);
+            echo json_encode(['success' => true]);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['error' => $e->getMessage()]);
+        }
     }
     elseif ($route === 'testimonials' && $method === 'POST') {
         require_auth();
@@ -796,6 +876,16 @@ try {
         $stmt = $pdo->prepare('INSERT INTO faqs (question, answer) VALUES (?, ?)');
         $stmt->execute([$input['question'], $input['answer']]);
         echo json_encode(['id' => $pdo->lastInsertId()]);
+    }
+    elseif ($route === 'faqs/reorder' && $method === 'POST') {
+        require_auth();
+        $pdo->beginTransaction();
+        $stmt = $pdo->prepare('UPDATE faqs SET display_order=? WHERE id=?');
+        foreach ($input['orderIds'] as $i => $id) {
+            $stmt->execute([$i, $id]);
+        }
+        $pdo->commit();
+        echo json_encode(['success' => true]);
     }
     elseif (preg_match('/^faqs\/([0-9]+)$/', $route, $m) && $method === 'PUT') {
         require_auth();
