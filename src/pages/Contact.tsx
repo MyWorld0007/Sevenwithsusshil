@@ -144,7 +144,7 @@ export default function Contact() {
   const [pob, setPob] = useState('');
   
   // Flag phone input states
-  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0]);
+  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES.find(c => c.code === 'IN') || COUNTRIES[0]);
   const [phoneBody, setPhoneBody] = useState('');
   const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false);
   const [countrySearch, setCountrySearch] = useState('');

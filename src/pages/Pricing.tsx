@@ -274,7 +274,7 @@ export default function Pricing() {
   const [isTimePopoverOpen, setIsTimePopoverOpen] = useState(false);
 
   // Country Picker State
-  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0]);
+  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES.find(c => c.code === 'IN') || COUNTRIES[0]);
   const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false);
   const [countrySearch, setCountrySearch] = useState('');
 
@@ -404,6 +404,13 @@ export default function Pricing() {
 
       if (!res.ok) {
         throw new Error('Celestial connection error. Please try again.');
+      }
+
+      if (isExpertPartnerService(selectedService)) {
+        let phoneStr = selectedService.operator_whatsapp || settings?.whatsapp || '';
+        const cleanPhoneStr = phoneStr.replace(/[^0-9]/g, '');
+        const msg = `Hello! I would like to book the following service:\n\n*Service:* ${selectedService.title}\n*Price:* ${selectedService.price}\n\n*My Details:*\n- Full Name: ${fullName}\n- Date of Birth: ${dob}\n- Time of Birth: ${timeOfBirthStr}\n- Place of Birth: ${pob}\n- Mobile Number: ${selectedCountry.dial} ${phoneBody}\n- Email ID: ${email}\n\nPlease let me know the next steps for scheduling my session.`;
+        window.open(`https://wa.me/${cleanPhoneStr}?text=${encodeURIComponent(msg)}`, '_blank');
       }
 
       setFormSubmitted(true);
@@ -912,7 +919,7 @@ export default function Pricing() {
                 <div className={`grid gap-4 ${isExpertPartnerService(selectedService) ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'}`}>
                   {/* WhatsApp Option */}
                   <button 
-                    onClick={() => handleWhatsAppBooking(selectedService)}
+                    onClick={() => isExpertPartnerService(selectedService) ? setShowEmailForm(true) : handleWhatsAppBooking(selectedService)}
                     disabled={whatsappLoading}
                     className="flex items-center justify-center gap-3 bg-[#25D366] hover:bg-[#20ba5a] text-white py-3.5 px-5 rounded-sm transition-all duration-300 font-medium text-[12px] uppercase tracking-[0.15em] shadow-md hover:shadow-lg active:scale-95 border-none cursor-pointer disabled:opacity-50"
                   >
