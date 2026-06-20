@@ -6,6 +6,11 @@ function send_custom_smtp($host, $port, $user, $pass, $from, $to, $subject, $mes
     if (!$port) $port = 587;
     $timeout = 15;
     
+    // Automatically use ssl wrapper for port 465
+    if ($port == 465 && strpos($host, 'ssl://') === false) {
+        $host = 'ssl://' . $host;
+    }
+    
     $socket = fsockopen($host, $port, $errno, $errstr, $timeout);
     if (!$socket) {
         error_log("SMTP Error: Could not connect to $host:$port ($errstr)");

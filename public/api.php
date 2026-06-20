@@ -660,8 +660,12 @@ try {
         $message .= "A user just initiated a WhatsApp booking for " . $serviceTitle . " - " . $servicePrice . " with Partner " . $operatorName . ".\r\n\r\n";
         $message .= "The user has clicked 'Book Now' and been redirected to the Partner's WhatsApp (" . $operatorWhatsapp . ").";
         
+        $domain = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'sevenastro.com';
+        $domain = preg_replace('/^www\./', '', $domain);
+        $fromEmail = "no-reply@" . $domain;
+
         // Hostinger requires the FROM address to be the exact verified domain email
-        $headers = "From: " . $adminEmail . "\r\n";
+        $headers = "From: " . $fromEmail . "\r\n";
         $headers .= "Reply-To: " . $adminEmail . "\r\n";
         $headers .= "MIME-Version: 1.0\r\n";
         $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
@@ -670,9 +674,13 @@ try {
         // Function to send via SMTP if settings exist, else mail()
         if (!empty($settings['smtp_host']) && !empty($settings['smtp_username']) && !empty($settings['smtp_password'])) {
             require_once __DIR__ . '/smtp.php'; // Optional fallback if they added it
-            send_custom_smtp($settings['smtp_host'], $settings['smtp_port'] ?? 587, $settings['smtp_username'], $settings['smtp_password'], $adminEmail, $adminEmail, $subject, $message);
+            $smtpFrom = $settings['smtp_username']; // SMTP sender MUST match the authenticated username on Hostinger
+            $smtpResult = send_custom_smtp($settings['smtp_host'], $settings['smtp_port'] ?? 587, $settings['smtp_username'], $settings['smtp_password'], $smtpFrom, $adminEmail, $subject, $message);
+            if (!$smtpResult) {
+                mail($adminEmail, $subject, $message, $headers, "-f " . $fromEmail);
+            }
         } else {
-            mail($adminEmail, $subject, $message, $headers);
+            mail($adminEmail, $subject, $message, $headers, "-f " . $fromEmail);
         }
         echo json_encode(['success' => true]);
     }
@@ -725,7 +733,11 @@ try {
             $message .= "Mobile: " . ($input['mobile'] ?? '') . "\r\n";
             $message .= "Email: " . $userEmail . "\r\n";
 
-            $headers = "From: " . $adminEmail . "\r\n";
+            $domain = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'sevenastro.com';
+            $domain = preg_replace('/^www\./', '', $domain);
+            $fromEmail = "no-reply@" . $domain;
+
+            $headers = "From: " . $fromEmail . "\r\n";
             $headers .= "Reply-To: " . (!empty($userEmail) ? $userEmail : $adminEmail) . "\r\n";
             $headers .= "MIME-Version: 1.0\r\n";
             $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
@@ -733,9 +745,13 @@ try {
             
             if (!empty($settings['smtp_host']) && !empty($settings['smtp_username']) && !empty($settings['smtp_password'])) {
                 require_once __DIR__ . '/smtp.php';
-                send_custom_smtp($settings['smtp_host'], $settings['smtp_port'] ?? 587, $settings['smtp_username'], $settings['smtp_password'], $adminEmail, $adminEmail, $subject, $message);
+                $smtpFrom = $settings['smtp_username']; // SMTP sender MUST match the authenticated username on Hostinger
+                $smtpResult = send_custom_smtp($settings['smtp_host'], $settings['smtp_port'] ?? 587, $settings['smtp_username'], $settings['smtp_password'], $smtpFrom, $adminEmail, $subject, $message);
+                if (!$smtpResult) {
+                    mail($adminEmail, $subject, $message, $headers, "-f " . $fromEmail);
+                }
             } else {
-                mail($adminEmail, $subject, $message, $headers);
+                mail($adminEmail, $subject, $message, $headers, "-f " . $fromEmail);
             }
 
             echo json_encode(['success' => true]);
