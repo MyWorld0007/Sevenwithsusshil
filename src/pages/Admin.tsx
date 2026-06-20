@@ -541,8 +541,8 @@ export default function Admin() {
         const bid = Number(b.id || 0);
         const bFormatted = `BK-${10000 + bid}`;
         const dateObj = new Date(b.created_at);
-        const dateStr = dateObj.toLocaleDateString();
-        const timeStr = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+        const dateStr = dateObj.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
+        const timeStr = dateObj.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false });
         
         return [
             bFormatted,
@@ -2234,8 +2234,8 @@ export default function Admin() {
                                 const bid = Number(b.id || 0);
                                 const bFormatted = `BK-${10000 + bid}`;
                                 const dateObj = new Date(b.created_at);
-                                const dateStr = dateObj.toLocaleDateString();
-                                const timeStr = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+                                const dateStr = dateObj.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
+                                const timeStr = dateObj.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false });
                                 
                                 return (
                                     <tr key={b.id} className="hover:bg-gold/5 transition-colors group text-text-main">
