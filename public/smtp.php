@@ -13,7 +13,7 @@ function send_custom_smtp($host, $port, $user, $pass, $from, $to, $subject, $mes
     
     $socket = fsockopen($host, $port, $errno, $errstr, $timeout);
     if (!$socket) {
-        error_log("SMTP Error: Could not connect to $host:$port ($errstr)");
+        echo "SMTP Error: Could not connect to $host:$port ($errstr)\n";
         return false;
     }
     
@@ -27,9 +27,9 @@ function send_custom_smtp($host, $port, $user, $pass, $from, $to, $subject, $mes
                 break;
             }
         }
-        error_log("SMTP Received: " . trim($data));
+        echo "SMTP Received: " . trim($data) . "\n";
         if (substr($data, 0, 3) != $expected) {
-            error_log("SMTP Error: Expected $expected, got: " . substr($data, 0, 3));
+            echo "SMTP Error: Expected $expected, got: " . substr($data, 0, 3) . "\n";
             return false;
         }
         return true;
@@ -39,18 +39,18 @@ function send_custom_smtp($host, $port, $user, $pass, $from, $to, $subject, $mes
 
     // EHLO
     $ehloCmd = "EHLO " . (isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'localhost') . "\r\n";
-    error_log("SMTP Sent: EHLO ...");
+    echo "SMTP Sent: EHLO ...\n";
     fputs($socket, $ehloCmd);
     if (!_smtp_get_lines($socket, "250")) return false;
 
     // STARTTLS if port is 587
     if ($port == 587 || $port == 25) {
-        error_log("SMTP Sent: STARTTLS");
+        echo "SMTP Sent: STARTTLS\n";
         fputs($socket, "STARTTLS\r\n");
         if (_smtp_get_lines($socket, "220")) {
             stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT);
             
-            error_log("SMTP Sent: EHLO ... (after TLS)");
+            echo "SMTP Sent: EHLO ... (after TLS)\n";
             fputs($socket, $ehloCmd);
             if (!_smtp_get_lines($socket, "250")) return false;
         }
@@ -58,31 +58,31 @@ function send_custom_smtp($host, $port, $user, $pass, $from, $to, $subject, $mes
 
     // AUTH
     if (!empty($user) && !empty($pass)) {
-        error_log("SMTP Sent: AUTH LOGIN");
+        echo "SMTP Sent: AUTH LOGIN\n";
         fputs($socket, "AUTH LOGIN\r\n");
         if (!_smtp_get_lines($socket, "334")) return false;
 
-        error_log("SMTP Sent: <username base64>");
+        echo "SMTP Sent: <username base64>\n";
         fputs($socket, base64_encode($user) . "\r\n");
         if (!_smtp_get_lines($socket, "334")) return false;
 
-        error_log("SMTP Sent: <password base64>");
+        echo "SMTP Sent: <password base64>\n";
         fputs($socket, base64_encode($pass) . "\r\n");
         if (!_smtp_get_lines($socket, "235")) return false;
     }
 
     // MAIL FROM
-    error_log("SMTP Sent: MAIL FROM: <$from>");
+    echo "SMTP Sent: MAIL FROM: <$from>\n";
     fputs($socket, "MAIL FROM: <$from>\r\n");
     if (!_smtp_get_lines($socket, "250")) return false;
 
     // RCPT TO
-    error_log("SMTP Sent: RCPT TO: <$to>");
+    echo "SMTP Sent: RCPT TO: <$to>\n";
     fputs($socket, "RCPT TO: <$to>\r\n");
     if (!_smtp_get_lines($socket, "250") && !_smtp_get_lines($socket, "251")) return false;
 
     // DATA
-    error_log("SMTP Sent: DATA");
+    echo "SMTP Sent: DATA\n";
     fputs($socket, "DATA\r\n");
     if (!_smtp_get_lines($socket, "354")) return false;
 
@@ -96,14 +96,14 @@ function send_custom_smtp($host, $port, $user, $pass, $from, $to, $subject, $mes
     $headers .= $message;
     $headers .= "\r\n.\r\n";
 
-    error_log("SMTP Sent: <message data>");
+    echo "SMTP Sent: <message data>\n";
     fputs($socket, $headers);
     if (!_smtp_get_lines($socket, "250")) return false;
 
-    error_log("SMTP Sent: QUIT");
+    echo "SMTP Sent: QUIT\n";
     fputs($socket, "QUIT\r\n");
     fclose($socket);
     
-    error_log("SMTP Success: email sent to $to");
+    echo "SMTP Success: email sent to $to\n";
     return true;
 }

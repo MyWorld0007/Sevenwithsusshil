@@ -757,6 +757,58 @@ try {
             echo json_encode(['error' => $e->getMessage()]);
         }
     }
+    elseif ($route === 'test_email' && $method === 'POST') {
+        require_auth();
+        $stmt = $pdo->query('SELECT * FROM settings WHERE id = 1');
+        $settings = $stmt->fetch();
+        $adminEmail = $settings ? $settings['email'] : 'info@sevenastro.com';
+
+        $domain = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'sevenastro.com';
+        $domain = preg_replace('/^www\./', '', $domain);
+        $fromEmail = !empty($settings['smtp_username']) ? $settings['smtp_username'] : "info@" . $domain;
+
+        $subject = "Test Email from Admin Panel";
+        $message = "Hello admin! This is a test email sent from the platform to verify email functionality.\r\n\r\nIf you receive this, it means the SMTP/mail() configuration is working correctly.";
+
+        $headers = "From: " . $fromEmail . "\r\n";
+        $headers .= "Reply-To: " . $adminEmail . "\r\n";
+        $headers .= "MIME-Version: 1.0\r\n";
+        $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+        $headers .= "X-Mailer: PHP/" . phpversion() . "\r\n";
+        
+        $mailSent = false;
+        $debugLog = [];
+        
+        $debugLog[] = "Attempting to send email...";
+        if (!empty($settings['smtp_host']) && !empty($settings['smtp_username']) && !empty($settings['smtp_password'])) {
+            require_once __DIR__ . '/smtp.php';
+            $debugLog[] = "Using Custom SMTP... Host: " . $settings['smtp_host'] . " Port: " . ($settings['smtp_port'] ?? 587);
+            
+            ob_start();
+            $smtpFrom = $settings['smtp_username']; 
+            $mailSent = send_custom_smtp($settings['smtp_host'], $settings['smtp_port'] ?? 587, $settings['smtp_username'], $settings['smtp_password'], $smtpFrom, $adminEmail, $subject, $message);
+            $smtpLog = ob_get_clean();
+            
+            if ($mailSent) {
+                $debugLog[] = "Custom SMTP success.";
+            } else {
+                $debugLog[] = "Custom SMTP failed. Fallback to mail().";
+            }
+        } else {
+             $debugLog[] = "SMTP credentials missing. Using standard mail().";
+        }
+
+        if (!$mailSent) {
+            $mailSent = mail($adminEmail, $subject, $message, $headers, "-f " . $fromEmail);
+            if ($mailSent) {
+               $debugLog[] = "Standard mail() success.";
+            } else {
+               $debugLog[] = "Standard mail() failed.";
+            }
+        }
+        
+        echo json_encode(['success' => (bool)$mailSent, 'debug' => $debugLog]);
+    }
     elseif ($route === 'upload' && $method === 'POST') {
         require_auth();
         if (!isset($_FILES['photo'])) {

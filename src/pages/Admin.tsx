@@ -1281,7 +1281,29 @@ export default function Admin() {
                 </div>
               )}
 
-              <button onClick={saveSettings} className="bg-gold text-bg-dark px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-gold-lt transition-colors rounded">Save Settings</button>
+              <div className="flex gap-4">
+                <button onClick={saveSettings} disabled={saving} className="bg-gold text-bg-dark px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-gold-lt transition-colors rounded disabled:opacity-50">
+                   {saving ? 'Saving...' : 'Save Settings'}
+                </button>
+                <button onClick={async () => {
+                   try {
+                     const res = await apiFetch('/api/test_email', {
+                       method: 'POST',
+                       headers: { 'Authorization': `Bearer ${token}` }
+                     });
+                     const data = await res.json();
+                     if (data.success) {
+                       alert('Test email sent successfully! Check your inbox (' + settings.email + ').\n\nLogs:\n' + data.debug.join('\n'));
+                     } else {
+                       alert('Failed to send test email.\n\nLogs:\n' + (data.debug ? data.debug.join('\n') : 'Unknown error'));
+                     }
+                   } catch (e: any) {
+                     alert('Error calling test API: ' + e.message);
+                   }
+                }} className="bg-transparent border border-gold text-gold px-8 py-4 text-xs font-bold uppercase tracking-[0.2em] hover:bg-gold/10 transition-colors rounded">
+                   Send Test Email
+                </button>
+              </div>
             </div>
           </section>
         )}
