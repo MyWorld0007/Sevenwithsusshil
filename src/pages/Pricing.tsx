@@ -259,7 +259,7 @@ export default function Pricing() {
 
   // Form State
   const [activeBookingMode, setActiveBookingMode] = useState<'mail' | 'whatsapp'>('mail');
-  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [showExpertFormBooking, setShowExpertFormBooking] = useState(false);
   const [fullName, setFullName] = useState('');
   const [dob, setDob] = useState('');
   const [pob, setPob] = useState('');
@@ -355,7 +355,7 @@ export default function Pricing() {
 
   const closeDialog = () => {
     setSelectedService(null);
-    setShowEmailForm(false);
+    setShowExpertFormBooking(false);
     setFormSubmitted(false);
     setFormErrorMsg('');
     setFullName('');
@@ -414,9 +414,12 @@ export default function Pricing() {
 
       const bookingId = resData.bookingId || 'PENDING';
 
-      if (isExpertPartnerService(selectedService) && activeBookingMode === 'whatsapp') {
-        let phoneStr = selectedService.operator_whatsapp || settings?.whatsapp || '';
-        const cleanPhoneStr = phoneStr.replace(/[^0-9]/g, '');
+      if (activeBookingMode === 'whatsapp') {
+        let phoneStr = settings?.whatsapp || '';
+        if (isExpertPartnerService(selectedService) && selectedService.operator_whatsapp) {
+          phoneStr = selectedService.operator_whatsapp;
+        }
+        const cleanPhoneStr = String(phoneStr).replace(/[^0-9]/g, '');
         const msg = `Hello! I would like to book the following service:\n\n*Booking ID:* ${bookingId}\n*Service:* ${selectedService.title}\n*Price:* ${selectedService.price}\n\n*My Details:*\n- Full Name: ${fullName}\n- Date of Birth: ${dob}\n- Time of Birth: ${timeOfBirthStr}\n- Place of Birth: ${pob}\n- Mobile Number: ${selectedCountry.dial} ${phoneBody}\n- Email ID: ${email}\n\nPlease let me know the next steps for scheduling my session.`;
         window.open(`https://wa.me/${cleanPhoneStr}?text=${encodeURIComponent(msg)}`, '_blank');
       }
@@ -434,54 +437,10 @@ export default function Pricing() {
     return service.title.toLowerCase().startsWith('expert') && !!service.operator_id;
   };
 
-  const getWhatsAppLink = (service: PricingService) => {
-    let phoneStr = settings?.whatsapp || '';
-    if (isExpertPartnerService(service) && service.operator_whatsapp) {
-      phoneStr = service.operator_whatsapp;
-    }
-    const msg = `Hello! I would like to book the following service:\n\n*Service:* ${service.title}\n*Price:* ${service.price}\n\nPlease let me know the next steps for scheduling my session.`;
-    return `https://wa.me/${phoneStr}?text=${encodeURIComponent(msg)}`;
-  };
 
-  const [whatsappLoading, setWhatsappLoading] = useState(false);
-
-  const handleWhatsAppBooking = async (service: PricingService) => {
-    if (whatsappLoading) return;
-    setWhatsappLoading(true);
-    if (isExpertPartnerService(service)) {
-      try {
-        await apiFetch('/api/notify_expert_booking', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            serviceTitle: service.title,
-            servicePrice: service.price,
-            operatorName: service.operator_name || 'Partner',
-            operatorWhatsapp: service.operator_whatsapp || ''
-          })
-        });
-      } catch (err) {
-        console.error('Failed to notify admin', err);
-      }
-    }
-    window.open(getWhatsAppLink(service), '_blank');
-    // We intentionally do not immediately set back to false to avoid double clicks opening 2 tabs
-    setTimeout(() => {
-      setWhatsappLoading(false);
-    }, 2000);
-  };
-
-  const getEmailLink = (service: PricingService) => {
-    if (!settings) return '#';
-    const subject = `Booking Request: ${service.title}`;
-    const body = `Hi Team Seven,\n\nI want to book a session for the following service:\n\nService: ${service.title}\nPrice: ${service.price}\n\nMy Details:\n- Full Name:\n- Date of Birth:\n- Preferred Date/Time:\n- Phone Number:\n\nPlease guide me through the scheduling and payment steps.\n\nThank you!`;
-    return `mailto:${settings.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  };
 
   return (
     <section className="w-full relative z-10 py-24 px-6 md:px-12 bg-bg-dark flex flex-col items-center">
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1px] h-[80px] bg-gradient-to-b from-transparent to-gold"></div>
-      
       <div className="max-w-[1280px] mx-auto w-full text-center mb-16 mt-8">
         <p className="text-[10px] font-medium tracking-[0.38em] uppercase text-gold mb-4">Investment Blueprint</p>
         <div className="w-[48px] h-[1px] bg-gold mx-auto mb-6"></div>
@@ -593,7 +552,7 @@ export default function Pricing() {
           ></div>
           
           {/* Modal Container */}
-          <div className={`relative bg-bg-card border-2 border-gold/40 w-full ${showEmailForm && !formSubmitted ? 'max-w-xl' : 'max-w-lg'} p-6 md:p-8 rounded-sm shadow-2xl z-10 animate-[fadeIn_0.25s_ease-out] text-left my-8`}>
+          <div className={`relative bg-bg-card border-2 border-gold/40 w-full ${showExpertFormBooking && !formSubmitted ? 'max-w-xl' : 'max-w-lg'} p-6 md:p-8 rounded-sm shadow-2xl z-10 animate-[fadeIn_0.25s_ease-out] text-left my-8`}>
 
             
             {/* Close Button */}
@@ -628,12 +587,12 @@ export default function Pricing() {
                   Back to Exchange
                 </button>
               </div>
-            ) : showEmailForm ? (
+            ) : showExpertFormBooking ? (
               // STEP 2: EMAIL FORM (IMAGE 2)
               <form onSubmit={handleFormSubmit} className="space-y-5 font-sans">
                 <div className="border-b border-gold/15 pb-4 mb-4">
                   <span className="text-[9px] font-semibold tracking-[0.25em] uppercase text-gold block mb-1">
-                    Divine Seeker Registration
+                    Expert Form Booking
                   </span>
                   <h3 className="text-lg md:text-xl font-light font-serif text-text-main leading-snug">
                     Book: {selectedService.title}
@@ -887,7 +846,7 @@ export default function Pricing() {
                 <div className="flex flex-col sm:flex-row gap-3 pt-3">
                   <button
                     type="button"
-                    onClick={() => setShowEmailForm(false)}
+                    onClick={() => setShowExpertFormBooking(false)}
                     className="flex-1 order-2 sm:order-1 py-3 px-6 border border-gold/20 text-[11px] uppercase tracking-[0.2em] text-muted hover:text-gold hover:border-gold/60 hover:bg-gold/5 transition-all rounded-sm cursor-pointer"
                   >
                     Back to choices
@@ -928,19 +887,15 @@ export default function Pricing() {
                 <div className={`grid gap-4 ${isExpertPartnerService(selectedService) ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'}`}>
                   {/* WhatsApp Option */}
                   <button 
+                    type="button"
                     onClick={() => {
                       setActiveBookingMode('whatsapp');
-                      if (isExpertPartnerService(selectedService)) {
-                        setShowEmailForm(true); // Open the same form for partner
-                      } else {
-                        handleWhatsAppBooking(selectedService);
-                      }
+                      setShowExpertFormBooking(true); // Open the same form for partner and admin
                     }}
-                    disabled={whatsappLoading}
                     className="flex items-center justify-center gap-3 bg-[#25D366] hover:bg-[#20ba5a] text-white py-3.5 px-5 rounded-sm transition-all duration-300 font-medium text-[12px] uppercase tracking-[0.15em] shadow-md hover:shadow-lg active:scale-95 border-none cursor-pointer disabled:opacity-50"
                   >
                     <MessageSquare className="w-4 h-4" />
-                    {whatsappLoading ? 'Opening...' : 'Book via WhatsApp'}
+                    Book via WhatsApp
                   </button>
 
                   {/* Email Option */}
@@ -949,7 +904,7 @@ export default function Pricing() {
                       type="button"
                       onClick={() => {
                         setActiveBookingMode('mail');
-                        setShowEmailForm(true);
+                        setShowExpertFormBooking(true);
                       }}
                       className="flex items-center justify-center gap-3 bg-gold hover:bg-gold-lt text-[#ffffff] py-3.5 px-5 rounded-sm transition-all duration-300 font-medium text-[12px] uppercase tracking-[0.15em] shadow-md hover:shadow-lg active:scale-95 border border-gold cursor-pointer"
                     >
