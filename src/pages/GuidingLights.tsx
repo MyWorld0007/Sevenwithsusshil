@@ -68,7 +68,6 @@ export default function GuidingLights() {
                   {partner.gratitude && (
                     <div 
                       className="text-[18px] md:text-[22px] font-light font-serif leading-[1.6] text-gold/90 mb-6 ql-editor-render" 
-                      style={{ whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'break-word' }}
                       dangerouslySetInnerHTML={{ __html: partner.gratitude }} 
                     />
                   )}
@@ -80,7 +79,6 @@ export default function GuidingLights() {
                   </p>
                   <div 
                     className="text-[15px] font-light leading-[1.95] text-muted ql-editor-render"
-                    style={{ whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'break-word' }}
                     dangerouslySetInnerHTML={{ __html: partner.description }} 
                   />
                 </div>
