@@ -1,9 +1,9 @@
 import { apiFetch } from '../lib/api';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ReactQuill, { Quill } from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import { Settings, LifePath, Testimonial, Faq, PricingService, PathwayCard, Partner } from '../Types';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, Download } from 'lucide-react';
 import { Reorder, useDragControls } from 'motion/react';
 import { PhoneInput } from '../components/PhoneInput';
 
@@ -503,6 +503,76 @@ export default function Admin() {
   const [bookings, setBookings] = useState<any[]>([]);
 
   const [activeTab, setActiveTab] = useState<string>('settings');
+
+  const topScrollRef = useRef<HTMLDivElement>(null);
+  const bottomScrollRef = useRef<HTMLDivElement>(null);
+  const [tableWidth, setTableWidth] = useState(0);
+
+  const syncScroll = (sourceRef: React.RefObject<HTMLDivElement>, targetRef: React.RefObject<HTMLDivElement>) => {
+    if (sourceRef.current && targetRef.current) {
+        if (targetRef.current.scrollLeft !== sourceRef.current.scrollLeft) {
+            targetRef.current.scrollLeft = sourceRef.current.scrollLeft;
+        }
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'bookings' && bottomScrollRef.current) {
+       // Timeout ensures the table has rendered before we measure it
+       setTimeout(() => {
+           if (bottomScrollRef.current) {
+               setTableWidth(bottomScrollRef.current.scrollWidth);
+           }
+       }, 50);
+    }
+  }, [activeTab, bookings]);
+
+  const exportToCSV = () => {
+    if (!bookings || bookings.length === 0) return;
+    
+    // Define headers
+    const headers = [
+      'Booking ID', 'Date', 'Time', 'Seeker Name', 'Email', 
+      'Mobile', 'DOB', 'TOB', 'POB', 'Service', 'Price', 'Partner/Expert', 'Mode'
+    ];
+    
+    // Create CSV rows
+    const rows = bookings.map(b => {
+        const bid = Number(b.id || 0);
+        const bFormatted = `BK-${10000 + bid}`;
+        const dateObj = new Date(b.created_at);
+        const dateStr = dateObj.toLocaleDateString();
+        const timeStr = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+        
+        return [
+            bFormatted,
+            dateStr,
+            timeStr,
+            `"${(b.full_name || '').replace(/"/g, '""')}"`,
+            `"${(b.email || '').replace(/"/g, '""')}"`,
+            `"${(b.mobile || '').replace(/"/g, '""')}"`,
+            `"${(b.dob || '').replace(/"/g, '""')}"`,
+            `"${(b.tob || '').replace(/"/g, '""')}"`,
+            `"${(b.pob || '').replace(/"/g, '""')}"`,
+            `"${(b.service_title || '').replace(/"/g, '""')}"`,
+            `"${(typeof b.service_price === 'string' ? b.service_price.replace(/[^\d.,]/g, '') : b.service_price || '').toString().replace(/"/g, '""')}"`,
+            `"${(b.operator_name || 'Admin').replace(/"/g, '""')}"`,
+            `"${(b.booking_mode || 'Mail').replace(/"/g, '""')}"`
+        ].join(',');
+    });
+    
+    const csvContent = [headers.join(','), ...rows].join('\n');
+    
+    // Create download link
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `bookings_export_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   useEffect(() => {
     if (token) {
@@ -2116,11 +2186,31 @@ export default function Admin() {
                     View all celestial service bookings made by seekers.
                   </p>
                 </div>
-                <span className="text-xs text-muted uppercase tracking-widest">{bookings.length} Total Bookings</span>
+                <div className="flex items-center gap-6">
+                  <button 
+                    onClick={exportToCSV}
+                    className="flex items-center gap-2 border border-gold/20 hover:border-gold/50 text-gold px-4 py-2 rounded text-xs uppercase tracking-wider transition-colors"
+                  >
+                    <Download size={14} />
+                    Export CSV
+                  </button>
+                  <span className="text-xs text-muted uppercase tracking-widest">{bookings.length} Total Bookings</span>
+                </div>
               </div>
               
               <div className="bg-bg-card border border-gold/20 overflow-hidden shadow-sm rounded">
-                <div className="overflow-x-auto">
+                <div 
+                  ref={topScrollRef} 
+                  className="w-full overflow-x-auto overflow-y-hidden custom-scrollbar"
+                  onScroll={() => syncScroll(topScrollRef, bottomScrollRef)}
+                >
+                    <div style={{ height: '1px', width: tableWidth > 0 ? `${tableWidth}px` : '2000px' }}></div>
+                </div>
+                <div 
+                  ref={bottomScrollRef} 
+                  className="overflow-x-auto custom-scrollbar"
+                  onScroll={() => syncScroll(bottomScrollRef, topScrollRef)}
+                >
                     <table className="w-full text-left text-sm text-muted">
                         <thead className="bg-gold/5 border-b border-gold/10 text-gold uppercase text-[10px] tracking-[0.1em]">
                             <tr>
@@ -2128,6 +2218,11 @@ export default function Admin() {
                                 <th className="px-6 py-4 font-semibold whitespace-nowrap">Date</th>
                                 <th className="px-6 py-4 font-semibold whitespace-nowrap">Time</th>
                                 <th className="px-6 py-4 font-semibold whitespace-nowrap">Seeker Name</th>
+                                <th className="px-6 py-4 font-semibold whitespace-nowrap">Email</th>
+                                <th className="px-6 py-4 font-semibold whitespace-nowrap">Mobile</th>
+                                <th className="px-6 py-4 font-semibold whitespace-nowrap">DOB</th>
+                                <th className="px-6 py-4 font-semibold whitespace-nowrap">TOB</th>
+                                <th className="px-6 py-4 font-semibold whitespace-nowrap">POB</th>
                                 <th className="px-6 py-4 font-semibold whitespace-nowrap">Service</th>
                                 <th className="px-6 py-4 font-semibold whitespace-nowrap">Price</th>
                                 <th className="px-6 py-4 font-semibold whitespace-nowrap">Partner/Expert</th>
@@ -2140,16 +2235,21 @@ export default function Admin() {
                                 const bFormatted = `BK-${10000 + bid}`;
                                 const dateObj = new Date(b.created_at);
                                 const dateStr = dateObj.toLocaleDateString();
-                                const timeStr = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                                const timeStr = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
                                 
                                 return (
                                     <tr key={b.id} className="hover:bg-gold/5 transition-colors group text-text-main">
                                         <td className="px-6 py-4 font-mono text-gold font-medium">{bFormatted}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-muted">{dateStr}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-muted">{timeStr}</td>
-                                        <td className="px-6 py-4 font-serif text-text-main font-medium">{b.full_name}</td>
+                                        <td className="px-6 py-4 font-serif text-text-main font-bold whitespace-nowrap">{b.full_name}</td>
+                                        <td className="px-6 py-4 text-muted whitespace-nowrap">{b.email || '-'}</td>
+                                        <td className="px-6 py-4 text-muted whitespace-nowrap">{b.mobile || '-'}</td>
+                                        <td className="px-6 py-4 text-muted whitespace-nowrap">{b.dob || '-'}</td>
+                                        <td className="px-6 py-4 text-muted whitespace-nowrap">{b.tob || '-'}</td>
+                                        <td className="px-6 py-4 text-muted whitespace-nowrap">{b.pob || '-'}</td>
                                         <td className="px-6 py-4 font-serif text-muted">{b.service_title}</td>
-                                        <td className="px-6 py-4 text-emerald-600 font-mono font-medium">{b.service_price}</td>
+                                        <td className="px-6 py-4 text-emerald-600 font-mono font-medium">{typeof b.service_price === 'string' ? b.service_price.replace(/[^\d.,]/g, '') : b.service_price}</td>
                                         <td className="px-6 py-4 font-medium text-text-main whitespace-nowrap">{b.operator_name || 'Admin'}</td>
                                         <td className="px-6 py-4">
                                             <span className={`px-2 py-1 text-[10px] uppercase tracking-wider rounded font-medium ${b.booking_mode === 'whatsapp' ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-blue-100 text-blue-700 border border-blue-200'}`}>
@@ -2161,7 +2261,7 @@ export default function Admin() {
                             })}
                             {bookings.length === 0 && (
                                 <tr>
-                                    <td colSpan={8} className="px-6 py-12 text-center text-muted italic">
+                                    <td colSpan={13} className="px-6 py-12 text-center text-muted italic">
                                         No bookings have been registered yet.
                                     </td>
                                 </tr>
