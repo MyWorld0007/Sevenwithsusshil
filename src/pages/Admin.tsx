@@ -541,8 +541,8 @@ export default function Admin() {
         const bid = Number(b.id || 0);
         const bFormatted = `BK-${10000 + bid}`;
         const dateObj = new Date(b.created_at);
-        const dateStr = dateObj.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
-        const timeStr = dateObj.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false });
+        const dateStr = dateObj.toLocaleDateString('en-GB', { timeZone: 'UTC' });
+        const timeStr = dateObj.toLocaleTimeString('en-GB', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit', hour12: false });
         
         return [
             bFormatted,
@@ -1451,7 +1451,7 @@ export default function Admin() {
                        </div>
                        <div>
                            <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Date</label>
-                           <input type="text" name="date" required placeholder="e.g. October 2023" className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold" />
+                           <input type="date" name="date" required className="w-full bg-bg-input border border-gold/20 p-3 outline-none focus:border-gold" />
                        </div>
                        <div>
                            <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2">Initial (for avatar bubble)</label>
@@ -2234,8 +2234,8 @@ export default function Admin() {
                                 const bid = Number(b.id || 0);
                                 const bFormatted = `BK-${10000 + bid}`;
                                 const dateObj = new Date(b.created_at);
-                                const dateStr = dateObj.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
-                                const timeStr = dateObj.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false });
+                                const dateStr = dateObj.toLocaleDateString('en-GB', { timeZone: 'UTC' });
+                                const timeStr = dateObj.toLocaleTimeString('en-GB', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit', hour12: false });
                                 
                                 return (
                                     <tr key={b.id} className="hover:bg-gold/5 transition-colors group text-text-main">

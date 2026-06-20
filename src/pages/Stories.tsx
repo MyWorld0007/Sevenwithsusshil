@@ -365,7 +365,15 @@ export default function Stories({ isFullPage = false }: StoriesProps) {
       const votesB = helpfulVotes[b.id] || 0;
       return votesB - votesA;
     }
-    return b.id - a.id; // default recent
+    
+    const dateA = a.date ? new Date(a.date).getTime() : 0;
+    const dateB = b.date ? new Date(b.date).getTime() : 0;
+    
+    if (dateA !== dateB && !isNaN(dateA) && !isNaN(dateB)) {
+      return dateB - dateA;
+    }
+
+    return b.id - a.id; // fallback
   });
 
   const handleSubmitReview = async (e: React.FormEvent<HTMLFormElement>) => {
