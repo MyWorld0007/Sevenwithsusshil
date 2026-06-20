@@ -662,24 +662,21 @@ try {
         
         $domain = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'sevenastro.com';
         $domain = preg_replace('/^www\./', '', $domain);
-        $fromEmail = "no-reply@" . $domain;
+        $fromEmail = !empty($settings['smtp_username']) ? $settings['smtp_username'] : "info@" . $domain;
 
-        // Hostinger requires the FROM address to be the exact verified domain email
         $headers = "From: " . $fromEmail . "\r\n";
         $headers .= "Reply-To: " . $adminEmail . "\r\n";
         $headers .= "MIME-Version: 1.0\r\n";
         $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
         $headers .= "X-Mailer: PHP/" . phpversion() . "\r\n";
         
-        // Function to send via SMTP if settings exist, else mail()
+        $mailSent = false;
         if (!empty($settings['smtp_host']) && !empty($settings['smtp_username']) && !empty($settings['smtp_password'])) {
-            require_once __DIR__ . '/smtp.php'; // Optional fallback if they added it
-            $smtpFrom = $settings['smtp_username']; // SMTP sender MUST match the authenticated username on Hostinger
-            $smtpResult = send_custom_smtp($settings['smtp_host'], $settings['smtp_port'] ?? 587, $settings['smtp_username'], $settings['smtp_password'], $smtpFrom, $adminEmail, $subject, $message);
-            if (!$smtpResult) {
-                mail($adminEmail, $subject, $message, $headers, "-f " . $fromEmail);
-            }
-        } else {
+            require_once __DIR__ . '/smtp.php';
+            $smtpFrom = $settings['smtp_username']; 
+            $mailSent = send_custom_smtp($settings['smtp_host'], $settings['smtp_port'] ?? 587, $settings['smtp_username'], $settings['smtp_password'], $smtpFrom, $adminEmail, $subject, $message);
+        }
+        if (!$mailSent) {
             mail($adminEmail, $subject, $message, $headers, "-f " . $fromEmail);
         }
         echo json_encode(['success' => true]);
@@ -735,7 +732,7 @@ try {
 
             $domain = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'sevenastro.com';
             $domain = preg_replace('/^www\./', '', $domain);
-            $fromEmail = "no-reply@" . $domain;
+            $fromEmail = !empty($settings['smtp_username']) ? $settings['smtp_username'] : "info@" . $domain;
 
             $headers = "From: " . $fromEmail . "\r\n";
             $headers .= "Reply-To: " . (!empty($userEmail) ? $userEmail : $adminEmail) . "\r\n";
@@ -743,14 +740,14 @@ try {
             $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
             $headers .= "X-Mailer: PHP/" . phpversion() . "\r\n";
             
+            $mailSent = false;
             if (!empty($settings['smtp_host']) && !empty($settings['smtp_username']) && !empty($settings['smtp_password'])) {
                 require_once __DIR__ . '/smtp.php';
-                $smtpFrom = $settings['smtp_username']; // SMTP sender MUST match the authenticated username on Hostinger
-                $smtpResult = send_custom_smtp($settings['smtp_host'], $settings['smtp_port'] ?? 587, $settings['smtp_username'], $settings['smtp_password'], $smtpFrom, $adminEmail, $subject, $message);
-                if (!$smtpResult) {
-                    mail($adminEmail, $subject, $message, $headers, "-f " . $fromEmail);
-                }
-            } else {
+                $smtpFrom = $settings['smtp_username']; 
+                $mailSent = send_custom_smtp($settings['smtp_host'], $settings['smtp_port'] ?? 587, $settings['smtp_username'], $settings['smtp_password'], $smtpFrom, $adminEmail, $subject, $message);
+            }
+            if (!$mailSent) {
+                // Hostinger requires -f flag for return path
                 mail($adminEmail, $subject, $message, $headers, "-f " . $fromEmail);
             }
 

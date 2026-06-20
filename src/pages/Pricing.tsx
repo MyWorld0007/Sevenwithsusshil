@@ -916,13 +916,13 @@ export default function Pricing() {
                 </div>
 
                 <p className="text-[14px] text-muted font-light leading-relaxed mb-6 bg-white/50 border border-gold/10 p-4 rounded-sm">
-                  ✨ <strong>{isExpertPartnerService(selectedService) ? 'This is an Expert session handled directly on WhatsApp.' : 'Select your preferred booking platform below.'}</strong> Your inquiry message will be drafted with the service title and price automatically to speed up your booking process.
+                  ✨ <strong>Select your preferred booking platform below.</strong> Your inquiry message will be drafted with the service title and price automatically to speed up your booking process.
                 </p>
 
-                <div className={`grid gap-4 ${isExpertPartnerService(selectedService) ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'}`}>
+                <div className={`grid gap-4 grid-cols-1 sm:grid-cols-2`}>
                   {/* WhatsApp Option */}
                   <button 
-                    onClick={() => isExpertPartnerService(selectedService) ? setShowEmailForm(true) : handleWhatsAppBooking(selectedService)}
+                    onClick={() => handleWhatsAppBooking(selectedService)}
                     disabled={whatsappLoading}
                     className="flex items-center justify-center gap-3 bg-[#25D366] hover:bg-[#20ba5a] text-white py-3.5 px-5 rounded-sm transition-all duration-300 font-medium text-[12px] uppercase tracking-[0.15em] shadow-md hover:shadow-lg active:scale-95 border-none cursor-pointer disabled:opacity-50"
                   >
@@ -931,16 +931,14 @@ export default function Pricing() {
                   </button>
 
                   {/* Email Option */}
-                  {!isExpertPartnerService(selectedService) && (
-                    <button 
-                      type="button"
-                      onClick={() => setShowEmailForm(true)}
-                      className="flex items-center justify-center gap-3 bg-gold hover:bg-gold-lt text-[#ffffff] py-3.5 px-5 rounded-sm transition-all duration-300 font-medium text-[12px] uppercase tracking-[0.15em] shadow-md hover:shadow-lg active:scale-95 border border-gold cursor-pointer"
-                    >
-                      <Mail className="w-4 h-4" />
-                      Book via Email
-                    </button>
-                  )}
+                  <button 
+                    type="button"
+                    onClick={() => setShowEmailForm(true)}
+                    className="flex items-center justify-center gap-3 bg-gold hover:bg-gold-lt text-[#ffffff] py-3.5 px-5 rounded-sm transition-all duration-300 font-medium text-[12px] uppercase tracking-[0.15em] shadow-md hover:shadow-lg active:scale-95 border border-gold cursor-pointer"
+                  >
+                    <Mail className="w-4 h-4 text-bg-dark" />
+                    <span className="text-bg-dark font-bold">Book via Email</span>
+                  </button>
                 </div>
 
                 <p className="text-[11px] text-zinc-400 text-center mt-6">
