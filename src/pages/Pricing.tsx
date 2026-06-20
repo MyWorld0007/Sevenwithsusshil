@@ -258,6 +258,7 @@ export default function Pricing() {
   const [loading, setLoading] = useState(true);
 
   // Form State
+  const [activeBookingMode, setActiveBookingMode] = useState<'mail' | 'whatsapp'>('mail');
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [fullName, setFullName] = useState('');
   const [dob, setDob] = useState('');
@@ -398,7 +399,10 @@ export default function Pricing() {
           mobile: `${selectedCountry.dial} ${phoneBody}`,
           email,
           serviceTitle: selectedService.title,
-          servicePrice: selectedService.price
+          servicePrice: selectedService.price,
+          operatorName: isExpertPartnerService(selectedService) ? (selectedService.operator_name || 'Partner') : 'Admin',
+          operatorWhatsapp: isExpertPartnerService(selectedService) ? selectedService.operator_whatsapp : '',
+          bookingMode: activeBookingMode
         })
       });
 
@@ -408,10 +412,12 @@ export default function Pricing() {
         throw new Error(resData.error || 'Celestial connection error. Please try again.');
       }
 
-      if (isExpertPartnerService(selectedService)) {
+      const bookingId = resData.bookingId || 'PENDING';
+
+      if (isExpertPartnerService(selectedService) && activeBookingMode === 'whatsapp') {
         let phoneStr = selectedService.operator_whatsapp || settings?.whatsapp || '';
         const cleanPhoneStr = phoneStr.replace(/[^0-9]/g, '');
-        const msg = `Hello! I would like to book the following service:\n\n*Service:* ${selectedService.title}\n*Price:* ${selectedService.price}\n\n*My Details:*\n- Full Name: ${fullName}\n- Date of Birth: ${dob}\n- Time of Birth: ${timeOfBirthStr}\n- Place of Birth: ${pob}\n- Mobile Number: ${selectedCountry.dial} ${phoneBody}\n- Email ID: ${email}\n\nPlease let me know the next steps for scheduling my session.`;
+        const msg = `Hello! I would like to book the following service:\n\n*Booking ID:* ${bookingId}\n*Service:* ${selectedService.title}\n*Price:* ${selectedService.price}\n\n*My Details:*\n- Full Name: ${fullName}\n- Date of Birth: ${dob}\n- Time of Birth: ${timeOfBirthStr}\n- Place of Birth: ${pob}\n- Mobile Number: ${selectedCountry.dial} ${phoneBody}\n- Email ID: ${email}\n\nPlease let me know the next steps for scheduling my session.`;
         window.open(`https://wa.me/${cleanPhoneStr}?text=${encodeURIComponent(msg)}`, '_blank');
       }
 
@@ -919,10 +925,17 @@ export default function Pricing() {
                   ✨ <strong>Select your preferred booking platform below.</strong> Your inquiry message will be drafted with the service title and price automatically to speed up your booking process.
                 </p>
 
-                <div className={`grid gap-4 grid-cols-1 sm:grid-cols-2`}>
+                <div className={`grid gap-4 ${isExpertPartnerService(selectedService) ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'}`}>
                   {/* WhatsApp Option */}
                   <button 
-                    onClick={() => handleWhatsAppBooking(selectedService)}
+                    onClick={() => {
+                      setActiveBookingMode('whatsapp');
+                      if (isExpertPartnerService(selectedService)) {
+                        setShowEmailForm(true); // Open the same form for partner
+                      } else {
+                        handleWhatsAppBooking(selectedService);
+                      }
+                    }}
                     disabled={whatsappLoading}
                     className="flex items-center justify-center gap-3 bg-[#25D366] hover:bg-[#20ba5a] text-white py-3.5 px-5 rounded-sm transition-all duration-300 font-medium text-[12px] uppercase tracking-[0.15em] shadow-md hover:shadow-lg active:scale-95 border-none cursor-pointer disabled:opacity-50"
                   >
@@ -931,14 +944,19 @@ export default function Pricing() {
                   </button>
 
                   {/* Email Option */}
-                  <button 
-                    type="button"
-                    onClick={() => setShowEmailForm(true)}
-                    className="flex items-center justify-center gap-3 bg-gold hover:bg-gold-lt text-[#ffffff] py-3.5 px-5 rounded-sm transition-all duration-300 font-medium text-[12px] uppercase tracking-[0.15em] shadow-md hover:shadow-lg active:scale-95 border border-gold cursor-pointer"
-                  >
-                    <Mail className="w-4 h-4 text-bg-dark" />
-                    <span className="text-bg-dark font-bold">Book via Email</span>
-                  </button>
+                  {!isExpertPartnerService(selectedService) && (
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setActiveBookingMode('mail');
+                        setShowEmailForm(true);
+                      }}
+                      className="flex items-center justify-center gap-3 bg-gold hover:bg-gold-lt text-[#ffffff] py-3.5 px-5 rounded-sm transition-all duration-300 font-medium text-[12px] uppercase tracking-[0.15em] shadow-md hover:shadow-lg active:scale-95 border border-gold cursor-pointer"
+                    >
+                      <Mail className="w-4 h-4 text-bg-dark" />
+                      <span className="text-bg-dark font-bold">Book via Email</span>
+                    </button>
+                  )}
                 </div>
 
                 <p className="text-[11px] text-zinc-400 text-center mt-6">

@@ -631,7 +631,19 @@ try {
         $about_para2 = isset($input['about_para2']) ? $input['about_para2'] : ($current['about_para2'] ?? "");
         $profile_photo = isset($input['profile_photo']) ? $input['profile_photo'] : ($current['profile_photo'] ?? "/profile.jpeg");
 
-        $stmt = $pdo->prepare('UPDATE settings SET whatsapp=?, email=?, whatsapp_message=?, email_subject=?, email_body=?, gemini_api_key=?, about_title=?, about_para1=?, about_para2=?, profile_photo=? WHERE id=1');
+        $smtp_host = isset($input['smtp_host']) ? $input['smtp_host'] : ($current['smtp_host'] ?? null);
+        $smtp_port = isset($input['smtp_port']) ? $input['smtp_port'] : ($current['smtp_port'] ?? null);
+        $smtp_user = isset($input['smtp_user']) ? $input['smtp_user'] : ($current['smtp_user'] ?? null);
+        $smtp_pass = isset($input['smtp_pass']) ? $input['smtp_pass'] : ($current['smtp_pass'] ?? null);
+
+        $journey_step1_title = isset($input['journey_step1_title']) ? $input['journey_step1_title'] : ($current['journey_step1_title'] ?? null);
+        $journey_step1_desc = isset($input['journey_step1_desc']) ? $input['journey_step1_desc'] : ($current['journey_step1_desc'] ?? null);
+        $journey_step2_title = isset($input['journey_step2_title']) ? $input['journey_step2_title'] : ($current['journey_step2_title'] ?? null);
+        $journey_step2_desc = isset($input['journey_step2_desc']) ? $input['journey_step2_desc'] : ($current['journey_step2_desc'] ?? null);
+        $journey_step3_title = isset($input['journey_step3_title']) ? $input['journey_step3_title'] : ($current['journey_step3_title'] ?? null);
+        $journey_step3_desc = isset($input['journey_step3_desc']) ? $input['journey_step3_desc'] : ($current['journey_step3_desc'] ?? null);
+
+        $stmt = $pdo->prepare('UPDATE settings SET whatsapp=?, email=?, whatsapp_message=?, email_subject=?, email_body=?, gemini_api_key=?, about_title=?, about_para1=?, about_para2=?, profile_photo=?, smtp_host=?, smtp_port=?, smtp_user=?, smtp_pass=?, journey_step1_title=?, journey_step1_desc=?, journey_step2_title=?, journey_step2_desc=?, journey_step3_title=?, journey_step3_desc=? WHERE id=1');
         $stmt->execute([
             $input['whatsapp'], 
             $input['email'], 
@@ -642,7 +654,17 @@ try {
             $about_title,
             $about_para1,
             $about_para2,
-            $profile_photo
+            $profile_photo,
+            $smtp_host,
+            $smtp_port,
+            $smtp_user,
+            $smtp_pass,
+            $journey_step1_title,
+            $journey_step1_desc,
+            $journey_step2_title,
+            $journey_step2_desc,
+            $journey_step3_title,
+            $journey_step3_desc
         ]);
         echo json_encode(['success' => true]);
     }
@@ -662,7 +684,7 @@ try {
         
         $domain = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'sevenastro.com';
         $domain = preg_replace('/^www\./', '', $domain);
-        $fromEmail = !empty($settings['smtp_username']) ? $settings['smtp_username'] : "info@" . $domain;
+        $fromEmail = !empty($settings['smtp_user']) ? $settings['smtp_user'] : "info@" . $domain;
 
         $headers = "From: " . $fromEmail . "\r\n";
         $headers .= "Reply-To: " . $adminEmail . "\r\n";
@@ -671,15 +693,48 @@ try {
         $headers .= "X-Mailer: PHP/" . phpversion() . "\r\n";
         
         $mailSent = false;
-        if (!empty($settings['smtp_host']) && !empty($settings['smtp_username']) && !empty($settings['smtp_password'])) {
+        if (!empty($settings['smtp_host']) && !empty($settings['smtp_user']) && !empty($settings['smtp_pass'])) {
             require_once __DIR__ . '/smtp.php';
-            $smtpFrom = $settings['smtp_username']; 
-            $mailSent = send_custom_smtp($settings['smtp_host'], $settings['smtp_port'] ?? 587, $settings['smtp_username'], $settings['smtp_password'], $smtpFrom, $adminEmail, $subject, $message);
+            $smtpFrom = $settings['smtp_user']; 
+            $mailSent = send_custom_smtp($settings['smtp_host'], $settings['smtp_port'] ?? 587, $settings['smtp_user'], $settings['smtp_pass'], $smtpFrom, $adminEmail, $subject, $message);
         }
         if (!$mailSent) {
             mail($adminEmail, $subject, $message, $headers, "-f " . $fromEmail);
         }
         echo json_encode(['success' => true]);
+    }
+    elseif ($route === 'bookings' && $method === 'GET') {
+        require_auth();
+        try {
+            $stmt = $pdo->prepare('CREATE TABLE IF NOT EXISTS booking_submissions (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                full_name VARCHAR(255),
+                dob VARCHAR(255),
+                tob VARCHAR(255),
+                pob VARCHAR(255),
+                mobile VARCHAR(255),
+                email VARCHAR(255),
+                service_title VARCHAR(255),
+                service_price VARCHAR(255),
+                operator_name VARCHAR(255) DEFAULT "Admin",
+                booking_mode VARCHAR(50) DEFAULT "Mail",
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )');
+            $stmt->execute();
+            
+            try {
+                $pdo->query("ALTER TABLE booking_submissions ADD COLUMN operator_name VARCHAR(255) DEFAULT 'Admin'");
+                $pdo->query("ALTER TABLE booking_submissions ADD COLUMN booking_mode VARCHAR(50) DEFAULT 'Mail'");
+            } catch (Exception $colEx) {}
+
+            $stmt = $pdo->query('SELECT * FROM booking_submissions ORDER BY created_at DESC');
+            $results = $stmt->fetchAll();
+            echo json_encode($results);
+            exit;
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode(['error' => $e->getMessage()]);
+        }
     }
     elseif ($route === 'bookings' && $method === 'POST') {
         try {
@@ -693,11 +748,18 @@ try {
                 email VARCHAR(255),
                 service_title VARCHAR(255),
                 service_price VARCHAR(255),
+                operator_name VARCHAR(255) DEFAULT "Admin",
+                booking_mode VARCHAR(50) DEFAULT "Mail",
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )');
             $stmt->execute();
             
-            $stmt = $pdo->prepare('INSERT INTO booking_submissions (full_name, dob, tob, pob, mobile, email, service_title, service_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+            try {
+                $pdo->query("ALTER TABLE booking_submissions ADD COLUMN operator_name VARCHAR(255) DEFAULT 'Admin'");
+                $pdo->query("ALTER TABLE booking_submissions ADD COLUMN booking_mode VARCHAR(50) DEFAULT 'Mail'");
+            } catch (Exception $colEx) {}
+            
+            $stmt = $pdo->prepare('INSERT INTO booking_submissions (full_name, dob, tob, pob, mobile, email, service_title, service_price, operator_name, booking_mode) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
             $stmt->execute([
                 $input['fullName'] ?? '',
                 $input['dob'] ?? '',
@@ -706,8 +768,12 @@ try {
                 $input['mobile'] ?? '',
                 $input['email'] ?? '',
                 $input['serviceTitle'] ?? '',
-                $input['servicePrice'] ?? ''
+                $input['servicePrice'] ?? '',
+                $input['operatorName'] ?? 'Admin',
+                $input['bookingMode'] ?? 'Mail'
             ]);
+            $newId = $pdo->lastInsertId();
+            $bookingIdFormatted = "BK-" . (10000 + $newId);
 
             // Email admin with form details
             $stmt = $pdo->query('SELECT * FROM settings WHERE id = 1');
@@ -717,11 +783,16 @@ try {
             $serviceTitle = $input['serviceTitle'] ?? '';
             $fullName = $input['fullName'] ?? '';
             $userEmail = $input['email'] ?? '';
+            $operatorName = $input['operatorName'] ?? 'Admin';
+            $bookingMode = $input['bookingMode'] ?? 'Mail';
 
             $subject = "Booking Request: " . $serviceTitle . " - " . $fullName;
             $message = "New Booking Request Received\r\n\r\n";
+            $message .= "Booking ID: " . $bookingIdFormatted . "\r\n";
             $message .= "Service: " . $serviceTitle . "\r\n";
-            $message .= "Price: " . ($input['servicePrice'] ?? '') . "\r\n\r\n";
+            $message .= "Price: " . ($input['servicePrice'] ?? '') . "\r\n";
+            $message .= "Operator/Partner: " . $operatorName . "\r\n";
+            $message .= "Booking Mode: " . $bookingMode . "\r\n\r\n";
             $message .= "Seeker Details:\r\n";
             $message .= "Full Name: " . $fullName . "\r\n";
             $message .= "Date of Birth: " . ($input['dob'] ?? '') . "\r\n";
@@ -732,7 +803,7 @@ try {
 
             $domain = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'sevenastro.com';
             $domain = preg_replace('/^www\./', '', $domain);
-            $fromEmail = !empty($settings['smtp_username']) ? $settings['smtp_username'] : "info@" . $domain;
+            $fromEmail = !empty($settings['smtp_user']) ? $settings['smtp_user'] : "info@" . $domain;
 
             $headers = "From: " . $fromEmail . "\r\n";
             $headers .= "Reply-To: " . (!empty($userEmail) ? $userEmail : $adminEmail) . "\r\n";
@@ -741,17 +812,17 @@ try {
             $headers .= "X-Mailer: PHP/" . phpversion() . "\r\n";
             
             $mailSent = false;
-            if (!empty($settings['smtp_host']) && !empty($settings['smtp_username']) && !empty($settings['smtp_password'])) {
+            if (!empty($settings['smtp_host']) && !empty($settings['smtp_user']) && !empty($settings['smtp_pass'])) {
                 require_once __DIR__ . '/smtp.php';
-                $smtpFrom = $settings['smtp_username']; 
-                $mailSent = send_custom_smtp($settings['smtp_host'], $settings['smtp_port'] ?? 587, $settings['smtp_username'], $settings['smtp_password'], $smtpFrom, $adminEmail, $subject, $message);
+                $smtpFrom = $settings['smtp_user']; 
+                $mailSent = send_custom_smtp($settings['smtp_host'], $settings['smtp_port'] ?? 587, $settings['smtp_user'], $settings['smtp_pass'], $smtpFrom, $adminEmail, $subject, $message);
             }
             if (!$mailSent) {
                 // Hostinger requires -f flag for return path
                 mail($adminEmail, $subject, $message, $headers, "-f " . $fromEmail);
             }
 
-            echo json_encode(['success' => true]);
+            echo json_encode(['success' => true, 'bookingId' => $bookingIdFormatted]);
         } catch (Exception $e) {
             http_response_code(500);
             echo json_encode(['error' => $e->getMessage()]);
@@ -765,7 +836,7 @@ try {
 
         $domain = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'sevenastro.com';
         $domain = preg_replace('/^www\./', '', $domain);
-        $fromEmail = !empty($settings['smtp_username']) ? $settings['smtp_username'] : "info@" . $domain;
+        $fromEmail = !empty($settings['smtp_user']) ? $settings['smtp_user'] : "info@" . $domain;
 
         $subject = "Test Email from Admin Panel";
         $message = "Hello admin! This is a test email sent from the platform to verify email functionality.\r\n\r\nIf you receive this, it means the SMTP/mail() configuration is working correctly.";
@@ -780,14 +851,17 @@ try {
         $debugLog = [];
         
         $debugLog[] = "Attempting to send email...";
-        if (!empty($settings['smtp_host']) && !empty($settings['smtp_username']) && !empty($settings['smtp_password'])) {
+        if (!empty($settings['smtp_host']) && !empty($settings['smtp_user']) && !empty($settings['smtp_pass'])) {
             require_once __DIR__ . '/smtp.php';
             $debugLog[] = "Using Custom SMTP... Host: " . $settings['smtp_host'] . " Port: " . ($settings['smtp_port'] ?? 587);
             
             ob_start();
-            $smtpFrom = $settings['smtp_username']; 
-            $mailSent = send_custom_smtp($settings['smtp_host'], $settings['smtp_port'] ?? 587, $settings['smtp_username'], $settings['smtp_password'], $smtpFrom, $adminEmail, $subject, $message);
+            $smtpFrom = $settings['smtp_user']; 
+            $mailSent = send_custom_smtp($settings['smtp_host'], $settings['smtp_port'] ?? 587, $settings['smtp_user'], $settings['smtp_pass'], $smtpFrom, $adminEmail, $subject, $message);
             $smtpLog = ob_get_clean();
+            if ($smtpLog) {
+                $debugLog[] = "SMTP Protocol Log:\n" . $smtpLog;
+            }
             
             if ($mailSent) {
                 $debugLog[] = "Custom SMTP success.";
@@ -913,6 +987,46 @@ try {
                 $input['email'] ?? '',
                 $input['comments'] ?? ''
             ]);
+
+            // Email admin with form details
+            $stmt = $pdo->query('SELECT * FROM settings WHERE id = 1');
+            $settings = $stmt->fetch();
+            $adminEmail = $settings ? $settings['email'] : 'info@sevenastro.com';
+
+            $fullName = $input['fullName'] ?? '';
+            $userEmail = $input['email'] ?? '';
+
+            $subject = "Celestial Consultation Request - " . $fullName;
+            $message = "New Celestial Consultation Request Received\r\n\r\n";
+            $message .= "Seeker Details:\r\n";
+            $message .= "Full Name: " . $fullName . "\r\n";
+            $message .= "Date of Birth: " . ($input['dob'] ?? '') . "\r\n";
+            $message .= "Time of Birth: " . ($input['tob'] ?? '') . "\r\n";
+            $message .= "Place of Birth: " . ($input['pob'] ?? '') . "\r\n";
+            $message .= "Mobile: " . ($input['mobile'] ?? '') . "\r\n";
+            $message .= "Email: " . $userEmail . "\r\n";
+            $message .= "Comments: " . ($input['comments'] ?? '') . "\r\n";
+
+            $domain = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'sevenastro.com';
+            $domain = preg_replace('/^www\./', '', $domain);
+            $fromEmail = !empty($settings['smtp_user']) ? $settings['smtp_user'] : "info@" . $domain;
+
+            $headers = "From: " . $fromEmail . "\r\n";
+            $headers .= "Reply-To: " . (!empty($userEmail) ? $userEmail : $adminEmail) . "\r\n";
+            $headers .= "MIME-Version: 1.0\r\n";
+            $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+            $headers .= "X-Mailer: PHP/" . phpversion() . "\r\n";
+            
+            $mailSent = false;
+            if (!empty($settings['smtp_host']) && !empty($settings['smtp_user']) && !empty($settings['smtp_pass'])) {
+                require_once __DIR__ . '/smtp.php';
+                $smtpFrom = $settings['smtp_user']; 
+                $mailSent = send_custom_smtp($settings['smtp_host'], $settings['smtp_port'] ?? 587, $settings['smtp_user'], $settings['smtp_pass'], $smtpFrom, $adminEmail, $subject, $message);
+            }
+            if (!$mailSent) {
+                mail($adminEmail, $subject, $message, $headers, "-f " . $fromEmail);
+            }
+
             echo json_encode(['success' => true]);
         } catch (Exception $e) {
             http_response_code(500);

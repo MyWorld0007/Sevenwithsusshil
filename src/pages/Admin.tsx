@@ -500,6 +500,7 @@ export default function Admin() {
   const [services, setServices] = useState<PricingService[]>([]);
   const [pathways, setPathways] = useState<PathwayCard[]>([]);
   const [partners, setPartners] = useState<Partner[]>([]);
+  const [bookings, setBookings] = useState<any[]>([]);
 
   const [activeTab, setActiveTab] = useState<string>('settings');
 
@@ -519,7 +520,8 @@ export default function Admin() {
            apiFetch('/api/faqs'),
            apiFetch('/api/services'),
            apiFetch('/api/pathway_cards'),
-           apiFetch('/api/partners')
+           apiFetch('/api/partners'),
+           apiFetch('/api/bookings', { headers: { 'Authorization': `Bearer ${token}` } })
        ];
        const results = await Promise.allSettled(calls);
        
@@ -573,6 +575,7 @@ export default function Admin() {
        const servicesResText = await resolveRes(results[5]);
        const pathwaysResText = await resolveRes(results[6]);
        const partnersResText = await resolveRes(results[7]);
+       const bookingsResText = await resolveRes(results[8]);
 
        // Fallback for settings to null, rest to array. Provide default empty values if error
        setSettings(setResText?.error ? null : setResText);
@@ -586,6 +589,7 @@ export default function Admin() {
        setServices(Array.isArray(servicesResText) ? servicesResText : []);
        setPathways(Array.isArray(pathwaysResText) ? pathwaysResText : []);
        setPartners(Array.isArray(partnersResText) ? partnersResText : []);
+       setBookings(Array.isArray(bookingsResText) ? bookingsResText : []);
      } catch (err) {
          console.error("fetchData error:", err);
      }
@@ -1159,6 +1163,12 @@ export default function Admin() {
              className={`w-full text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] transition-colors rounded ${activeTab === 'profile' ? 'bg-gold text-bg-dark font-bold' : 'text-gold hover:bg-gold/10'}`}
            >
              About SEVEN Profile
+           </button>
+           <button 
+             onClick={() => setActiveTab('bookings')} 
+             className={`w-full text-left px-4 py-3 text-[11px] uppercase tracking-[0.1em] transition-colors rounded ${activeTab === 'bookings' ? 'bg-gold text-bg-dark font-bold' : 'text-gold hover:bg-gold/10'}`}
+           >
+             Bookings
            </button>
            <button 
              onClick={() => setActiveTab('partners')} 
@@ -2097,6 +2107,72 @@ export default function Admin() {
               </div>
             </section>
           )}
+          {activeTab === 'bookings' && (
+            <section className="max-w-6xl animate-in fade-in slide-in-from-bottom-4 duration-500 font-sans p-2">
+              <div className="flex justify-between items-center mb-8">
+                <div>
+                  <h2 className="text-3xl font-serif text-gold mb-2">Registry of Bookings</h2>
+                  <p className="text-sm text-muted leading-relaxed max-w-xl">
+                    View all celestial service bookings made by seekers.
+                  </p>
+                </div>
+                <span className="text-xs text-muted uppercase tracking-widest">{bookings.length} Total Bookings</span>
+              </div>
+              
+              <div className="bg-bg-card border border-gold/20 overflow-hidden shadow-sm rounded">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm text-muted">
+                        <thead className="bg-gold/5 border-b border-gold/10 text-gold uppercase text-[10px] tracking-[0.1em]">
+                            <tr>
+                                <th className="px-6 py-4 font-semibold whitespace-nowrap">Booking ID</th>
+                                <th className="px-6 py-4 font-semibold whitespace-nowrap">Date</th>
+                                <th className="px-6 py-4 font-semibold whitespace-nowrap">Time</th>
+                                <th className="px-6 py-4 font-semibold whitespace-nowrap">Seeker Name</th>
+                                <th className="px-6 py-4 font-semibold whitespace-nowrap">Service</th>
+                                <th className="px-6 py-4 font-semibold whitespace-nowrap">Price</th>
+                                <th className="px-6 py-4 font-semibold whitespace-nowrap">Partner/Expert</th>
+                                <th className="px-6 py-4 font-semibold whitespace-nowrap">Mode</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gold/10">
+                            {bookings.map((b: any) => {
+                                const bid = Number(b.id || 0);
+                                const bFormatted = `BK-${10000 + bid}`;
+                                const dateObj = new Date(b.created_at);
+                                const dateStr = dateObj.toLocaleDateString();
+                                const timeStr = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                                
+                                return (
+                                    <tr key={b.id} className="hover:bg-gold/5 transition-colors group text-text-main">
+                                        <td className="px-6 py-4 font-mono text-gold font-medium">{bFormatted}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-muted">{dateStr}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-muted">{timeStr}</td>
+                                        <td className="px-6 py-4 font-serif text-text-main font-medium">{b.full_name}</td>
+                                        <td className="px-6 py-4 font-serif text-muted">{b.service_title}</td>
+                                        <td className="px-6 py-4 text-emerald-600 font-mono font-medium">{b.service_price}</td>
+                                        <td className="px-6 py-4 font-medium text-text-main whitespace-nowrap">{b.operator_name || 'Admin'}</td>
+                                        <td className="px-6 py-4">
+                                            <span className={`px-2 py-1 text-[10px] uppercase tracking-wider rounded font-medium ${b.booking_mode === 'whatsapp' ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-blue-100 text-blue-700 border border-blue-200'}`}>
+                                                {b.booking_mode || 'Mail'}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                            {bookings.length === 0 && (
+                                <tr>
+                                    <td colSpan={8} className="px-6 py-12 text-center text-muted italic">
+                                        No bookings have been registered yet.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+              </div>
+            </section>
+          )}
+
        </main>
     </div>
   );

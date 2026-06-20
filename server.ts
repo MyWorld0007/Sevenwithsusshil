@@ -1491,15 +1491,52 @@ async function startServer() {
     }
   });
 
+  app.get("/api/bookings", requireAuth, async (req, res) => {
+    try {
+      if (pool) {
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS booking_submissions (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            full_name VARCHAR(255),
+            dob VARCHAR(255),
+            tob VARCHAR(255),
+            pob VARCHAR(255),
+            mobile VARCHAR(255),
+            email VARCHAR(255),
+            service_title VARCHAR(255),
+            service_price VARCHAR(255),
+            operator_name VARCHAR(255) DEFAULT 'Admin',
+            booking_mode VARCHAR(50) DEFAULT 'Mail',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+        try {
+          await pool.query("ALTER TABLE booking_submissions ADD COLUMN operator_name VARCHAR(255) DEFAULT 'Admin'");
+          await pool.query("ALTER TABLE booking_submissions ADD COLUMN booking_mode VARCHAR(50) DEFAULT 'Mail'");
+        } catch (e) {}
+        const [rows] = await pool.query("SELECT * FROM booking_submissions ORDER BY created_at DESC");
+        return res.json(rows);
+      } else {
+        const data = readJsonDb();
+        return res.json((data.booking_submissions || []).sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+      }
+    } catch (err: any) {
+      console.error("/api/bookings error:", err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // Celestial Service Booking Form Submission
   app.post("/api/bookings", async (req, res) => {
     try {
-      const { fullName, dob, tob, pob, mobile, email, serviceTitle, servicePrice } = req.body;
+      const { fullName, dob, tob, pob, mobile, email, serviceTitle, servicePrice, operatorName = 'Admin', bookingMode = 'Mail' } = req.body;
       
       const db = await getDbPool();
       const [settingsRows]: any = await db.query('SELECT * FROM settings WHERE id = 1');
       const adminEmail = settingsRows.length > 0 ? settingsRows[0].email : "info@sevenastro.com";
       
+      let nextId = 1;
+
       try {
         if (pool) {
           await pool.query(`
@@ -1513,20 +1550,29 @@ async function startServer() {
               email VARCHAR(255),
               service_title VARCHAR(255),
               service_price VARCHAR(255),
+              operator_name VARCHAR(255) DEFAULT 'Admin',
+              booking_mode VARCHAR(50) DEFAULT 'Mail',
               created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
           `);
-          await pool.query(
-            "INSERT INTO booking_submissions (full_name, dob, tob, pob, mobile, email, service_title, service_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            [fullName, dob, tob, pob, mobile, email, serviceTitle, servicePrice]
+          
+          try {
+            await pool.query("ALTER TABLE booking_submissions ADD COLUMN operator_name VARCHAR(255) DEFAULT 'Admin'");
+            await pool.query("ALTER TABLE booking_submissions ADD COLUMN booking_mode VARCHAR(50) DEFAULT 'Mail'");
+          } catch (e) {}
+
+          const [result]: any = await pool.query(
+            "INSERT INTO booking_submissions (full_name, dob, tob, pob, mobile, email, service_title, service_price, operator_name, booking_mode) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            [fullName, dob, tob, pob, mobile, email, serviceTitle, servicePrice, operatorName, bookingMode]
           );
+          nextId = result.insertId;
         } else {
           // JsonDbEngine fallback save
           const data = readJsonDb();
           if (!data.booking_submissions) {
             data.booking_submissions = [];
           }
-          const nextId = (data.booking_submissions.reduce((m: number, x: any) => Math.max(m, x.id || 0), 0)) + 1;
+          nextId = (data.booking_submissions.reduce((m: number, x: any) => Math.max(m, x.id || 0), 0)) + 1;
           data.booking_submissions.push({
             id: nextId,
             full_name: fullName,
@@ -1537,6 +1583,8 @@ async function startServer() {
             email,
             service_title: serviceTitle,
             service_price: servicePrice,
+            operator_name: operatorName,
+            booking_mode: bookingMode,
             created_at: new Date().toISOString()
           });
           writeJsonDb(data);
@@ -1544,6 +1592,8 @@ async function startServer() {
       } catch (dbErr: any) {
         console.error("[Database Error] Saving booking submission:", dbErr.message);
       }
+
+      const bookingIdFormatted = `BK-${10000 + nextId}`;
 
       // Live mail dispatch via transport layer to admin ONLY
       let mailSent = false;
@@ -1589,8 +1639,11 @@ async function startServer() {
 
               <div style="background-color: rgba(197, 168, 128, 0.08); border: 1px solid #c5a880; padding: 18px; margin-bottom: 25px; text-align: left; border-radius: 2px;">
                 <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #888888; margin-bottom: 4px;">Requested Blueprint Service</div>
+                <div style="font-size: 14px; font-family: monospace; color: #a5a5a5; margin-bottom: 6px;">Booking ID: ${bookingIdFormatted}</div>
                 <div style="font-size: 18px; font-family: 'Georgia', serif; color: #f5f5f5; font-weight: bold; margin-bottom: 6px;">${serviceTitle}</div>
-                <div style="font-size: 15px; font-family: 'Georgia', serif; color: #c5a880; font-weight: bold;">Energy Exchange: ${servicePrice}</div>
+                <div style="font-size: 15px; font-family: 'Georgia', serif; color: #c5a880; font-weight: bold; margin-bottom: 6px;">Energy Exchange: ${servicePrice}</div>
+                <div style="font-size: 13px; color: #a5a5a5;">Operator/Partner: <span style="color: #f5f5f5;">${operatorName}</span></div>
+                <div style="font-size: 13px; color: #a5a5a5;">Mode: <span style="color: #f5f5f5;">${bookingMode}</span></div>
               </div>
               
               <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 13px; text-align: left; border: 1px solid rgba(197, 168, 128, 0.2);">
@@ -1662,6 +1715,7 @@ async function startServer() {
         success: true, 
         emailSent: mailSent, 
         emailError: emailError || null,
+        bookingId: bookingIdFormatted,
         message: mailSent 
           ? "Your booking request has been successfully processed and dispatched!" 
           : "Your booking request has been registered offline. (SMTP connection bypassed.)"
