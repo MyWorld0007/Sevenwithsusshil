@@ -202,7 +202,7 @@ export default function Calculator() {
                 <>
                     <div className="text-5xl sm:text-7xl font-serif font-light text-gold leading-none mb-2 mt-4">{calcResult.num}</div>
                     <div className="text-xl sm:text-2xl font-serif mb-4">{calcResult.name}</div>
-                    <p className="text-xs sm:text-sm font-light leading-relaxed text-muted max-w-[500px] mx-auto mb-6">{calcResult.desc}</p>
+                    <div className="text-xs sm:text-sm font-light leading-relaxed text-muted max-w-[500px] mx-auto mb-6 ql-editor-render" dangerouslySetInnerHTML={{ __html: calcResult.desc }}></div>
                 </>
             )}
             <div className="text-dim text-[10px] tracking-[0.2em] uppercase mb-2 italic">Seeking Deeper Wisdom?</div>

@@ -500,9 +500,10 @@ export default function Pricing() {
                 {service.title}
               </h3>
 
-              <p className="text-[13px] text-dim font-light leading-relaxed mb-6 flex-grow">
-                {service.description}
-              </p>
+              <div 
+                className="text-[13px] text-dim font-light leading-relaxed mb-6 flex-grow ql-editor-render"
+                dangerouslySetInnerHTML={{ __html: service.description }}
+              ></div>
 
               <div className="w-full bg-gold/10 h-[1px] my-4"></div>
 

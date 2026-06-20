@@ -87,7 +87,7 @@ function ServiceCard({ srv }: { srv: PathwayCard; key?: React.Key }) {
               <div className="absolute bottom-0 left-0 w-0 h-[2px] bg-gold transition-all duration-500 group-hover:w-full"></div>
               <div className="font-serif text-4xl font-normal text-gold/60 leading-none mb-6">{srv.card_number}</div>
               <h3 className="font-serif text-lg font-medium mb-3">{srv.title}</h3>
-              <p className="text-[13px] font-light leading-[1.85] text-muted mb-6">{srv.short_desc}</p>
+              <div className="text-[13px] font-light leading-[1.85] text-muted mb-6 ql-editor-render" dangerouslySetInnerHTML={{ __html: srv.short_desc }}></div>
             </div>
             <Link to={`/service/${srv.slug}`} className="text-[10px] font-medium tracking-[0.14em] uppercase text-gold hover:text-gold-lt transition-colors mt-auto block w-fit">Explore →</Link>
         </div>

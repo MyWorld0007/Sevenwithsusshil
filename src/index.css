@@ -222,12 +222,12 @@ html {
 
 .ql-editor-render {
   padding: 0 !important;
-  white-space: normal !important;
-  word-break: break-word;
-  overflow-wrap: break-word;
+  white-space: pre-wrap !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
 }
-.ql-editor-render p { margin-bottom: 1rem; white-space: normal !important; }
-.ql-editor-render * { white-space: normal !important; max-width: 100%; }
+.ql-editor-render p { margin-bottom: 1rem; white-space: pre-wrap !important; overflow-wrap: break-word !important; word-break: break-word !important; }
+.ql-editor-render * { white-space: pre-wrap !important; max-width: 100%; overflow-wrap: break-word !important; word-break: break-word !important; }
 .ql-editor-render strong, .ql-editor-render b { font-weight: 600; color: inherit; }
 .ql-editor-render em, .ql-editor-render i { font-style: italic; }
 .ql-editor-render .ql-size-large { font-size: 1.35em !important; line-height: 1.4 !important; }

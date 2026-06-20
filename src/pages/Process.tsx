@@ -43,7 +43,7 @@ export default function Process() {
           <div key={i} className="p-10 border border-gold/20 -ml-[1px] -mt-[1px] relative transition-colors duration-300 hover:bg-bg-card/50">
             <div className="font-serif text-5xl font-light text-gold leading-none mb-4">{step.num}</div>
             <h3 className="text-lg font-medium tracking-[0.04em] mb-2">{step.title}</h3>
-            <p className="text-[13px] font-light leading-[1.85] text-muted whitespace-pre-wrap">{step.desc}</p>
+            <div className="text-[13px] font-light leading-[1.85] text-muted ql-editor-render" dangerouslySetInnerHTML={{ __html: step.desc }}></div>
           </div>
         ))}
       </div>
