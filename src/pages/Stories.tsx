@@ -164,8 +164,9 @@ const GoogleReviewItem = ({ tst, isVoted, votes, onHelpfulToggle }: GoogleReview
   if (cleanText.startsWith('"') && cleanText.endsWith('"')) {
     cleanText = cleanText.substring(1, cleanText.length - 1);
   }
+  // Unescape any HTML entities if it was double-escaped
+  cleanText = cleanText.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&');
   const isLongText = cleanText.length > 280;
-  const renderText = isLongText && !isExpanded ? cleanText.slice(0, 280) + '...' : cleanText;
 
   return (
     <div className="border-b border-gold/10 pb-8 pt-8 flex items-start gap-4 md:gap-6 last:border-b-0">
@@ -202,17 +203,18 @@ const GoogleReviewItem = ({ tst, isVoted, votes, onHelpfulToggle }: GoogleReview
         </div>
 
         {/* Testimonial Core Message */}
-        <p className="font-serif text-[15px] md:text-[16.5px] font-light leading-relaxed text-text-main/90 italic">
-          "{renderText}"
-          {isLongText && (
-            <button 
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="text-gold hover:text-gold-lt text-xs tracking-wider font-semibold ml-2 inline-block focus:outline-none transition-colors"
-            >
-              {isExpanded ? 'Show Less' : 'Read Full Narrative'}
-            </button>
-          )}
-        </p>
+        <div 
+          className={`font-serif text-[15px] md:text-[16.5px] font-light leading-relaxed text-text-main/90 italic ql-editor-render ${!isExpanded && isLongText ? 'line-clamp-4' : ''}`}
+          dangerouslySetInnerHTML={{ __html: cleanText }}
+        />
+        {isLongText && (
+          <button 
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="text-gold hover:text-gold-lt text-xs tracking-wider font-semibold mt-2 inline-block focus:outline-none transition-colors"
+          >
+            {isExpanded ? 'Show Less' : 'Read Full Narrative'}
+          </button>
+        )}
 
         {/* Client Feedback Action Buttons */}
         <div className="flex items-center gap-6 mt-4">

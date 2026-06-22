@@ -1421,7 +1421,7 @@ export default function Admin() {
                              <button onClick={() => deleteTestimonial(t.id)} className="text-[10px] uppercase tracking-widest text-red-500 hover:text-red-400">Delete</button>
                            </div>
                        </div>
-                       <p className="italic text-[13px] text-muted mb-6 flex-grow">"{t.text}"</p>
+                       <div className="italic text-[13px] text-muted mb-6 flex-grow ql-editor-render" dangerouslySetInnerHTML={{ __html: t.text.replace(/^["'\s]+|["'\s]+$/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&') }} />
                        <div className="flex justify-between items-center">
                            <p className="font-medium text-[11px] uppercase tracking-wider text-gold">{t.name} <span className="text-muted/60 ml-1">({t.loc})</span></p>
                            <div className="text-right">

@@ -95,9 +95,10 @@ export default function App() {
             y: Math.random() * window.innerHeight,
             c: CHARS[Math.floor(Math.random() * CHARS.length)],
             sz: 11 + Math.random() * 25,
-            op: .1 + Math.random() * .10,
+            op: .1 + Math.random() * .35,
             vx: (Math.random() - .5) * .25,
-            vy: -.15 - Math.random() * .35
+            vy: -.15 - Math.random() * .35,
+            color: Math.random() > 0.5 ? '#c9a050' : '#674EA7'
         });
     }
 
@@ -106,7 +107,7 @@ export default function App() {
         pts.forEach(p => {
             cx.save();
             cx.globalAlpha = p.op;
-            cx.fillStyle = '#c9a050';
+            cx.fillStyle = p.color || '#c9a050';
             cx.font = `300 ${p.sz}px "Georgia", serif`;
             cx.fillText(p.c, p.x, p.y);
             cx.restore();
@@ -136,12 +137,12 @@ export default function App() {
   return (
     <div className="relative min-h-screen bg-bg-dark text-text-main font-sans overflow-x-hidden flex flex-col pb-0">
       <div className="fixed inset-0 border-8 border-bg-card pointer-events-none z-[100]"></div>
-      <canvas id="bg-canvas" ref={canvasRef} className="fixed top-0 left-0 w-full h-full z-[-1] pointer-events-none"></canvas>
+      <canvas id="bg-canvas" ref={canvasRef} className="fixed top-0 left-0 w-full h-full z-0 pointer-events-none opacity-50"></canvas>
 
       {/* Animated Elements */}
-      <div className="font-serif fixed text-gold pointer-events-none float-anim text-6xl top-[25%] right-20 z-[-1]" style={{ animationDelay: '2s' }}>3</div>
-      <div className="font-serif fixed text-gold pointer-events-none float-anim text-8xl bottom-20 left-[33%] z-[-1]" style={{ animationDelay: '4s' }}>11</div>
-      <div className="font-serif fixed text-gold pointer-events-none float-anim text-5xl top-[60%] right-[25%] z-[-1]" style={{ animationDelay: '1s' }}>9</div>
+      <div className="font-serif fixed text-gold pointer-events-none float-anim text-6xl top-[25%] right-20 z-0" style={{ animationDelay: '2s' }}>3</div>
+      <div className="font-serif fixed text-gold pointer-events-none float-anim text-8xl bottom-20 left-[33%] z-0" style={{ animationDelay: '4s' }}>11</div>
+      <div className="font-serif fixed text-gold pointer-events-none float-anim text-5xl top-[60%] right-[25%] z-0" style={{ animationDelay: '1s' }}>9</div>
 
       {/* ═══ NAV ═══ */}
       <nav id="nav" className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${navScrolled ? 'bg-bg-dark/95 border-b border-gold-bd backdrop-blur-xl' : 'border-b border-transparent'}`}>
