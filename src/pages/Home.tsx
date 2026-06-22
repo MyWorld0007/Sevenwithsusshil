@@ -16,9 +16,15 @@ export default function Home() {
           <p className="text-text-main/90 text-lg md:text-xl font-light leading-relaxed max-w-lg mb-12">
             Every number carries a vibration. Your birth date, your name — they hold the blueprint of your soul. Let the ancient science illuminate your path.
           </p>
-          <div className="flex flex-wrap gap-6 mt-4">
-            <a href="/#calculator" className="bg-gold text-bg-dark px-8 py-4 text-xs font-semibold uppercase tracking-[0.2em] hover:bg-gold-lt transition-colors inline-block">Discover Your Number</a>
-            <Link to="/pricing" className="border border-gold/30 text-gold px-8 py-4 text-xs font-semibold uppercase tracking-[0.2em] hover:bg-gold/10 transition-colors inline-block">Book a Reading</Link>
+          <div className="flex flex-row flex-wrap xl:flex-nowrap items-center gap-3 mt-4 w-full">
+            <Link 
+              to="/my-guiding-lights" 
+              className="inline-block text-center bg-gold text-bg-dark px-5 py-4 text-[9px] sm:text-[10px] lg:text-xs font-semibold tracking-[0.15em] md:tracking-[0.2em] uppercase hover:bg-gold-lt transition-colors whitespace-nowrap flex-1 md:flex-none"
+            >
+              My Guiding Lights
+            </Link>
+            <a href="/#calculator" className="inline-block text-center border border-gold/30 text-gold px-5 py-4 text-[9px] sm:text-[10px] lg:text-xs font-semibold uppercase tracking-[0.15em] md:tracking-[0.2em] hover:bg-gold/10 transition-colors whitespace-nowrap flex-1 md:flex-none">Discover Your Number</a>
+            <Link to="/pricing" className="inline-block text-center border border-gold/30 text-gold px-5 py-4 text-[9px] sm:text-[10px] lg:text-xs font-semibold uppercase tracking-[0.15em] md:tracking-[0.2em] hover:bg-gold/10 transition-colors whitespace-nowrap flex-1 md:flex-none">Book a Reading</Link>
           </div>
         </div>
         <div className="flex justify-center md:col-span-12 lg:col-span-5 reveal vis items-center order-first lg:order-none mb-12 lg:mb-0 lg:mt-0">
