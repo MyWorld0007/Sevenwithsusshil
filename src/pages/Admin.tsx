@@ -36,6 +36,99 @@ const quillFormats = [
   'align', 'link'
 ];
 
+function DescriptionParagraphEditor({ name, value, onChange, placeholder }: any) {
+  const [paras, setParas] = useState<string[]>(() => {
+    let p = [''];
+    if (value) {
+      const cleanHTML = (str: string) => {
+        return str
+          .replace(/<br\s*[\/]?>/gi, '\n')
+          .replace(/&nbsp;/ig, ' ')
+          .replace(/&amp;/ig, '&')
+          .replace(/&lt;/ig, '<')
+          .replace(/&gt;/ig, '>')
+          .replace(/&quot;/ig, '"')
+          .replace(/&#39;/g, "'")
+          .replace(/<[^>]*>?/gm, '');
+      };
+
+      if (value.includes('<p>')) {
+        const matches = value.match(/<p>([\s\S]*?)<\/p>/gi);
+        if (matches) {
+          p = matches.map((m: string) => cleanHTML(m.replace(/<\/?p>/gi, '')));
+        } else {
+          p = [cleanHTML(value)];
+        }
+      } else {
+        p = cleanHTML(value).split('\n\n').filter(Boolean);
+      }
+    }
+    return p.length >= 2 ? p : [...p, ...Array(2 - p.length).fill('')];
+  });
+
+  const notifyChange = (newParas: string[]) => {
+    const html = newParas.filter(p => p.trim() !== '').map(p => `<p>${p.trim()}</p>`).join('');
+    if (onChange) {
+      onChange({ target: { value: html, name } });
+    }
+    return html;
+  };
+
+  const updatePara = (index: number, val: string) => {
+    const newParas = [...paras];
+    newParas[index] = val;
+    setParas(newParas);
+    notifyChange(newParas);
+  };
+
+  const addPara = () => {
+    const newParas = [...paras, ''];
+    setParas(newParas);
+    notifyChange(newParas);
+  };
+
+  const removePara = (index: number) => {
+    if (paras.length <= 2) return;
+    const newParas = paras.filter((_, i) => i !== index);
+    setParas(newParas);
+    notifyChange(newParas);
+  };
+
+  const htmlValue = paras.filter(p => p.trim() !== '').map(p => `<p>${p.trim()}</p>`).join('');
+
+  return (
+    <div className="flex flex-col gap-3">
+      {name && <input type="hidden" name={name} value={htmlValue} />}
+      {paras.map((p, index) => (
+        <div key={index} className="flex gap-2 items-start relative">
+          <textarea
+            value={p}
+            onChange={(e) => updatePara(index, e.target.value)}
+            className="w-full bg-transparent border border-gold/20 p-4 outline-none focus:border-gold rounded font-sans text-sm min-h-[100px] resize-y text-text-main"
+            placeholder={placeholder || `Paragraph ${index + 1}`}
+          />
+          {paras.length > 2 && (
+            <button
+              type="button"
+              onClick={() => removePara(index)}
+              className="text-[10px] uppercase tracking-widest text-[#ef4444] opacity-60 hover:opacity-100 transition-opacity absolute right-2 top-2 p-1 font-bold z-10"
+            >
+              Remove
+            </button>
+          )}
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={addPara}
+        className="text-[10px] uppercase tracking-widest text-gold text-left mt-1 hover:text-gold-lt self-start font-bold"
+      >
+        + Add Paragraph
+      </button>
+    </div>
+  );
+}
+
 function AdminRichText({ name, required, value: initialValue, onChange, onBlur, placeholder, className }: any) {
   const [content, setContent] = useState(initialValue || '');
   
@@ -198,9 +291,8 @@ function PartnerAdminItem({
             />
          </div>
          <div className="flex flex-col gap-1 w-full mt-4">
-            <label className="text-[10px] uppercase tracking-widest text-muted font-semibold">Description (One Para)</label>
-            <AdminRichText 
-              className="w-full bg-bg-dark border border-gold/10 pb-10 min-h-[140px]"
+            <label className="text-[10px] uppercase tracking-widest text-muted font-semibold">Description (Paragraphs)</label>
+            <DescriptionParagraphEditor 
               value={partner.description}
               onChange={(e: any) => handleUpdate({ description: e.target.value })}
             />
@@ -2160,11 +2252,9 @@ export default function Admin() {
                   </div>
                   <div>
                     <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2 font-semibold font-serif">Description</label>
-                    <AdminRichText
+                    <DescriptionParagraphEditor
                       name="description"
-                      required
                       placeholder="Brief bio or description here..."
-                      className="w-full bg-bg-input border border-gold/20 pb-10 min-h-[140px]"
                     />
                   </div>
                   <div className="pt-2">
