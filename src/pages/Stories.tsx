@@ -19,6 +19,13 @@ const getTruncatedText = (text: string, limit: number = 130) => {
   return cleanText.slice(0, limit).trim() + '...';
 };
 
+const formatDate = (dateStr: string | undefined): string => {
+  if (!dateStr) return '3 months ago';
+  const dt = new Date(dateStr);
+  if (isNaN(dt.getTime())) return dateStr;
+  return dt.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+};
+
 // Generates dynamic, elegant background for review avatars
 const getAvatarBg = (name: string) => {
   const colors = [
@@ -92,7 +99,7 @@ const BriefStoryCard = ({ tst, onSelect }: BriefStoryCardProps) => {
             </div>
           </div>
           {tst.date && (
-            <p className="text-[9px] text-dim uppercase tracking-wider">{tst.date}</p>
+            <p className="text-[9px] text-dim uppercase tracking-wider">{formatDate(tst.date)}</p>
           )}
         </div>
       </div>
@@ -141,7 +148,7 @@ const TestimonialCard = ({ tst }: { tst: Testimonial; key?: React.Key }) => {
           </div>
         </div>
         {tst.date && (
-          <div className="text-[10px] text-dim uppercase tracking-widest text-right max-w-[80px]">{tst.date}</div>
+          <div className="text-[10px] text-dim uppercase tracking-widest text-right max-w-[80px]">{formatDate(tst.date)}</div>
         )}
       </div>
     </div>
@@ -198,7 +205,7 @@ const GoogleReviewItem = ({ tst, isVoted, votes, onHelpfulToggle }: GoogleReview
             ))}
           </div>
           <span className="text-[11px] text-dim font-light ml-2">
-            {tst.date || '3 months ago'}
+            {formatDate(tst.date)}
           </span>
         </div>
 
