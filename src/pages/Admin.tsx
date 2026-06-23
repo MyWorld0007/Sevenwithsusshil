@@ -36,6 +36,77 @@ const quillFormats = [
   'align', 'link'
 ];
 
+function GratitudeInput({ name, value, onChange, placeholder, className }: any) {
+  const [text, setText] = useState('');
+  const [fontSize, setFontSize] = useState('18px');
+
+  useEffect(() => {
+    if (value) {
+      if (value.includes('font-size:')) {
+        const match = value.match(/font-size:\s*([^;>"]+)/);
+        if (match) setFontSize(match[1].trim());
+      } else if (value.includes('ql-size-large')) {
+        setFontSize('24px');
+      } else if (value.includes('ql-size-small')) {
+        setFontSize('14px');
+      } else if (value.includes('ql-size-huge')) {
+        setFontSize('32px');
+      } else {
+        setFontSize('18px');
+      }
+      
+      const cleanText = value
+        .replace(/<br\s*[\/]?>/gi, '\n')
+        .replace(/&nbsp;/ig, ' ')
+        .replace(/&amp;/ig, '&')
+        .replace(/&lt;/ig, '<')
+        .replace(/&gt;/ig, '>')
+        .replace(/&quot;/ig, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/<[^>]*>?/gm, '');
+      setText(cleanText);
+    } else {
+      setText('');
+      setFontSize('18px');
+    }
+  }, [value]);
+
+  const handleChange = (newText: string, newFontSize: string) => {
+    setText(newText);
+    setFontSize(newFontSize);
+    const htmlValue = newText ? `<div style="font-size: ${newFontSize};">${newText.replace(/\n/g, '<br/>')}</div>` : '';
+
+    if (onChange) {
+      onChange({ target: { value: htmlValue, name } });
+    }
+  };
+
+  return (
+    <div className={`flex flex-col gap-2 ${className || ''}`}>
+      {name && <input type="hidden" name={name} value={text ? `<div style="font-size: ${fontSize};">${text.replace(/\n/g, '<br/>')}</div>` : ''} />}
+      <div className="flex gap-2 items-start">
+         <select 
+           value={fontSize} 
+           onChange={(e) => handleChange(text, e.target.value)}
+           className="bg-bg-input border border-gold/20 p-2 outline-none focus:border-gold rounded font-sans text-xs text-text-main h-[42px] min-w-[120px]"
+         >
+           <option value="12px">Small (12px)</option>
+           <option value="18px">Normal (18px)</option>
+           <option value="22px">Large (22px)</option>
+           <option value="28px">X-Large (28px)</option>
+           <option value="36px">Huge (36px)</option>
+         </select>
+         <textarea 
+           value={text}
+           onChange={(e) => handleChange(e.target.value, fontSize)}
+           placeholder={placeholder}
+           className="flex-grow bg-transparent border border-gold/20 p-3 outline-none focus:border-gold rounded font-sans text-sm text-text-main min-h-[100px] resize-y"
+         />
+      </div>
+    </div>
+  );
+}
+
 function DescriptionParagraphEditor({ name, value, onChange, placeholder }: any) {
   const [paras, setParas] = useState<string[]>(() => {
     let p = [''];
@@ -258,8 +329,8 @@ function PartnerAdminItem({
                 </div>
               </div>
             </div>
-            <AdminRichText 
-              className="w-full bg-bg-dark border border-gold/10 pb-10 min-h-[140px]"
+            <GratitudeInput 
+              className="w-full mb-4"
               value={partner.gratitude || ''}
               onChange={(e: any) => handleUpdate({ gratitude: e.target.value })}
             />
@@ -2204,10 +2275,9 @@ export default function Admin() {
                 <form onSubmit={addPartner} className="grid grid-cols-1 gap-6">
                   <div>
                     <label className="block text-xs uppercase tracking-[0.1em] text-muted mb-2 font-semibold">Gratitude</label>
-                    <AdminRichText
+                    <GratitudeInput
                       name="gratitude"
                       placeholder="e.g. With Gratitude"
-                      className="w-full bg-bg-input border border-gold/20 pb-10 min-h-[140px]"
                     />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
