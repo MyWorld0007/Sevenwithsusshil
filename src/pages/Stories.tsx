@@ -115,6 +115,19 @@ const TestimonialCard = ({ tst }: { tst: Testimonial; key?: React.Key }) => {
   if (cleanText.startsWith('"') && cleanText.endsWith('"')) {
     cleanText = cleanText.substring(1, cleanText.length - 1);
   }
+  
+  cleanText = cleanText
+    .replace(/<br\s*[\/]?>/gi, '\n')
+    .replace(/&nbsp;/ig, ' ')
+    .replace(/&amp;/ig, '&')
+    .replace(/&lt;/ig, '<')
+    .replace(/&gt;/ig, '>')
+    .replace(/&quot;/ig, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/<p>/gi, '')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<[^>]*>?/gm, '')
+    .trim();
 
   const isLong = cleanText.length > 150;
   const displayText = isLong && !isExpanded ? cleanText.slice(0, 150).trim() + '...' : cleanText;
@@ -125,12 +138,12 @@ const TestimonialCard = ({ tst }: { tst: Testimonial; key?: React.Key }) => {
         <div className="text-gold text-[10px] tracking-[0.12em] mb-4">
           {'★'.repeat(tst.rating || 5)}{'☆'.repeat(5 - (tst.rating || 5))}
         </div>
-        <p className="font-serif text-[15px] font-light italic leading-[1.8] text-muted mb-6 text-left">
+        <p className="font-serif text-[15px] font-light italic leading-[1.8] text-muted mb-6 text-left whitespace-pre-wrap">
           "{displayText}"
           {isLong && (
             <button
               onClick={() => setIsExpanded(!isExpanded)}
-              className="text-gold hover:text-gold-lt text-[11px] tracking-wider font-semibold ml-2 inline-block focus:outline-none transition-colors border-b border-gold/25 cursor-pointer pb-0.5"
+              className="text-gold hover:text-gold-lt text-[11px] tracking-wider font-semibold ml-2 inline-block focus:outline-none transition-colors border-b border-gold/25 cursor-pointer pb-0.5 not-italic"
             >
               {isExpanded ? 'Read Less' : 'Read More'}
             </button>
