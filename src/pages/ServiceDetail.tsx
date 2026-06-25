@@ -256,7 +256,7 @@ export default function ServiceDetail() {
         </div>
 
         <div className="mt-12 flex flex-col sm:flex-row items-center gap-6 justify-center pt-10 border-t border-gold/10">
-          <Link to="/" className="text-xs uppercase tracking-widest text-muted hover:text-gold transition-colors border border-transparent hover:border-gold/30 px-6 py-3 rounded">
+          <Link to="/#services" className="text-xs uppercase tracking-widest text-muted hover:text-gold transition-colors border border-transparent hover:border-gold/30 px-6 py-3 rounded">
             ← Explore Other Offerings
           </Link>
           <Link to="/pricing" className="bg-gold text-bg-dark px-8 py-3 text-xs font-bold uppercase tracking-[0.2em] hover:bg-gold-lt transition-colors rounded shadow-lg shadow-gold/10">
