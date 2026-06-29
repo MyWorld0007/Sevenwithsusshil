@@ -57,7 +57,12 @@ export default function About() {
           </div>
         </div>
         <div className="md:col-span-7 reveal vis">
-          <p className="text-[10px] font-medium tracking-[0.38em] uppercase text-gold mb-4">About SEVEN</p>
+          <h3 className="font-medium tracking-[0.38em] uppercase text-gold mb-4 flex flex-wrap items-baseline gap-x-2">
+            <span className="text-[15px]">About</span>
+            <span className="text-[22px]">SEVEN</span>
+            <span className="text-[15px]">BY</span>
+            <span className="text-[22px]">SUSSHIL</span>
+          </h3>
           <h2 className="text-3xl md:text-5xl font-light font-serif leading-[1.18] mb-6">{aboutTitle}</h2>
           <div className="text-[15px] font-light leading-[1.95] text-muted mb-6 ql-editor-render" dangerouslySetInnerHTML={{ __html: decodeHtml(aboutPara1) }}></div>
           <div className="text-[15px] font-light leading-[1.95] text-muted mb-8 ql-editor-render" dangerouslySetInnerHTML={{ __html: decodeHtml(aboutPara2) }}></div>

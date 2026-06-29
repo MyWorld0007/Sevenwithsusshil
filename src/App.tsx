@@ -230,7 +230,7 @@ export default function App() {
             <span className="text-[10px] uppercase tracking-[0.2em] text-dim">Readings Given</span>
           </div>
           <div className="flex flex-col text-center md:text-left">
-            <span className="text-2xl font-serif text-gold">91%</span>
+            <span className="text-2xl font-serif text-gold">95%</span>
             <span className="text-[10px] uppercase tracking-[0.2em] text-dim">Accuracy Rate</span>
           </div>
           <div className="flex flex-col text-center md:text-left">
